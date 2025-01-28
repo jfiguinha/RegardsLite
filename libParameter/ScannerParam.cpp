@@ -19,10 +19,10 @@ CMainParam::CMainParam()
 	positionFolderCriteria = 0;
 	check = false;
 	//Définition des valeurs par défaut
-	positionRegardsViewer.x = 0;
-	positionRegardsViewer.width = 800;
-	positionRegardsViewer.y = 0;
-	positionRegardsViewer.height = 800;
+	positionRegardsLite.x = 0;
+	positionRegardsLite.width = 800;
+	positionRegardsLite.y = 0;
+	positionRegardsLite.height = 800;
 	showThumbnail = true;
 	showVideoThumbnail = true;
 	position = 0;
@@ -261,7 +261,7 @@ void CMainParam::SetWindowPositionParameter(xml_node<>* sectionWindowPosition, c
 void CMainParam::SetPositionParameter(xml_node<>* sectionPosition)
 {
 	xml_node<>* sectionWindowPosition = node("Window");
-	SetWindowPositionParameter(sectionWindowPosition, positionRegardsViewer);
+	SetWindowPositionParameter(sectionWindowPosition, positionRegardsLite);
 	sectionPosition->append_node(sectionWindowPosition);
 }
 
@@ -306,7 +306,7 @@ void CMainParam::GetCriteriaParameter(xml_node<>* position_node)
 void CMainParam::GetPositionParameter(xml_node<>* position_node)
 {
 	xml_node<>* child_node = position_node->first_node("Window");
-	positionRegardsViewer = GetWindowPositionParameter(child_node);
+	positionRegardsLite = GetWindowPositionParameter(child_node);
 }
 
 wxRect CMainParam::GetWindowPositionParameter(xml_node<>* position_node)
@@ -535,7 +535,7 @@ void CMainParam::SetOptionDiaporama(const bool& fullscreen, const int& effect, c
 
 void CMainParam::SetPositionWindow(const wxRect& rc)
 {
-	positionRegardsViewer = rc;
+	positionRegardsLite = rc;
 }
 
 void CMainParam::SetShowThumbnail(const bool& show)
@@ -603,7 +603,7 @@ int CMainParam::GetDelaiDiaporamaOption()
 
 void CMainParam::GetPositionWindow(wxRect& rc)
 {
-	rc = positionRegardsViewer;
+	rc = positionRegardsLite;
 }
 
 void CMainParam::GetShowThumbnail(bool& show)

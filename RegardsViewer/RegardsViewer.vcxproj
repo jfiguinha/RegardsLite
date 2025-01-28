@@ -230,7 +230,7 @@
     <IncludePath>$(CUDA_PATH)\include;$(SolutionDir)libextern\cudnn\include;$(SolutionDir)libextern\vcpkg\installed\x64-windows\include\IMath;$(SolutionDir)libextern\ffmpeg-master\include;$(SolutionDir)libextern\vcpkg\installed\x64-windows\include;$(SolutionDir)libextern\vcpkg\installed\x64-windows\include\OpenEXR;$(IncludePath);$(VC_IncludePath)</IncludePath>
     <LibraryPath>$(SolutionDir)libextern\cudnn\lib\x64;$(SolutionDir)x64\Debug;$(SolutionDir)libextern\rav1e\lib;$(oneMKLLibDir);$(oneTBBLibDir)\vc_mt;$(SolutionDir)libextern\opencv\opencv-4.5.1\build\3rdparty\lib\Debug;$(ICInstallDir)compiler\lib\intel64_win;$(SolutionDir)libextern\ffmpeg-master\lib;$(SolutionDir)\libextern\poppler_windows-master\lib;$(SolutionDir)libextern\qpdf-master\lib;$(SolutionDir)\libExtern\aom\build\Debug;$(SolutionDir)libextern\opencv\opencv-4.5.1\build\lib\Debug;$(SolutionDir)libextern\libOpenCL\lib\x86_64\;$(SolutionDir)libextern\heif-master\build\lib\Debug;$(SolutionDir)\libExtern\x265_2.5\build\vc15-x86_64\Debug;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);$(SolutionDir)libextern\vcpkg\installed\x64-windows\Debug\lib;$(SolutionDir)libextern\vcpkg\installed\x64-windows\lib;$(CUDA_PATH)\lib\x64</LibraryPath>
     <EmbedManifest>false</EmbedManifest>
-    <TargetName>RegardsViewer</TargetName>
+    <TargetName>RegardsLite</TargetName>
     <PostBuildEventUseInBuild>true</PostBuildEventUseInBuild>
     <ExecutablePath>$(ICInstallDir)bin\Intel64;$(ICInstallDir)bin;$(VC_ExecutablePath_x64);$(CommonExecutablePath)</ExecutablePath>
   </PropertyGroup>
@@ -270,7 +270,7 @@
     <LinkIncremental>false</LinkIncremental>
     <LibraryPath>$(SolutionDir)libextern\cudnn\lib\x64;$(oneTBBLibDir)\vc_mt;$(oneMKLLibDir);$(SolutionDir)libextern\ffmpeg-master\lib;$(SolutionDir)libextern\qpdf-master\lib;$(SolutionDir)libextern\vcpkg\installed\x64-windows\lib\;$(SolutionDir)libextern\heif-master\build\lib\Release;$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);$(CUDA_PATH)\lib\x64</LibraryPath>
     <IncludePath>$(CUDA_PATH)\include;$(SolutionDir)libextern\cudnn\include;$(SolutionDir)libextern\ffmpeg-master\include;$(SolutionDir)libextern\vcpkg\installed\x64-windows\include;$(SolutionDir)libextern\vcpkg\installed\x64-windows\include\IMath;$(SolutionDir)libextern\vcpkg\installed\x64-windows\include\OpenEXR;$(IncludePath);$(VC_IncludePath)</IncludePath>
-    <TargetName>RegardsViewer</TargetName>
+    <TargetName>RegardsLite</TargetName>
     <ExecutablePath>$(ICInstallDir)bin\Intel64;$(ICInstallDir)bin;$(VC_ExecutablePath_x64);$(CommonExecutablePath)</ExecutablePath>
     <PostBuildEventUseInBuild>true</PostBuildEventUseInBuild>
     <EmbedManifest>true</EmbedManifest>
@@ -907,7 +907,6 @@ XCOPY /E /H /C /I "$(SolutionDir)Regards\Resources" $(SolutionDir)$(Platform)\$(
     <ClInclude Include="..\Regards\openexr_3\half.h" />
     <ClInclude Include="..\Regards\Regards.h" />
     <ClInclude Include="..\Regards\SqlInit.h" />
-    <ClInclude Include="..\Regards\TestFrame.h" />
     <ClInclude Include="..\Regards\toFloat.h" />
     <ClInclude Include="resource.h" />
   </ItemGroup>
@@ -935,9 +934,6 @@ XCOPY /E /H /C /I "$(SolutionDir)Regards\Resources" $(SolutionDir)$(Platform)\$(
     <ProjectReference Include="..\LibControl\LibControl.vcxproj">
       <Project>{d1ad7321-2aa9-4feb-938e-578f51ff3f4f}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\libDeepLearning\libDeepLearning.vcxproj">
-      <Project>{578851e0-ad56-4df1-b03f-1b9a0e386fad}</Project>
-    </ProjectReference>
     <ProjectReference Include="..\libDialog\libDialog.vcxproj">
       <Project>{517373bb-6bb1-42a8-bcd1-6108cd51a73f}</Project>
     </ProjectReference>
@@ -946,9 +942,6 @@ XCOPY /E /H /C /I "$(SolutionDir)Regards\Resources" $(SolutionDir)$(Platform)\$(
     </ProjectReference>
     <ProjectReference Include="..\libResource\libResource.vcxproj">
       <Project>{ae3f398c-b13b-4c98-99e6-6ec349823995}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\libScanner\libScanner.vcxproj">
-      <Project>{b9fab389-b14f-493d-89a4-bac998a11299}</Project>
     </ProjectReference>
     <ProjectReference Include="..\libFiltre\libFiltre.vcxproj">
       <Project>{67274429-0b74-48ab-9b74-0d3e15c825be}</Project>
@@ -1004,14 +997,8 @@ XCOPY /E /H /C /I "$(SolutionDir)Regards\Resources" $(SolutionDir)$(Platform)\$(
     <ProjectReference Include="..\otherlib\libjbig\jbig.vcxproj">
       <Project>{764c3a2d-fb0f-428e-b1c7-62d1dd2ce239}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\Otherlib\wxIA\wxIA.vcxproj">
-      <Project>{d83ea5f5-d8b4-4632-aa26-dfb31490af96}</Project>
-    </ProjectReference>
     <ProjectReference Include="..\Otherlib\wxPDFDoc\wxPDFDoc.vcxproj">
       <Project>{3d1770b4-abf8-49b1-a17a-4e31d18906f2}</Project>
-    </ProjectReference>
-    <ProjectReference Include="..\wxCheckTree\wxCheckTree.vcxproj">
-      <Project>{475d02bb-fbd5-4094-8cd8-d33d9804cd24}</Project>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
@@ -1045,7 +1032,6 @@ XCOPY /E /H /C /I "$(SolutionDir)Regards\Resources" $(SolutionDir)$(Platform)\$(
     <ClCompile Include="..\Regards\Regards.cpp">
       <WholeProgramOptimization Condition="'$(Configuration)|$(Platform)'=='Release_windows10|x64'">false</WholeProgramOptimization>
     </ClCompile>
-    <ClCompile Include="..\Regards\TestFrame.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="regards.rc" />

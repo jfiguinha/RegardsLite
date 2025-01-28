@@ -22,8 +22,6 @@
 #include <wx/cmdline.h>
 #include <wx/display.h>
 #include <VideoConverterFrame.h>
-#include <ScannerFrame.h>
-#include "TestFrame.h"
 #include <ncnn/gpu.h>
 #include <signal.h>
 #include <wxffmpegFrame.h>
@@ -261,7 +259,7 @@ public:
 
 	wxString GetAppName() override
 	{
-		return "RegardsViewer";
+		return "RegardsLite";
 	}
 
 	virtual void AddImageHandler(wxImageHandler* poHandler);
@@ -276,11 +274,9 @@ private:
 	wxString m_strImageFilterList;
 	wxString m_strImageFilter;
 	wxLogNull* logNo;
-	
-	wxFfmpegFrame* frameFFmpeg = nullptr;
-	CScannerFrame * framePDF = nullptr;
+
 	CVideoConverterFrame* frameVideoConverter = nullptr;
-	CTestFrame* testFrame = nullptr;
+
 	
 	
 	bool startVideoConverter = false;

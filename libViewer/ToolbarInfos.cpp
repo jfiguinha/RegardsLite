@@ -58,12 +58,6 @@ CToolbarInfos::CToolbarInfos(wxWindow* parent, wxWindowID id, const CThemeToolba
 	videoeffect->SetLibelle(videoeffect_label);
 	navElement.push_back(videoeffect);
 
-	wxString libelleCriteria = CLibResource::LoadStringFromResource(L"LBLCRITERIA", 1);
-	criteria = new CToolbarTexte(themeToolbar.texte);
-	criteria->SetCommandId(WM_CRITERIA);
-	criteria->SetLibelle(libelleCriteria);
-	navElement.push_back(criteria);
-
 	effectParameter = new CToolbarTexte(themeToolbar.texte);
 	effectParameter->SetCommandId(WM_EFFECTPARAMETER);
 	effectParameter->SetLibelle(effectParameter_label);

@@ -28,7 +28,6 @@ namespace Regards::Viewer
 		ID_FACEDETECTION = 10,
 		ID_INTERPOLATIONFILTER = 11,
 		ID_EXPORT = 12,
-		ID_SCANNER = 13,
 		ID_CATEGORYDETECTION = 14,
 		ID_ASSOCIATE = 15,
 		ID_ExternalProgram = 16,
@@ -120,8 +119,7 @@ namespace Regards::Viewer
 
         void OnWindowFullScreen(wxCommandEvent & event);
         void OpenPictureFile();
-		void NewModelsAvailable();
-        bool VerifyIAModel();
+
 
 		wxDECLARE_EVENT_TABLE();
 

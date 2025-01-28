@@ -30,7 +30,7 @@ public:
 	int RenderEffectPreview(const int& numEffect, CEffectParameter* effectParameter);
 	wxImage RenderEffectPreviewwxImage(const int& numEffect, CEffectParameter* effectParameter);
 	int SharpenMasking(const float& sharpness);
-	int BokehEffect(const int& radius, const int& boxsize, const int& nbFace, const wxRect& listFace);
+
 	int HistogramNormalize();
 	int HistogramEqualize();
 	int WaveFilter(int x, int y, short height, int scale, int radius);
@@ -53,7 +53,7 @@ public:
 	int Noise();
 	int Dilate();
 	int Negatif();
-	int RedEye();
+
 	int FiltreEdge();
 	int FiltreMosaic(const int& size);
 	int FlipVertical();

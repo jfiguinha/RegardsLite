@@ -55,20 +55,12 @@ int CFiltreEffet::GetWidth()
 	return filtreEffet->GetWidth();
 }
 
-int CFiltreEffet::SuperResolutionNCNN()
-{
-	return filtreEffet->SuperResolutionNCNN();
-}
-
 int CFiltreEffet::Inpaint(const cv::Mat &mask, int algorithm)
 {
     return filtreEffet->Inpaint(mask, algorithm);
 }
 
-int CFiltreEffet::Colorization()
-{
-	return filtreEffet->Colorization();
-}
+
 
 int CFiltreEffet::GetHeight()
 {
@@ -98,13 +90,6 @@ int CFiltreEffet::PencilSketch(const double& sigma_s, const double& sigma_r, con
 int CFiltreEffet::Stylization(const double& sigma_s, const double& sigma_r)
 {
 	return filtreEffet->Stylization(sigma_s, sigma_r /100.0f);
-}
-
-
-int CFiltreEffet::BokehEffect(const int& radius, const int& boxsize, const int& nbFace, const wxRect& listFace)
-{
-	filtreEffet->BokehEffect(radius, boxsize, nbFace, listFace);
-	return 0;
 }
 
 Regards::Picture::CPictureArray CFiltreEffet::GetMatrix()
@@ -226,11 +211,6 @@ CFiltreEffet::~CFiltreEffet()
 		delete(filtreEffet);
 }
 
-int CFiltreEffet::RedEye()
-{
-	filtreEffet->RedEye();
-	return 0;
-}
 
 wxImage CFiltreEffet::GetwxImage()
 {

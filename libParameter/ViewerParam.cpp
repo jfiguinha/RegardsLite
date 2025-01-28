@@ -24,10 +24,10 @@ CMainParam::CMainParam(): showFace(false), numEffect(0)
 	
 
 	//Définition des valeurs par défaut
-	positionRegardsViewer.x = 0;
-	positionRegardsViewer.width = 800;
-	positionRegardsViewer.y = 0;
-	positionRegardsViewer.height = 800;
+	positionRegardsLite.x = 0;
+	positionRegardsLite.width = 800;
+	positionRegardsLite.y = 0;
+	positionRegardsLite.height = 800;
 	showThumbnail = true;
 	showVideoThumbnail = true;
 	position = 0;
@@ -293,7 +293,7 @@ void CMainParam::SaveParameter()
 	SetWindowParameter(sectionWindow);
 	root->append_node(sectionWindow);
 	xml_node<>* sectionPosition = node("Position");
-	SetPositionParameter(sectionPosition, positionRegardsViewer, "window");
+	SetPositionParameter(sectionPosition, positionRegardsLite, "window");
 	root->append_node(sectionPosition);
 	xml_node<>* sectionCriteria = node("Criteria");
 	SetCriteriaParameter(sectionCriteria);
@@ -397,7 +397,7 @@ void CMainParam::LoadParameter()
 
 	child_node = root_node->first_node("Position");
 	if (child_node != nullptr)
-		GetPositionParameter(child_node, positionRegardsViewer);
+		GetPositionParameter(child_node, positionRegardsLite);
 
 	child_node = root_node->first_node("Criteria");
 	if (child_node != nullptr)
@@ -662,7 +662,7 @@ void CMainParam::SetOptionDiaporama(const bool& fullscreen, const int& effect, c
 
 void CMainParam::SetPositionWindow(const wxRect& rc)
 {
-	positionRegardsViewer = rc;
+	positionRegardsLite = rc;
 }
 
 void CMainParam::SetShowThumbnail(const bool& show)
@@ -751,7 +751,7 @@ int CMainParam::GetDelaiDiaporamaOption()
 
 void CMainParam::GetPositionWindow(wxRect& rc)
 {
-	rc = positionRegardsViewer;
+	rc = positionRegardsLite;
 }
 
 void CMainParam::GetShowThumbnail(bool& show)

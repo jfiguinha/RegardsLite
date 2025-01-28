@@ -21,7 +21,6 @@
 #include <SqlFindFolderCatalog.h>
 #include <libPicture.h>
 #include <SavePicture.h>
-#include <ScannerFrame.h>
 #include <ImageLoadingFormat.h>
 #include "WaitingWindow.h"
 #include <wx/stdpaths.h>
@@ -123,14 +122,6 @@ CViewerFrame::CViewerFrame(const wxString& title, const wxPoint& pos, const wxSi
 	this->mainInterface = mainInterface;
 	this->mainInterface->parent = this;
 
-	bool isAvailable = VerifyIAModel();
-
-    if (!isAvailable)
-    {
-        wxMessageBox(wxT("IA model not found. Program can't be started."), wxT("Error"), wxICON_ERROR);
-        mainInterface->Close();
-        return;
-    }
 
 	
 	CSqlFindFolderCatalog folderCatalog;
@@ -251,7 +242,6 @@ CViewerFrame::CViewerFrame(const wxString& title, const wxPoint& pos, const wxSi
 	menuFile->Append(WXPRINT_PAGE_MARGINS, labelPageMargins_link, labelPageMargins);
 #endif
 	menuFile->Append(wxID_PRINT, wxT("&Print..."), wxT("Print"));
-    menuFile->Append(ID_SCANNER, lblScanner, lblScanner);
 	menuFile->AppendSeparator();
 	menuFile->Append(ID_Configuration, labelConfiguration_link, labelConfiguration);
 	menuFile->AppendSeparator();
@@ -277,7 +267,7 @@ CViewerFrame::CViewerFrame(const wxString& title, const wxPoint& pos, const wxSi
 #ifdef WIN32
 	Connect(ID_ASSOCIATE, wxEVT_MENU, wxCommandEventHandler(CViewerFrame::OnAssociate));
 #endif
-	Connect(ID_SCANNER, wxEVT_MENU, wxCommandEventHandler(CViewerFrame::OnScanner));
+
     Connect(wxID_EDIT, wxEVT_MENU, wxCommandEventHandler(CViewerFrame::OnEdit));
     Connect(ID_DIAPORAMA, wxEVT_MENU, wxCommandEventHandler(CViewerFrame::OnExportDiaporama));
 
@@ -336,103 +326,6 @@ void CViewerFrame::OnOpenFolder(wxCommandEvent& event)
 	mainWindow->OpenFolder(openFileDialog.GetPath());
 }
 
-bool CViewerFrame::VerifyIAModel()
-{
-	wxString documentPath = CFileUtility::GetDocumentFolderPath();
-
-#ifdef WIN32
-	wxString fileHash = documentPath + "\\model\\hash.txt";
-#else
-	wxString fileHash = documentPath + "/model/hash.txt";
-#endif
-
-    bool fileExist = false;
-    //Vérification de la version du hash
-    if (wxFileExists(fileHash))
-	{
-        wxString md5 = "";
-		wxFileInputStream input(fileHash);
-		wxTextInputStream text(input, wxT("\x09"), wxConvUTF8);
-		while (input.IsOk() && !input.Eof())
-		{
-			md5 = text.ReadLine();
-			break;
-		}
-
-		fileExist = true;
-        wxString model_hash = CLibResource::LoadStringFromResource("REGARDSMODELHASH", 1);
-        if(model_hash != md5)
-        {
-            fileExist = false;
-        }
-	}
-
-	if (!fileExist)
-	{
-        NewModelsAvailable();
-        if (!wxFileExists(fileHash))
-        {
-            return false;
-        }
-	}
-    return true;
-}
-
-void CViewerFrame::NewModelsAvailable()
-{
-	bool fileExist = false;
-	cout << "modelUpdate" << endl;
-	wxString localVersion = CLibResource::LoadStringFromResource("LBLMODELHASH", 1);
-	wxString line = "";
-	wxString documentPath = CFileUtility::GetDocumentFolderPath();
-	wxString tempModel = CFileUtility::GetTempFile("model.zip", true);
-
-#ifdef WIN32
-	wxString resourcePath = documentPath + "\\model";
-	wxString fileHash = resourcePath + "\\hash.txt";
-#else
-	wxString resourcePath = documentPath + "/model";
-	wxString fileHash = resourcePath + "/hash.txt";
-#endif
-
-	if (wxFileExists(fileHash))
-	{
-		wxFileInputStream input(fileHash);
-		wxTextInputStream text(input, wxT("\x09"), wxConvUTF8);
-		while (input.IsOk() && !input.Eof())
-		{
-			line = text.ReadLine();
-			break;
-		}
-
-		fileExist = true;
-	}
-
-	if (!fileExist || localVersion != line)
-	{
-
-		wxProgressDialog dialog("Downloading models ...", "Please wait...", 100, this, wxPD_APP_MODAL | wxPD_AUTO_HIDE |
-			wxPD_CAN_ABORT |
-			wxPD_ELAPSED_TIME |
-			wxPD_ESTIMATED_TIME |
-			wxPD_REMAINING_TIME | wxPD_SMOOTH);
-		wxString serverURL = CLibResource::LoadStringFromResource("LBLWEBSITEMODELDOWNLOAD", 1);
-
-		CDownloadFile _checkVersion(serverURL);
-		_checkVersion.DownloadFile(&dialog, tempModel, CFileUtility::GetResourcesFolderPathWithExt("ca-bundle.crt"));
-		dialog.Close();
-	}
-
-
-	if (wxFileExists(tempModel))
-	{
-		wxString serverURL = CLibResource::LoadStringFromResource("LBLWEBSITEMODELDOWNLOAD", 1);
-		CDownloadFile _checkVersion(serverURL);
-		_checkVersion.ExtractZipFiles(tempModel, resourcePath, this);
-	}
-
-
-}
 
 void CViewerFrame::OnExportDiaporama(wxCommandEvent& event)
 {
@@ -575,12 +468,12 @@ int CViewerFrame::ShowScanner()
 {
     wxString pathProgram  = "";
 #ifdef __APPLE__
-    pathProgram = CFileUtility::GetProgramFolderPath() + "/RegardsViewer -p RegardsPDF";
+    pathProgram = CFileUtility::GetProgramFolderPath() + "/RegardsLite -p RegardsPDF";
 #else
 #ifdef __WXMSW__
-	pathProgram = "RegardsViewer.exe -p RegardsPDF";
+	pathProgram = "RegardsLite.exe -p RegardsPDF";
 #else
-	pathProgram = CFileUtility::GetProgramFolderPath() + "/RegardsViewer -p RegardsPDF";
+	pathProgram = CFileUtility::GetProgramFolderPath() + "/RegardsLite -p RegardsPDF";
 #endif
 #endif
 
@@ -673,7 +566,7 @@ void CViewerFrame::OnTimereventFileSysTimer(wxTimerEvent& event)
 void CViewerFrame::OnHelp(wxCommandEvent& event)
 {
 	wxString helpFile = CFileUtility::GetResourcesFolderPath();
-	helpFile.Append("//NoticeRegardsViewer.pdf");
+	helpFile.Append("//NoticeRegardsLite.pdf");
 	wxLaunchDefaultApplication(helpFile);
 }
 

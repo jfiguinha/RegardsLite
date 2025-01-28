@@ -4,14 +4,12 @@
 #include "LensFlare.h"
 #include "MotionBlur.h"
 #include "Filtre.h"
-#include <DeepLearning.h>
 #include "Wave.h"
 #include <ImageLoadingFormat.h>
 #include <hqdn3d.h>
 #include "MeanShift.h"
 #include <fstream>
 #include <opencv2/xphoto.hpp>
-#include <FaceDetector.h>
 #include "VideoStabilization.h"
 #include <opencv2/dnn_superres.hpp>
 #include <FileUtility.h>
@@ -22,7 +20,6 @@
 #include "opencv2/fuzzy.hpp"
 using namespace Regards::OpenCV;
 using namespace Regards::OpenGL;
-using namespace Regards::DeepLearning;
 using namespace cv;
 using namespace dnn;
 using namespace dnn_superres;
@@ -443,236 +440,6 @@ void CFiltreEffetCPU::BrightnessAndContrastAuto(Mat& image, float clipHistPercen
 	convertScaleAbs(image, image, alpha, beta);
 }
 
-/*
-void CFiltreEffetCPU::CopyPictureToTexture2D(GLTexture* texture, const bool& source, int rgba)
-{
-	CRegardsBitmap* bitmap;
-	if (preview)
-		bitmap = bitmapOut;
-	else
-		bitmap = pBitmap;
-
-	if (texture != nullptr)
-	{
-		try
-		{
-			texture->SetData(bitmap);
-		}
-		catch (...)
-		{
-
-		}
-	}
-}*/
-
-int CFiltreEffetCPU::BokehEffect(const int& radius, const int& boxsize, const int& nbFace, const wxRect& listFace)
-{
-	Mat image;
-	if (preview)
-		image = paramOutput;
-	else
-		image = input;
-
-
-	if (nbFace > 0)
-	{
-		//cv::flip(image, image, 0);
-
-		try
-		{
-			//Resize the rectangle
-			wxRect rectCopy = listFace;
-			Rect rect;
-			int width = listFace.width;
-			rect.width = listFace.width * 2;
-			rect.x = listFace.x - (width / 2);
-			rect.y = 0;
-			rect.height = image.size().height;
-
-			Mat blur;
-			cv::GaussianBlur(image, blur, Size(boxsize, boxsize), radius);
-
-
-			int maxWidth = image.cols;
-			int maxHeight = image.rows;
-			if ((rect.width + rect.x) > maxWidth)
-				rect.width = maxWidth - rect.x;
-
-			if ((rect.height + rect.y) > maxHeight)
-				rect.height = maxHeight - rect.y;
-
-			Mat croppedImage = image(rect);
-			Mat src_gray;
-			Mat detected_edges;
-			Mat output;
-
-			Mat blur_crop;
-			cv::GaussianBlur(croppedImage, blur_crop, Size(3, 3), 0);
-			//medianBlur(croppedImage, blur_crop, 3);
-
-			cvtColor(blur_crop, src_gray, COLOR_BGR2GRAY);
-
-			// apply your filter
-			Canny(src_gray, src_gray, 200, 100);
-
-			// find the contours
-			vector<vector<Point>> contours;
-			findContours(src_gray, contours, RETR_EXTERNAL, CHAIN_APPROX_NONE);
-
-			// you could also reuse img1 here
-			Mat mask = Mat::zeros(src_gray.rows, src_gray.cols, CV_8UC1);
-			//threshold(mask, mask, 0, 255, THRESH_BINARY_INV);
-			// CV_FILLED fills the connected components found
-			drawContours(mask, contours, -1, Scalar(255), FILLED);
-
-
-			Point center(rect.width / 2, (rectCopy.y + rectCopy.height) / 2); //Declaring the center point
-			Size xy((rectCopy.width / 2) * 1.5, (rectCopy.height / 2) * 1.5);
-			//Declaring the major and minor axis of the ellipse//
-			int angle = 0; //angle of rotation//
-			int starting_point = 0; //Starting point of the ellipse//
-			int ending_point = 360; //Ending point of the ellipse//
-			Scalar line_Color(255, 255, 255); //Color of the Ellipse//
-
-			//namedWindow("whiteMatrix");//Declaring a window to show the ellipse//
-			ellipse(mask, center, xy, angle, starting_point, ending_point, line_Color, -1, LINE_AA);
-			//Drawing the ellipse
-
-			//waitKey(0);//Waiting for Keystroke
-
-			/*
-			 Before drawing all contours you could also decide
-			 to only draw the contour of the largest connected component
-			 found. Here's some commented out code how to do that:
-			*/
-
-			//    vector<double> areas(contours.size());
-			//    for(int i = 0; i < contours.size(); i++)
-			//        areas[i] = contourArea(Mat(contours[i]));
-			//    double max;
-			//    Point maxPosition;
-			//    minMaxLoc(Mat(areas),0,&max,0,&maxPosition);
-			//    drawContours(mask, contours, maxPosition.y, Scalar(1), CV_FILLED);
-
-			// let's create a new image now
-			//Mat crop(src_gray.rows, src_gray.cols, CV_8UC3);
-
-
-			cv::GaussianBlur(croppedImage, blur_crop, Size(boxsize, boxsize), radius);
-
-
-			// normalize so imwrite(...)/imshow(...) shows the mask correctly!
-			normalize(mask.clone(), mask, 0.0, 255.0, NORM_MINMAX, CV_8UC1);
-
-
-			int oldx = 0;
-			for (int y = 0; y < rect.height; y++)
-			{
-				for (int x = 0; x < rect.width; x++)
-				{
-					uchar color = mask.at<uchar>(y, x);
-					if (color == 255)
-					{
-						int _x = x;
-						if (oldx != 0)
-						{
-							if (x < (oldx * 0.98))
-								x = oldx * 0.98;
-						}
-
-						if (y > rect.height / 2)
-						{
-							if (x > _x)
-								x = _x;
-						}
-
-						if (x > (rectCopy.width * 0.8))
-							x = (rectCopy.width * 0.8);
-						//stop searching
-						for (int _x = 0; _x < x; _x++)
-						{
-							mask.at<uchar>(y, _x) = 0;
-						}
-
-						for (int _x = x; _x < rect.width - x; _x++)
-						{
-							mask.at<uchar>(y, _x) = 255;
-						}
-
-						for (int _x = rect.width - x; _x < rect.width; _x++)
-						{
-							mask.at<uchar>(y, _x) = 0;
-						}
-						oldx = x;
-
-						break;
-					}
-				}
-			}
-
-
-			for (int y = rect.height - 1; y >= 0; y--)
-			{
-				for (int x = 0; x < rect.width; x++)
-				{
-					uchar color = mask.at<uchar>(y, x);
-					if (color == 255)
-					{
-						if (oldx != 0)
-						{
-							if (x < (oldx * 0.98))
-								x = oldx * 0.98;
-						}
-						//stop searching
-						for (int _x = 0; _x < x; _x++)
-						{
-							mask.at<uchar>(y, _x) = 0;
-						}
-
-						for (int _x = x; _x < rect.width - x; _x++)
-						{
-							mask.at<uchar>(y, _x) = 255;
-						}
-
-						for (int _x = rect.width - x; _x < rect.width; _x++)
-						{
-							mask.at<uchar>(y, _x) = 0;
-						}
-
-						if (y > rect.height / 2)
-						{
-							if (x < oldx)
-								x = oldx;
-						}
-
-						oldx = x;
-
-						break;
-					}
-				}
-			}
-
-
-			Rect _rect(0, rect.height / 2, rect.width, rect.height / 2);
-			rectangle(mask, _rect, Scalar(255, 255, 255), -1);
-
-			// and copy the magic apple
-			croppedImage.copyTo(blur_crop, mask);
-
-			Rect copy(rect.x, rect.y, croppedImage.cols, croppedImage.rows);
-			blur_crop.copyTo(blur(copy));
-
-			blur.copyTo(image);
-		}
-		catch (...)
-		{
-		}
-
-		//cv::flip(image, image, 0);
-	}
-	//
-	return 0;
-}
 
 int CFiltreEffetCPU::OilPaintingEffect(const int& size, const int& dynRatio)
 {
@@ -821,23 +588,6 @@ void CFiltreEffetCPU::SetBitmap(CImageLoadingFormat* bitmap)
 	}
 }
 
-int CFiltreEffetCPU::RedEye()
-{
-	Mat image;
-	if (preview)
-		image = paramOutput;
-	else
-		image = input;
-
-	bool fastDetection = true;
-	CRegardsConfigParam* param = CParamInit::getInstance();
-	if (param != nullptr)
-		fastDetection = param->GetFastDetectionFace();
-
-	CDeepLearning::DetectEyes(image, fastDetection);
-
-	return 0;
-}
 
 int CFiltreEffetCPU::WaveFilter(int x, int y, short height, int scale, int radius)
 {
@@ -2088,40 +1838,6 @@ int CFiltreEffetCPU::FlipVertical()
 	return 0;
 }
 
-
-int CFiltreEffetCPU::SuperResolutionNCNN()
-{
-	Mat image;
-	if (preview)
-		image = paramOutput;
-	else
-		image = input;
-
-	cv::Mat img_up = CFaceDetector::SuperResolution(image);
-	
-	if (preview)
-		paramOutput = img_up;
-	else
-		input = img_up;
-
-	return 0;
-}
-
-int CFiltreEffetCPU::Colorization()
-{
-	Mat image;
-	if (preview)
-		image = paramOutput;
-	else
-		image = input;
-
-	if (preview)
-		paramOutput = CFaceDetector::Colorisation(image);
-	else
-		input = CFaceDetector::Colorisation(image);
-
-	return 0;
-}
 
 //----------------------------------------------------------------------------
 //

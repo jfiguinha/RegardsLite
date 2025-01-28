@@ -121,7 +121,7 @@ int Association::AssociateExtension(LPCWSTR szFileExtension)
 	TCHAR Temp[255];
 	StringCchPrintf(Temp, 255, L"%s", szFileExtension);
 	m_cRegistryAccess->CreateNewKey(Temp, HKEY_CLASSES_ROOT);
-	m_cRegistryAccess->SetKeyValue(HKEY_CLASSES_ROOT, Temp, L"", L"RegardsViewer.Files");
+	m_cRegistryAccess->SetKeyValue(HKEY_CLASSES_ROOT, Temp, L"", L"RegardsLite.Files");
 	delete m_cRegistryAccess;
 
 	return 0;
@@ -184,21 +184,21 @@ int Association::AssociateRegards()
 	//GetShortPathName(cDirLong, cDirShort, MAX_PATH);
 	//Convertir LongPath en ShortPath
 	StringCchPrintfW(cDirLong, MAX_PATH, L"%s\\x64\\Release", cDirLong);
-	StringCchPrintfW(sPath, MAX_PATH, L"\"%s\\RegardsViewer.exe\" \"%%1\"", cDirLong);
+	StringCchPrintfW(sPath, MAX_PATH, L"\"%s\\RegardsLite.exe\" \"%%1\"", cDirLong);
 
-	m_cRegistryAccess->CreateNewKey(L"RegardsViewer.Files", HKEY_CLASSES_ROOT);
-	m_cRegistryAccess->CreateNewKey(L"RegardsViewer.Files\\shell\\open\\command", HKEY_CLASSES_ROOT);
-	m_cRegistryAccess->CreateNewKey(L"RegardsViewer.Files\\shell\\edit\\command", HKEY_CLASSES_ROOT);
-	m_cRegistryAccess->CreateNewKey(L"RegardsViewer.Files\\DefaultIcon", HKEY_CLASSES_ROOT);
+	m_cRegistryAccess->CreateNewKey(L"RegardsLite.Files", HKEY_CLASSES_ROOT);
+	m_cRegistryAccess->CreateNewKey(L"RegardsLite.Files\\shell\\open\\command", HKEY_CLASSES_ROOT);
+	m_cRegistryAccess->CreateNewKey(L"RegardsLite.Files\\shell\\edit\\command", HKEY_CLASSES_ROOT);
+	m_cRegistryAccess->CreateNewKey(L"RegardsLite.Files\\DefaultIcon", HKEY_CLASSES_ROOT);
 
-	m_cRegistryAccess->SetKeyValue(HKEY_CLASSES_ROOT, L"RegardsViewer.Files", L"", L"RegardsViewer.Files");
-	m_cRegistryAccess->SetKeyValue(HKEY_CLASSES_ROOT, L"RegardsViewer.Files\\shell", L"", L"open");
-	m_cRegistryAccess->SetKeyValue(HKEY_CLASSES_ROOT, L"RegardsViewer.Files\\shell\\open\\command", L"", sPath);
-	m_cRegistryAccess->SetKeyValue(HKEY_CLASSES_ROOT, L"RegardsViewer.Files\\shell\\edit", L"",
-	                               L"Edit RegardsViewer.Image");
-	m_cRegistryAccess->SetKeyValue(HKEY_CLASSES_ROOT, L"RegardsViewer.Files\\shell\\edit\\command", L"", sPath);
-	StringCchPrintfW(sPath, MAX_PATH, L"%s\\RegardsViewer.exe,1", cDirLong);
-	m_cRegistryAccess->SetKeyValue(HKEY_CLASSES_ROOT, L"RegardsViewer.Files\\DefaultIcon", L"", sPath);
+	m_cRegistryAccess->SetKeyValue(HKEY_CLASSES_ROOT, L"RegardsLite.Files", L"", L"RegardsLite.Files");
+	m_cRegistryAccess->SetKeyValue(HKEY_CLASSES_ROOT, L"RegardsLite.Files\\shell", L"", L"open");
+	m_cRegistryAccess->SetKeyValue(HKEY_CLASSES_ROOT, L"RegardsLite.Files\\shell\\open\\command", L"", sPath);
+	m_cRegistryAccess->SetKeyValue(HKEY_CLASSES_ROOT, L"RegardsLite.Files\\shell\\edit", L"",
+	                               L"Edit RegardsLite.Image");
+	m_cRegistryAccess->SetKeyValue(HKEY_CLASSES_ROOT, L"RegardsLite.Files\\shell\\edit\\command", L"", sPath);
+	StringCchPrintfW(sPath, MAX_PATH, L"%s\\RegardsLite.exe,1", cDirLong);
+	m_cRegistryAccess->SetKeyValue(HKEY_CLASSES_ROOT, L"RegardsLite.Files\\DefaultIcon", L"", sPath);
 
 	delete m_cRegistryAccess;
 	return 0;

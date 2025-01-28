@@ -123,7 +123,7 @@ namespace Regards
 			void OnSetPosition(wxCommandEvent& event);
 			void OnPauseVideo(wxCommandEvent& event);
 
-			static void RotateRecognition(void* param);
+
 
 			void OnMoveLeft(wxCommandEvent& event);
 			void OnMoveRight(wxCommandEvent& event);

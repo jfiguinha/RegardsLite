@@ -26,7 +26,6 @@
 #include <VideoStabilization.h>
 #include <FiltreEffetCPU.h>
 #include <aspectratio.h>
-#include <FaceDetector.h>
 
 #include <OpenCLEffectVideo.h>
 #ifdef USE_CUDA
@@ -2045,16 +2044,7 @@ bool CVideoControlSoft::ApplyOpenCVEffect(cv::Mat& image)
 		frameStabilized = true;
 		CFiltreEffetCPU::BrightnessAndContrastAuto(image, 1.0);
 	}
-    if (videoEffectParameter.filmcolorisation)
-    {
-        frameStabilized = true;
-        image = CFaceDetector::Colorisation(image);
-    }
-    if (videoEffectParameter.filmEnhance)
-    {
-        frameStabilized = true;
-		image = CFaceDetector::SuperResolution(image);
-    }
+
     
 	//pictureFrame->SetBitmap(image.data, pictureFrame->GetBitmapWidth(), pictureFrame->GetBitmapHeight());
 	return frameStabilized;

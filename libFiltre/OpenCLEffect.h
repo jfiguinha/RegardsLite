@@ -42,10 +42,7 @@ namespace Regards::FiltreEffet
 		~COpenCLEffect() override;
 		int LensDistortionFilter(const int& size) override;
 
-		int BokehEffect(const int& radius, const int& boxsize, const int& nbFace, const wxRect& listFace) override
-		{
-			return -1;
-		};
+
 		int VignetteEffect(const double& radius = 1.0, const double& power = 0.8) override { return -1; };
 		int MeanShift(const float& fSpatialRadius, const float& fColorRadius) override { return -1; };
 		int BilateralFilter(const int& fSize, const int& sigmaX, const int& sigmaP) override;
@@ -56,7 +53,7 @@ namespace Regards::FiltreEffet
 		                   int flipH, int flipV, int angle, int ratio) override;
 		int CartoonifyImage(const int& mode) override { return -1; };
 		int NiveauDeGris() override;
-		int RedEye() override { return -1; };
+
 		int HistogramNormalize() override { return -1; };
 		int HistogramEqualize() override { return -1; };
 		int HQDn3D(const double& LumSpac, const double& temporalLumaDefault, const double& temporalSpatialLumaDefault) override;
@@ -110,8 +107,7 @@ namespace Regards::FiltreEffet
 		int HistogramLog(cv::Mat& bitmap) { return -1; }
 		int HistogramNormalize(cv::Mat& bitmap) { return -1; }
 		int HistogramEqualize(cv::Mat& bitmap) { return -1; }
-		int SuperResolutionNCNN() { return -1; }
-		int Colorization() { return -1; }
+
         int Inpaint(const cv::Mat &mask, int algorithm) { return -1; }
 		int BrightnessAndContrastAuto(float clipHistPercent) override;
 		cv::Mat GetBitmap(const bool& source) override;

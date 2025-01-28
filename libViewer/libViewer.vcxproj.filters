@@ -58,6 +58,9 @@
     <Filter Include="FolderProcess">
       <UniqueIdentifier>{2d5a6d89-1f75-43db-aa20-0161895a854e}</UniqueIdentifier>
     </Filter>
+    <Filter Include="cvPlot">
+      <UniqueIdentifier>{86e75dfa-0e67-43e4-af0c-e8c399cf6b7d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ViewerFrame.h">
@@ -217,6 +220,9 @@
     </ClCompile>
     <ClCompile Include="FolderProcess.cpp">
       <Filter>FolderProcess</Filter>
+    </ClCompile>
+    <ClCompile Include="..\libextern\CvPlot\src\cvplot.cpp">
+      <Filter>cvPlot</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

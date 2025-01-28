@@ -235,59 +235,6 @@ CCentralWindow::CCentralWindow(wxWindow* parent, wxWindowID id,
 	Connect(wxTIMER_DIAPORAMA, wxEVT_TIMER, wxTimerEventHandler(CCentralWindow::OnTimerDiaporama), nullptr, this);
 }
 
-/*
-void CCentralWindow::RefreshThumbnail(int type, int longWindow)
-{
-	switch (longWindow)
-	{
-	case THUMBNAILVIDEOWINDOW:
-		if (thumbnailVideo != nullptr)wxEVENT_ENDLOADPICTURE
-		{
-			if (type == 1)
-			{
-				auto event = new wxCommandEvent(wxEVENT_REFRESHVIDEOTHUMBNAIL);
-				wxQueueEvent(thumbnailVideo, event);
-			}
-
-			if (thumbnailVideo->IsShown())
-				thumbnailVideo->Refresh();
-		}
-		break;
-
-	case LISTPICTUREID:
-		if (listPicture != nullptr)
-		{
-			CThumbnailFolder* ptFolder = listPicture->GetPtThumbnailFolder();
-			if (ptFolder->IsShown())
-				ptFolder->Refresh();
-		}
-		break;
-	case LISTFACEID:
-		if (listFace != nullptr)
-		{
-			CThumbnailFace* ptListFace = listFace->GetThumbnailFace();
-			if (ptListFace->IsShown())
-				ptListFace->Refresh();
-		}
-		break;
-	case THUMBNAILVIEWERPICTURE:
-		if (listPicture != nullptr)
-		{
-			CThumbnailFolder* ptFolder = listPicture->GetPtThumbnailFolder();
-			if (ptFolder->IsShown())
-				ptFolder->Refresh();
-		}
-		break;
-	}	
-}
-
-
-void CCentralWindow::OnRefreshThumbnail(wxCommandEvent& event)
-{
-	RefreshThumbnail(event.GetInt(), event.GetExtraLong());
-}
-*/
-
 void CCentralWindow::UpdateThumbnailIcone(wxCommandEvent& event)
 {
 
@@ -374,23 +321,11 @@ void CCentralWindow::UpdateThumbnailIcone(wxCommandEvent& event)
 void CCentralWindow::OnPicturePrevious(wxCommandEvent& event)
 {
 	ImagePrecedente();
-
-	/*
-	wxWindow* mainWindow = this->FindWindowById(FRAMEVIEWER_ID);
-	wxCommandEvent evt(wxEVENT_PICTUREENDLOADING);
-	mainWindow->GetEventHandler()->AddPendingEvent(evt);
-	*/
 }
 
 void CCentralWindow::OnPictureNext(wxCommandEvent& event)
 {
 	ImageSuivante();
-
-	/*
-	wxWindow* mainWindow = this->FindWindowById(FRAMEVIEWER_ID);
-	wxCommandEvent evt(wxEVENT_PICTUREENDLOADING);
-	mainWindow->GetEventHandler()->AddPendingEvent(evt);
-	*/
 }
 
 void CCentralWindow::OnPictureFirst(wxCommandEvent& event)
@@ -425,12 +360,6 @@ void CCentralWindow::OnVideoEnd(wxCommandEvent& event)
 
 	if (loadPicture)
 	{
-		//auto pictureElement = new CPictureElement();
-		//pictureElement->filename = filename;
-		//pictureElement->reloadResource = true;
-		//wxCommandEvent evt(wxEVENT_LOADPICTURE);
-		//evt.SetClientData(pictureElement);
-		//this->GetEventHandler()->AddPendingEvent(evt);
 		LoadPicture(filename, true);
 	}
 	else if (isDiaporama)
@@ -472,9 +401,6 @@ void CCentralWindow::TransitionEnd()
 {
 	if (isDiaporama)
 	{
-		//CMainParam* viewerParam = CMainParamInit::getInstance();
-		//const int timeDelai = viewerParam->GetDelaiDiaporamaOption();
-		//diaporamaTimer->Start(timeDelai * 1000, wxTIMER_ONE_SHOT);
 		diaporamaTimer->Start(1000, wxTIMER_ONE_SHOT);
 	}
 	if (musicPause && isDiaporama)

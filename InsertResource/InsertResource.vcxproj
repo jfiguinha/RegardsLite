@@ -543,9 +543,6 @@
     <ProjectReference Include="..\libResource\libResource.vcxproj">
       <Project>{ae3f398c-b13b-4c98-99e6-6ec349823995}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\libScanner\libScanner.vcxproj">
-      <Project>{b9fab389-b14f-493d-89a4-bac998a11299}</Project>
-    </ProjectReference>
     <ProjectReference Include="..\libSqlData\libSqlData.vcxproj">
       <Project>{0cea9fae-6276-4cee-a7d6-c80605f0384a}</Project>
     </ProjectReference>

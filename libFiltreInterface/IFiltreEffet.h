@@ -44,7 +44,7 @@ public:
 	}
 
 	virtual Regards::Picture::CPictureArray GetMatrix() = 0;
-	virtual int BokehEffect(const int& radius, const int& boxsize, const int& nbFace, const wxRect& listFace) = 0;
+
 	virtual int OilPaintingEffect(const int& size, const int& dynRatio) = 0;
 	virtual void Interpolation(const int& widthOut, const int& heightOut, const wxRect& rc, const int& method,
 	                           int flipH, int flipV, int angle, int ratio) = 0;
@@ -100,15 +100,15 @@ public:
 	                      const int& iIntensity, const int& iColor, const int& iColorIntensity) = 0;
 	virtual int Fusion(cv::Mat& bitmapSecond, const float& pourcentage) = 0;
 	virtual wxImage GetwxImage() = 0;
-	virtual int RedEye() = 0;
+
 	virtual void SetBitmap(CImageLoadingFormat* bitmap) = 0;
 	virtual cv::Mat GetBitmap(const bool& source) = 0;
 	virtual int GetWidth() = 0;
 	virtual int GetHeight() = 0;
 	virtual int BrightnessAndContrastAuto(float clipHistPercent) = 0;
 	virtual bool StabilizeVideo(Regards::OpenCV::COpenCVStabilization* stabilization) = 0;
-	virtual int SuperResolutionNCNN() = 0;
-	virtual int Colorization() = 0;
+
+
     virtual int Inpaint(const cv::Mat &mask, int algorithm) = 0;
 protected:
 	//CRegardsBitmap * pBitmap;

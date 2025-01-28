@@ -8,8 +8,6 @@
 #include "hqdn3d.h"
 #include "VideoStabilization.h"
 
-
-#include <FaceDetector.h>
 using namespace Regards::OpenCL;
 using namespace Regards::OpenCV;
 extern string platformName;
@@ -150,16 +148,6 @@ void COpenCLEffectVideo::ApplyOpenCVEffect(CVideoEffectParameter* videoEffectPar
 			paramSrc.copyTo(image);
 		}
 
-
-		if (videoEffectParameter->filmEnhance)
-		{
-			image = CFaceDetector::SuperResolution(image);
-		}
-		if (videoEffectParameter->filmcolorisation)
-		{
-
-			image = CFaceDetector::Colorisation(image);
-		}
 
 		if (interpolatePicture)
 		{

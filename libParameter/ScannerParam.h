@@ -94,7 +94,7 @@ namespace Regards
 
 			double pertinence;
 			wxString folder;
-			wxRect positionRegardsViewer;
+			wxRect positionRegardsLite;
 			bool showThumbnail;
 			bool showVideoThumbnail;
 			int position;

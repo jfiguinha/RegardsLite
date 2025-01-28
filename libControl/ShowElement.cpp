@@ -12,7 +12,6 @@
 #include <ImageLoadingFormat.h>
 #include <SqlPhotos.h>
 #include <MetadataExiv2.h>
-#include <DeepLearning.h>
 #include "effect_id.h"
 #include "BitmapWndViewer.h"
 
@@ -476,35 +475,6 @@ void CShowElement::OnIdle(wxIdleEvent& evt)
 		videoSlider->Refresh();
 
 	refreshSlider = false;
-}
-
-//---------------------------------------------------------------------------------------
-//Test FacialRecognition
-//---------------------------------------------------------------------------------------
-void CShowElement::RotateRecognition(void* param)
-{
-	auto threadRotate = static_cast<CThreadRotate*>(param);
-	if (threadRotate != nullptr)
-	{
-		if (!threadRotate->bitmap.empty())
-		{
-			bool fastDetection = true;
-			CRegardsConfigParam* param = CParamInit::getInstance();
-			if (param != nullptr)
-				fastDetection = param->GetFastDetectionFace();
-
-			threadRotate->isReady = true;
-			//cv::flip(threadRotate->bitmap, threadRotate->bitmap, 0);
-			threadRotate->exif = DeepLearning::CDeepLearning::GetExifOrientation(threadRotate->bitmap, fastDetection);
-		}
-
-		if (threadRotate->mainWindow != nullptr)
-		{
-			wxCommandEvent evt(wxEVENT_ROTATEDETECT);
-			evt.SetClientData(threadRotate);
-			threadRotate->mainWindow->GetEventHandler()->AddPendingEvent(evt);
-		}
-	}
 }
 
 void CShowElement::OnRotateDetect(wxCommandEvent& event)
