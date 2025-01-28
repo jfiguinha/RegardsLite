@@ -32,9 +32,9 @@ wxString CParamInit::ConfigPath()
     wxString documentPath = stdp.GetDocumentsDir();
 
 #ifdef WIN32
-    documentPath.append("\\Regards\\Regards.config");
+    documentPath.append("\\RegardsLite\\Regards.config");
 #else
-    documentPath.append("/Regards/Regards.config");   
+    documentPath.append("/RegardsLite/Regards.config");   
 #endif
     return documentPath;
 }

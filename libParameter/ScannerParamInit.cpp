@@ -31,13 +31,13 @@ void CMainParamInit::Initialize(CMainParam* param)
 
 #ifdef WIN32
 
-		documentPath.append("\\Regards\\Regards.viewer.config");
+		documentPath.append("\\RegardsLite\\Regards.viewer.config");
 		_singleton = param;
 		_singleton->OpenFile(documentPath);
 #else
 
 
-        documentPath.append("/Regards/Regards.viewer.config");
+        documentPath.append("/RegardsLite/Regards.viewer.config");
         _singleton = param;
         _singleton->OpenFile(documentPath);
 #endif
