@@ -1,16 +1,16 @@
 [DEBREATE-0.7.13]
 <<CTRL>>
-Package: RegardsViewer
-Version: 2.82.0
+Package: RegardsLiteViewer
+Version: 2.0.0
 Maintainer: Figuinha Jacques <appt.jf@outlook.fr>
 Section: graphics
-Source: https://github.com/jfiguinha/Regards.git
+Source: https://github.com/jfiguinha/RegardsLite.git
 Homepage: https://jfiguinha.pagesperso-orange.fr/
 Architecture: amd64
 Priority: standard
 Depends: libwebkit2gtk-4.0-dev, libc++-dev, libc++abi-dev, freeglut3-dev, mesa-common-dev, libsdl2-dev, libcurl4-openssl-dev, libssh-dev, liblzma-dev,  libsane-dev, libgnutls28-dev, libunistring-dev, libturbojpeg-dev, libva-dev, libvdpau-dev, libomp-dev
-Description: RegardsViewer is a picture viewer and video player
- Regards is a modern photo viewer.
+Description: RegardsLiteViewer is a picture viewer and video player
+ RegardsLite is a modern photo viewer.
  Support highDPI definition screen.
  Support Exif and xmp file information.
  Support New Apple Photo format for IOS 11 HEIF multithreading and Exif.
@@ -21,8 +21,8 @@ Description: RegardsViewer is a picture viewer and video player
 <</CTRL>>
 <<FILES>>
 1
-/home/figuinha/developpement/git/Regards/RegardsViewer_linux/Package/RegardsViewer -> RegardsViewer -> /opt
-/home/figuinha/developpement/git/Regards/RegardsViewer_linux/Package/debian/RegardsViewer/usr/bin/RegardsViewer* -> RegardsViewer -> /usr/bin
+/home/figuinha/developpement/git/RegardsLite/RegardsViewer_linux/Package/RegardsLiteViewer -> RegardsLiteViewer -> /opt
+/home/figuinha/developpement/git/RegardsLite/RegardsViewer_linux/Package/debian/RegardsLiteViewer/usr/bin/RegardsLiteViewer* -> RegardsLiteViewer -> /usr/bin
 <</FILES>>
 <<SCRIPTS>>
 <<PREINST>>
@@ -71,11 +71,11 @@ License version 2 can be found in the file
 <</COPYRIGHT>>
 <<MENU>>
 1
-Name=RegardsViewer
+Name=RegardsLiteViewer
 Version=1.0
-Exec=RegardsViewer
+Exec=RegardsLiteViewer
 Comment=Picture and Video Viewer
-Icon=/opt/RegardsViewer/Resources/viewer.png
+Icon=/opt/RegardsLiteViewer/Resources/viewer.png
 Type=Application
 Terminal=false
 StartupNotify=true

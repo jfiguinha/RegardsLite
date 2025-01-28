@@ -59,7 +59,7 @@
 //#define USE_TBB_VECTOR
 #endif
 
-#define USE_CUDA
+//#define USE_CUDA
 
 #ifdef __APPLE__
 #undef USE_CUDA

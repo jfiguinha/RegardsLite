@@ -35,34 +35,6 @@ sudo apt install gperf
 sudo apt install dos2unix
 sudo apt install libgtkglext1-dev
 
-#test if cuda is available on system
-FILE=/usr/local/cuda/version.json
-if [ -f "$FILE" ]; 
-then
-    sudo apt install gcc-10
-    sudo apt install nvidia-cuda-toolkit
-    sudo apt install libcudnn8
-    sudo apt install libcudnn8-dev
-    sudo apt install libcudnn8-samples
-fi
-
-#sudo apt install libx265-dev
-#sudo apt install libtesseract-dev
-#sudo apt install libpoppler-dev
-#sudo apt install libpoppler-cpp-dev
-#sudo apt install libqpdf-dev
-#sudo apt install libopenexr-dev
-#sudo apt install ocl-icd-opencl-dev
-
-#Get AMD SDK
-#wget https://github.com/microsoft/LightGBM/releases/download/v2.0.12/AMD-APP-SDKInstaller-v3.0.130.136-GA-linux64.tar.bz2
-#Install AMD SDK
-#tar -xvf AMD-APP-SDKInstaller-v3.0.130.136-GA-linux64.tar.bz2
-#chmod +x AMD-APP-SDK-v3.0.130.136-GA-linux64.sh
-#sudo bash AMD-APP-SDK-v3.0.130.136-GA-linux64.sh
-
-#install clinfo
-#sudo apt install clinfo
 
 #Install External Library
 cd libextern

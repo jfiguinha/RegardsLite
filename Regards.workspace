@@ -26,8 +26,6 @@
     <Project Name="libGeolocalisation" Path="libGeolocalisation/libGeolocalisation.project" Active="No"/>
   </VirtualDirectory>
   <VirtualDirectory Name="wxWidgetComponent">
-    <Project Name="wxCheckTree" Path="wxCheckTree/wxCheckTree.project" Active="No"/>
-    <Project Name="wxIA" Path="Otherlib/wxIA/wxIA.project" Active="No"/>
     <Project Name="wxPDFDoc" Path="Otherlib/wxPDFDoc/wxPDFDoc.project" Active="No"/>
   </VirtualDirectory>
   <VirtualDirectory Name="Window">
@@ -35,16 +33,12 @@
     <Project Name="libViewer" Path="libViewer/libViewer.project" Active="No"/>
     <Project Name="libWindow" Path="libWindow/libWindow.project" Active="No"/>
     <Project Name="libDialog" Path="libDialog/libDialog.project" Active="No"/>
-    <Project Name="libScanner" Path="libScanner/libScanner.project" Active="No"/>
   </VirtualDirectory>
   <VirtualDirectory Name="RegardsViewer_exe">
     <Project Name="RegardsViewer" Path="RegardsViewer/RegardsViewer.project" Active="No"/>
-    <Project Name="RegardsViewer_linux" Path="RegardsViewer_linux/RegardsViewer_linux.project" Active="No"/>
-    <Project Name="RegardsViewer_mac" Path="RegardsViewer_mac/RegardsViewer_mac.project" Active="No"/>
+    <Project Name="RegardsViewer_linux" Path="RegardsViewer_linux/RegardsViewer_linux.project" Active="Yes"/>
     <Project Name="MacOsLibExplorer" Path="MacOsLibExplorer/MacOsLibExplorer.project" Active="No"/>
     <Project Name="RegardsViewer_macsilicon" Path="RegardsViewer_macsilicon/RegardsViewer_macsilicon.project" Active="No"/>
-    <Project Name="RegardsViewer_linux" Path="RegardsViewer_linux_cuda/RegardsViewer_linux_cuda.project" Active="No"/>
-    <Project Name="RegardsViewer_linux_cuda" Path="RegardsViewer_linux_cuda/RegardsViewer_linux_cuda.project" Active="Yes"/>
   </VirtualDirectory>
   <VirtualDirectory Name="Apple">
     <Project Name="libAppleFunction" Path="libAppleFunction/libAppleFunction.project" Active="No"/>
@@ -52,13 +46,10 @@
   <VirtualDirectory Name="Filter">
     <Project Name="libFiltre" Path="libFiltre/libFiltre.project" Active="No"/>
   </VirtualDirectory>
-  <VirtualDirectory Name="DeepLearning">
-    <Project Name="libDeepLearning" Path="libDeepLearning/libDeepLearning.project" Active="No"/>
-  </VirtualDirectory>
+  <VirtualDirectory Name="DeepLearning"/>
   <VirtualDirectory Name="OpenCL - OpenGL">
     <Project Name="libOpenCL" Path="libOpenCL/libOpenCL.project" Active="No"/>
     <Project Name="libOpenGL" Path="libOpenGL/libOpenGL.project" Active="No"/>
-    <Project Name="libCudaEffect" Path="libCudaEffect/libCudaEffect.project" Active="No"/>
     <Project Name="libVideoEffect" Path="libVideoEffect/libVideoEffect.project" Active="No"/>
   </VirtualDirectory>
   <VirtualDirectory Name="RegardsVideoConverter">
@@ -135,7 +126,6 @@
       <Project Name="RegardsPDF_linux" ConfigName="Debug"/>
       <Project Name="RegardsVideoConverter_linux" ConfigName="Debug"/>
       <Project Name="ffplay" ConfigName="Debug"/>
-      <Project Name="libCudaEffect" ConfigName="Debug"/>
       <Project Name="libVideoEffect" ConfigName="Debug"/>
       <Project Name="libOpenCVMissingGTK" ConfigName="Debug"/>
       <Project Name="RegardsViewer_linux" ConfigName="Debug"/>
@@ -210,7 +200,6 @@
       <Project Name="RegardsPDF_linux" ConfigName="Release"/>
       <Project Name="RegardsVideoConverter_linux" ConfigName="Release"/>
       <Project Name="ffplay" ConfigName="Release"/>
-      <Project Name="libCudaEffect" ConfigName="Release"/>
       <Project Name="libVideoEffect" ConfigName="Release"/>
       <Project Name="libOpenCVMissingGTK" ConfigName="Release"/>
       <Project Name="RegardsViewer_linux" ConfigName="Release"/>

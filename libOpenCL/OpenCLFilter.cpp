@@ -3,7 +3,6 @@
 
 #include "utility.h"
 #include <opencv2/xphoto.hpp>
-#include <opencv2/dnn_superres.hpp>
 #include <FileUtility.h>
 #include <mutex>
 #include <ParamInit.h>
@@ -13,13 +12,6 @@
 
 using namespace Regards::OpenCL;
 using namespace cv;
-using namespace dnn;
-using namespace dnn_superres;
-
-#define EDSR 0
-#define ESPCN 1
-#define FSRCNN 2
-#define LapSRN 3
 
 bool COpenCLFilter::isUsed = false;
 int COpenCLFilter::numTexture = -1;
@@ -27,154 +19,20 @@ extern cv::ocl::OpenCLExecutionContext clExecCtx;
 
 #define OPENCV_METHOD
 
-namespace Regards
-{
-	namespace OpenCL
-	{
-		class CSuperSampling
-		{
-		public:
-			CSuperSampling()
-			{
-			};
-
-			~CSuperSampling()
-			{
-			};
-			string GenerateModelPath(string modelName, int scale);
-			bool TestIfMethodIsValid(int method, int scale);
-			UMat upscaleImage(UMat img, int method, int scale);
-
-		private:
-			DnnSuperResImpl sr;
-			int oldscale = -1;
-			int oldmethod = -1;
-		};
-	}
-}
-
-string CSuperSampling::GenerateModelPath(string modelName, int scale)
-{
-	wxString path = "";
-#ifdef WIN32
-	path = CFileUtility::GetResourcesFolderPath() + "\\model\\" + modelName + "_x" + to_string(scale) + ".pb";
-#else
-	path = CFileUtility::GetResourcesFolderPath() + "/model/" + modelName + "_x" + to_string(scale) + ".pb";
-#endif
-
-	return CConvertUtility::ConvertToStdString(path);
-}
-
-bool CSuperSampling::TestIfMethodIsValid(int method, int scale)
-{
-	if (method == EDSR && (scale == 2 || scale == 3 || scale == 4))
-	{
-		return true;
-	}
-	if (method == ESPCN && (scale == 2 || scale == 3 || scale == 4))
-	{
-		return true;
-	}
-	if (method == FSRCNN && (scale == 2 || scale == 3 || scale == 4))
-	{
-		return true;
-	}
-	if (method == LapSRN && (scale == 2 || scale == 4 || scale == 8))
-	{
-		return true;
-	}
-	return false;
-}
-
-UMat CSuperSampling::upscaleImage(UMat img, int method, int scale)
-{
-	
-	COpenCLFilter::isUsed = true;
-	UMat outputImage;
-
-	if (oldscale != scale || oldmethod != method)
-	{
-		try
-		{
-			switch (method)
-			{
-			case EDSR:
-				{
-					string algorithm = "edsr";
-					sr.readModel(GenerateModelPath("EDSR", scale));
-					sr.setModel(algorithm, scale);
-				}
-				break;
-
-			case ESPCN:
-				{
-					string algorithm = "espcn";
-					sr.readModel(GenerateModelPath("ESPCN", scale));
-					sr.setModel(algorithm, scale);
-				}
-				break;
-			case FSRCNN:
-				{
-					string algorithm = "fsrcnn";
-					sr.readModel(GenerateModelPath("FSRCNN", scale));
-					sr.setModel(algorithm, scale);
-				}
-				break;
-			case LapSRN:
-				{
-					string algorithm = "lapsrn";
-					sr.readModel(GenerateModelPath("LapSRN", scale));
-					sr.setModel(algorithm, scale);
-				}
-				break;
-			}
-
-			sr.setPreferableTarget(DNN_TARGET_OPENCL);
-			sr.upsample(img, outputImage);
-
-			//muDnnSuperResImpl.unlock();
-		}
-		catch (Exception& e)
-		{
-			const char* err_msg = e.what();
-			std::cout << "CSuperSampling::exception caught: " << err_msg << std::endl;
-			std::cout << "wrong file format, please input the name of an IMAGE file" << std::endl;
-		}
-	}
-	else
-	{
-		try
-		{
-			sr.upsample(img, outputImage);
-		}
-		catch (Exception& e)
-		{
-			const char* err_msg = e.what();
-			std::cout << "CSuperSampling::exception caught: " << err_msg << std::endl;
-			std::cout << "wrong file format, please input the name of an IMAGE file" << std::endl;
-		}
-	}
-
-	oldscale = scale;
-	oldmethod = method;
-	COpenCLFilter::isUsed = false;
-	return outputImage;
-}
-
 
 COpenCLFilter::COpenCLFilter()
 {
 	bool useMemory = (ocl::Device::getDefault().type() == CL_DEVICE_TYPE_GPU) ? false : true;
 	flag = useMemory ? CL_MEM_USE_HOST_PTR : CL_MEM_COPY_HOST_PTR;
 	hq3d = nullptr;
-	superSampling = new CSuperSampling();
+
 }
 
 COpenCLFilter::~COpenCLFilter()
 {
 	if (hq3d != nullptr)
 		delete hq3d;
-	delete superSampling;
+
 }
 
 void COpenCLFilter::DetailEnhance(UMat& inputData, const double& sigma_s, const double& sigma_r)
@@ -1778,13 +1636,7 @@ UMat COpenCLFilter::Interpolation(const int& widthOut, const int& heightOut, con
 		INTER_NEAREST_EXACT = 6,
 		*/
 		CRegardsConfigParam* regardsParam = CParamInit::getInstance();
-		int superDnn = regardsParam->GetSuperResolutionType();
-		int useSuperResolution = regardsParam->GetUseSuperResolution();
-		if (useSuperResolution && superSampling->TestIfMethodIsValid(superDnn, (ratio / 100)) && !isUsed)
-		{
-			cvImage = superSampling->upscaleImage(cvImage, superDnn, (ratio / 100));
-		}
-		else if (cvImage.cols != widthOut || cvImage.rows != heightOut)
+        if (cvImage.cols != widthOut || cvImage.rows != heightOut)
 		{
 			resize(cvImage, cvImage, Size(widthOut, heightOut), method);
 		}

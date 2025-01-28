@@ -11,7 +11,6 @@
 #include <fstream>
 #include <opencv2/xphoto.hpp>
 #include "VideoStabilization.h"
-#include <opencv2/dnn_superres.hpp>
 #include <FileUtility.h>
 #include <ParamInit.h>
 #include <RegardsConfigParam.h>
@@ -21,15 +20,9 @@
 using namespace Regards::OpenCV;
 using namespace Regards::OpenGL;
 using namespace cv;
-using namespace dnn;
-using namespace dnn_superres;
 extern float value[256];
 using namespace Regards::FiltreEffet;
 
-#define EDSR 0
-#define ESPCN 1
-#define FSRCNN 2
-#define LapSRN 3
 
 class CFiltreEffetCPUImpl
 {
@@ -38,8 +31,7 @@ public:
 	static void generateGradient(Mat& mask, const double& radius, const double& power);
 	static double getMaxDisFromCorners(const Size& imgSize, const Point& center);
 	static double dist(Point a, Point b);
-	static Mat upscaleImage(Mat img, int method, int scale);
-	static string GenerateModelPath(string modelName, int scale);
+
 	static bool TestIfMethodIsValid(int method, int scale);
 	static Rect CalculRect(int widthIn, int heightIn, int widthOut, int heightOut, int flipH, int flipV, int angle,
 	                       float ratioX, float ratioY, int x, int y, float left, float top);
@@ -109,100 +101,6 @@ Rect CFiltreEffetCPUImpl::CalculRect(int widthIn, int heightIn, int widthOut, in
 	return rect;
 }
 
-
-
-
-string CFiltreEffetCPUImpl::GenerateModelPath(string modelName, int scale)
-{
-    wxString documentPath = CFileUtility::GetDocumentFolderPath();
-
-	wxString path = "";
-#ifdef WIN32
-	path = documentPath + "\\model\\" + modelName + "_x" + to_string(scale) + ".pb";
-#else
-	path = documentPath + "/model/"  + modelName + "_x" + to_string(scale) + ".pb";
-#endif
-	return CConvertUtility::ConvertToStdString(path);
-}
-
-bool CFiltreEffetCPUImpl::TestIfMethodIsValid(int method, int scale)
-{
-	if (method == EDSR && (scale == 2 || scale == 3 || scale == 4))
-	{
-		return true;
-	}
-	if (method == ESPCN && (scale == 2 || scale == 3 || scale == 4))
-	{
-		return true;
-	}
-	if (method == FSRCNN && (scale == 2 || scale == 3 || scale == 4))
-	{
-		return true;
-	}
-	if (method == LapSRN && (scale == 2 || scale == 4 || scale == 8))
-	{
-		return true;
-	}
-	return false;
-}
-
-Mat CFiltreEffetCPUImpl::upscaleImage(Mat img, int method, int scale)
-{
-	Mat outputImage;
-	try
-	{
-		//muDnnSuperResImpl.lock();
-
-		DnnSuperResImpl sr;
-
-
-		switch (method)
-		{
-		case EDSR:
-			{
-				string algorithm = "edsr";
-				sr.readModel(GenerateModelPath("EDSR", scale));
-				sr.setModel(algorithm, scale);
-			}
-			break;
-
-		case ESPCN:
-			{
-				string algorithm = "espcn";
-				sr.readModel(GenerateModelPath("ESPCN", scale));
-				sr.setModel(algorithm, scale);
-			}
-			break;
-		case FSRCNN:
-			{
-				string algorithm = "fsrcnn";
-				sr.readModel(GenerateModelPath("FSRCNN", scale));
-				sr.setModel(algorithm, scale);
-			}
-			break;
-		case LapSRN:
-			{
-				string algorithm = "lapsrn";
-				sr.readModel(GenerateModelPath("LapSRN", scale));
-				sr.setModel(algorithm, scale);
-			}
-			break;
-		}
-
-		sr.setPreferableTarget(DNN_TARGET_CPU);
-		sr.upsample(img, outputImage);
-
-		//muDnnSuperResImpl.unlock();
-	}
-	catch (Exception& e)
-	{
-		const char* err_msg = e.what();
-		std::cout << "exception caught: " << err_msg << std::endl;
-		std::cout << "wrong file format, please input the name of an IMAGE file" << std::endl;
-	}
-
-	return outputImage;
-}
 
 
 CFiltreEffetCPU::CFiltreEffetCPU(CRgbaquad back_color, CImageLoadingFormat* bitmap)
@@ -1200,17 +1098,7 @@ Mat CFiltreEffetCPU::Interpolation(const Mat& inputData, const int& widthOut, co
 		*/
 		if (ratio != 100)
 		{
-			CRegardsConfigParam* regardsParam = CParamInit::getInstance();
-			int superDnn = regardsParam->GetSuperResolutionType();
-			int useSuperResolution = regardsParam->GetUseSuperResolution();
-			if (useSuperResolution && CFiltreEffetCPUImpl::TestIfMethodIsValid(superDnn, (ratio / 100)))
-			{
-				cvImage = CFiltreEffetCPUImpl::upscaleImage(cvImage, superDnn, (ratio / 100));
-			}
-			else
-			{
-				resize(cvImage, cvImage, Size(widthOut, heightOut), method);
-			}
+			resize(cvImage, cvImage, Size(widthOut, heightOut), method);
 		}
 
 		if (cvImage.cols != widthOut || cvImage.rows != heightOut)

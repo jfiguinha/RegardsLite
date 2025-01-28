@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CodeLite_Project Name="libViewer" InternalType="Library" Version="11000">
+  <VirtualDirectory Name="cvPlot">
+    <File Name="../libextern/CvPlot/src/cvplot.cpp"/>
+  </VirtualDirectory>
   <Plugins>
     <Plugin Name="qmake">
       <![CDATA[00020001N0005Debug0000000000000001N0007Release000000000000]]>
@@ -34,34 +37,12 @@
     <File Name="ExportDiaporama.h"/>
     <File Name="ExportDiaporama.cpp"/>
   </VirtualDirectory>
-  <VirtualDirectory Name="Keyword">
-    <File Name="ToolbarKeyword.cpp"/>
-    <File Name="KeywordWndToolbar.cpp"/>
-    <File Name="KeywordWnd.cpp"/>
-    <File Name="KeywordManagementWindow.cpp"/>
-    <File Name="ToolbarKeyword.h"/>
-    <File Name="KeywordWndToolbar.h"/>
-    <File Name="KeywordWnd.h"/>
-    <File Name="KeywordManagementWindow.h"/>
-  </VirtualDirectory>
   <VirtualDirectory Name="CheckVersion">
     <File Name="CheckVersion.h"/>
     <File Name="CheckVersion.cpp"/>
   </VirtualDirectory>
   <VirtualDirectory Name="Tab Window">
-    <File Name="ToolbarViewerMode.h"/>
-    <File Name="ToolbarViewerMode.cpp"/>
-    <VirtualDirectory Name="Panel Search Photo">
-      <File Name="PanelPhotoWnd.h"/>
-      <File Name="PanelPhotoWnd.cpp"/>
-      <VirtualDirectory Name="Toolbar">
-        <File Name="ToolbarPhoto.h"/>
-        <File Name="ToolbarPhoto.cpp"/>
-      </VirtualDirectory>
-    </VirtualDirectory>
     <VirtualDirectory Name="Panel Infos">
-      <File Name="CriteriaWindow.h"/>
-      <File Name="CriteriaWindow.cpp"/>
       <VirtualDirectory Name="Toolbar">
         <File Name="ToolbarInfos.h"/>
         <File Name="ToolbarInfos.cpp"/>
@@ -85,10 +66,7 @@
     <File Name="PreviewWnd.cpp"/>
     <File Name="toolbar.cpp"/>
     <File Name="ViewerFrame.cpp"/>
-    <File Name="CategoryFolderWindow.cpp"/>
-    <File Name="CategoryWnd.cpp"/>
     <File Name="ListPicture.cpp"/>
-    <File Name="ListFace.cpp"/>
     <File Name="AnimationToolbar.cpp"/>
   </VirtualDirectory>
   <VirtualDirectory Name="include">
@@ -99,26 +77,19 @@
     <File Name="ViewerTheme.h"/>
     <File Name="PictureElement.h"/>
     <File Name="myFrame.h"/>
-    <File Name="FaceInfosUpdate.h"/>
     <File Name="WaitingWindow.h"/>
     <File Name="CentralWindow.h"/>
     <File Name="MainWindow.h"/>
     <File Name="PreviewToolbar.h"/>
     <File Name="PreviewWnd.h"/>
     <File Name="Toolbar.h"/>
-    <File Name="CategoryFolderWindow.h"/>
-    <File Name="CategoryWnd.h"/>
     <File Name="ListPicture.h"/>
-    <File Name="ListFace.h"/>
     <File Name="AnimationToolbar.h"/>
     <File Name="ViewerFrame.h"/>
   </VirtualDirectory>
   <VirtualDirectory Name="Thumbnail">
     <VirtualDirectory Name="src">
       <File Name="ThumbnailViewerPicture.cpp"/>
-      <File Name="ThumbnailFacePertinenceToolBar.cpp"/>
-      <File Name="ThumbnailFace.cpp"/>
-      <File Name="ThumbnailFaceToolBar.cpp"/>
       <File Name="ThumbnailFolder.cpp"/>
       <File Name="ThumbnailToolBar.cpp"/>
       <File Name="ThumbnailToolBarZoom.cpp"/>
@@ -126,9 +97,6 @@
     </VirtualDirectory>
     <VirtualDirectory Name="include">
       <File Name="ThumbnailViewerPicture.h"/>
-      <File Name="ThumbnailFacePertinenceToolBar.h"/>
-      <File Name="ThumbnailFace.h"/>
-      <File Name="ThumbnailFaceToolBar.h"/>
       <File Name="ThumbnailFolder.h"/>
       <File Name="ThumbnailToolBar.h"/>
       <File Name="ThumbnailToolBarZoom.h"/>
