@@ -46,7 +46,6 @@
   <VirtualDirectory Name="Filter">
     <Project Name="libFiltre" Path="libFiltre/libFiltre.project" Active="No"/>
   </VirtualDirectory>
-  <VirtualDirectory Name="DeepLearning"/>
   <VirtualDirectory Name="OpenCL - OpenGL">
     <Project Name="libOpenCL" Path="libOpenCL/libOpenCL.project" Active="No"/>
     <Project Name="libOpenGL" Path="libOpenGL/libOpenGL.project" Active="No"/>
@@ -76,7 +75,6 @@
       <Project Name="libViewer" ConfigName="Debug"/>
       <Project Name="libWindow" ConfigName="Debug"/>
       <Project Name="include" ConfigName="Debug"/>
-      <Project Name="RegardsViewer_Windows" ConfigName="Debug"/>
       <Project Name="libVideoFFMpeg" ConfigName="Debug"/>
       <Project Name="libEmail" ConfigName="Debug"/>
       <Project Name="libExif" ConfigName="Debug"/>
@@ -151,7 +149,6 @@
       <Project Name="libViewer" ConfigName="Release"/>
       <Project Name="libWindow" ConfigName="Release"/>
       <Project Name="include" ConfigName="Release"/>
-      <Project Name="RegardsViewer_Windows" ConfigName="Release"/>
       <Project Name="libVideoFFMpeg" ConfigName="Release"/>
       <Project Name="libEmail" ConfigName="Release"/>
       <Project Name="libExif" ConfigName="Release"/>
