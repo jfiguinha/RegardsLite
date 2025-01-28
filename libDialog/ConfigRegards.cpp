@@ -230,23 +230,6 @@ void ConfigRegards::init()
 	else
 		rbContrastCorrection->SetSelection(0);
 
-	int videoFaceDetection = regardsParam->GetFaceVideoDetection();
-	if (videoFaceDetection == 0)
-		rbVideoFaceDetection->SetSelection(1);
-	else
-		rbVideoFaceDetection->SetSelection(0);
-
-	int useSuperResolution = regardsParam->GetUseSuperResolution();
-	if (useSuperResolution == 0)
-		rbUSESUPERDNN->SetSelection(1);
-	else
-		rbUSESUPERDNN->SetSelection(0);
-
-	int faceDetection = regardsParam->GetFaceDetection();
-	if (faceDetection == 0)
-		rbFaceDetection->SetSelection(1);
-	else
-		rbFaceDetection->SetSelection(0);
 
 	txtMusicDiaporamaPath->SetValue(regardsParam->GetMusicDiaporama());
 
@@ -256,12 +239,6 @@ void ConfigRegards::init()
 	int thumbnailProcess = regardsParam->GetThumbnailProcess();
 	scProcessThumbnail->SetValue(thumbnailProcess);
 
-	int exifProcess = regardsParam->GetExifProcess();
-	scProcessExif->SetValue(exifProcess);
-
-	int faceProcess = regardsParam->GetFaceProcess();
-	scProcessFace->SetValue(faceProcess);
-
 	int dataInMemory = regardsParam->GetDatabaseInMemory();
 	if (dataInMemory == 0)
 		rbDatabaseInMemory->SetSelection(1);
@@ -270,9 +247,6 @@ void ConfigRegards::init()
 
 	int interpolation = regardsParam->GetInterpolationType();
 	rbInterpolation->SetSelection(interpolation);
-
-	int superDnn = regardsParam->GetSuperResolutionType();
-	cbUSESUPERDNNFILTER->SetSelection(superDnn);
 
 
 	int openclOpenGLInterop = regardsParam->GetIsOpenCLOpenGLInteropSupport();
@@ -328,7 +302,7 @@ void ConfigRegards::OnbtnOkClick(wxCommandEvent& event)
 	bool showInfosRestart = false;
 	CRegardsConfigParam* regardsParam = CParamInit::getInstance();
 	CMainParam* mainparam = CMainParamInit::getInstance();
-	int _faceDetection = regardsParam->GetFaceDetection();
+
 	int nbProcesseur = thread::hardware_concurrency();
 
 	if (mainparam != nullptr)
@@ -348,26 +322,6 @@ void ConfigRegards::OnbtnOkClick(wxCommandEvent& event)
 	int transitionDiaporama = rbTransitionDiaporamaEffect->GetSelection();
 	regardsParam->SetDiaporamaTransitionEffect(transitionDiaporama + 400);
 
-	int autoRotate = rbAutoRotate->GetSelection();
-	if (autoRotate == 0)
-		regardsParam->SetDectectOrientation(1);
-	else
-		regardsParam->SetDectectOrientation(0);
-
-	int videoFaceDetection = rbVideoFaceDetection->GetSelection();
-	if (videoFaceDetection == 0)
-		regardsParam->SetFaceVideoDetection(1);
-	else
-		regardsParam->SetFaceVideoDetection(0);
-
-	int faceDetection = rbFaceDetection->GetSelection();
-	if (faceDetection == 0)
-		regardsParam->SetFaceDetection(1);
-	else
-		regardsParam->SetFaceDetection(0);
-
-	if (_faceDetection == faceDetection)
-		showInfosRestart = true;
 
 	int autoContrast = rbContrastCorrection->GetSelection();
 	if (autoContrast == 0)
@@ -375,17 +329,8 @@ void ConfigRegards::OnbtnOkClick(wxCommandEvent& event)
 	else
 		regardsParam->SetAutoConstrast(0);
 
-	int useDnn = rbUSESUPERDNN->GetSelection();
-	if (useDnn == 0)
-		regardsParam->SetUseSuperResolution(1);
-	else
-		regardsParam->SetUseSuperResolution(0);
-
 	int interpolation = rbInterpolation->GetSelection();
 	regardsParam->SetInterpolationType(interpolation);
-
-	int superDnn = cbUSESUPERDNNFILTER->GetSelection();
-	regardsParam->SetSuperResolutionType(superDnn);
 
 	int timeDiaporama = scTime->GetValue();
 	regardsParam->SetDiaporamaTime(timeDiaporama);
@@ -394,8 +339,7 @@ void ConfigRegards::OnbtnOkClick(wxCommandEvent& event)
 	regardsParam->SetSkinWindowMode(skinMode);
 
 	int thumbnailProcess = scProcessThumbnail->GetValue();
-	int faceProcess = scProcessFace->GetValue();
-	int exifProcess = scProcessExif->GetValue();
+
 
 	int openclOpenGLInterop = rbOpenCLOpenGLInterop->GetSelection();
 	if (openclOpenGLInterop == 0)
@@ -446,14 +390,13 @@ void ConfigRegards::OnbtnOkClick(wxCommandEvent& event)
 	if (olddecoder != decoder)
 		showInfosRestart = true;
 
-	if (thumbnailProcess == 0 || faceProcess == 0 || exifProcess == 0)
+	if (thumbnailProcess == 0 )
 	{
 		wxString errorProcessNumberMin = CLibResource::LoadStringFromResource(L"ErrorProcessNumberMin", 1);
 		wxString errorInfo = CLibResource::LoadStringFromResource(L"informationserror", 1);
 		wxMessageBox(errorProcessNumberMin, errorInfo);
 	}
-	else if ((thumbnailProcess + exifProcess) > nbProcesseur && faceProcess > nbProcesseur && (thumbnailProcess > 1 ||
-		faceProcess > 1 || exifProcess > 1))
+	else if (thumbnailProcess > nbProcesseur)
 	{
 		wxString errorProcessNumberMax = CLibResource::LoadStringFromResource(L"ErrorProcessNumberMax", 1);
 		wxString errorInfo = CLibResource::LoadStringFromResource(L"informationserror", 1);
@@ -461,8 +404,7 @@ void ConfigRegards::OnbtnOkClick(wxCommandEvent& event)
 	}
 	else
 	{
-		regardsParam->SetFaceProcess(faceProcess);
-		regardsParam->SetExifProcess(exifProcess);
+
 		regardsParam->SetThumbnailProcess(thumbnailProcess);
 
 		int dataInMemory = rbDatabaseInMemory->GetSelection();

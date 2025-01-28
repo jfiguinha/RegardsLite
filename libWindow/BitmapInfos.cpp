@@ -9,7 +9,7 @@
 #include <SqlPhotos.h>
 #include <FileGeolocation.h>
 #include <GpsEngine.h>
-
+#include <wx/filename.h>
 using namespace Regards::Window;
 using namespace Regards::Sqlite;
 using namespace Regards::Internet;
@@ -82,33 +82,17 @@ void CBitmapInfos::UpdateData()
 {
 	//printf("UpdateData \n");
 	gpsInfos = "";
+	wxFileName file = wxFileName(filename);
+	wxDateTime dt = file.GetModificationTime();
 
-	//Recherche dans la base de données des critères sur le fichier
-	CSqlPhotos sqlPhotos;
-	int insertValue = sqlPhotos.GetCriteriaInsert(filename);
-	if (insertValue > 0)
-	{
-		CriteriaVector criteriaList;
-		sqlPhotos.GetPhotoCriteria(&criteriaList, filename);
+	wxDateTime now = wxDateTime::Now();
+	wxString str = now.Format(wxT("%Y-%m-%d"), wxDateTime::CET);
 
-		for (CCriteria criteria : criteriaList)
-		{
-			if (criteria.GetCategorieId() == 1)
-			{
-				gpsInfos = criteria.GetLibelle();
-			}
-			else if (criteria.GetCategorieId() == 3)
-			{
-				dateInfos = criteria.GetLibelle();
-			}
-		}
-		SetDateInfos(dateInfos, '.');
-	}
-	else
-	{
-		dateInfos = L"";
-		gpsInfos = "";
-	}
+	dateInfos = "";
+	gpsInfos = "";
+
+	SetDateInfos(str, '-');
+
 	needToRefresh = true;
 }
 

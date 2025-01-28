@@ -229,7 +229,7 @@ public:
 		wxDisplay display;
 		wxRect screen = display.GetClientArea();
 
-		frameViewer = new CViewerFrame("Regards Viewer", wxDefaultPosition,
+		frameViewer = new CViewerFrame("RegardsLite Viewer", wxDefaultPosition,
 		                               wxSize(screen.GetWidth(), screen.GetHeight()), this, fileToOpen);
 		frameViewer->Centre(wxBOTH);
 		frameViewer->Show(true);
