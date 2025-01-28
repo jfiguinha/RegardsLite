@@ -159,15 +159,12 @@ namespace Regards
 
 			CListPicture* listPicture;
 			CThumbnailViewerPicture* thumbnailPicture;
-			CPanelPhotoWnd* panelPhotoWnd;
+			//CPanelPhotoWnd* panelPhotoWnd;
 			CMainParam* viewerconfig;
 			
 			CPanelWithClickToolbar* panelInfosClick;
 			bool isNext = false;
-			//Face List
-#ifndef __NOFACE_DETECTION__
-			CListFace* listFace;
-#endif
+
 
 			bool loadPicture = false;
 			wxString filename;

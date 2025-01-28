@@ -23,13 +23,12 @@ namespace Regards::Viewer
 	class CToolbar;
 	class CMainParam;
 	class CCentralWindow;
-	class CToolbarViewerMode;
 	class CFolderProcess;
 
 
 
 
-	class CMainWindow : public CWindowMain, public CToolbarInterface
+	class CMainWindow : public CWindowMain
 	{
 	public:
 		CMainWindow(wxWindow* parent, wxWindowID id, IStatusBarInterface* statusbar, const bool& openFirstFile, const wxString& fileToOpen);
@@ -49,8 +48,6 @@ namespace Regards::Viewer
 		void SetText(const int& numPos, const wxString& libelle);
 		void SetRangeProgressBar(const int& range);
 		void SetPosProgressBar(const int& position);
-		void SetPictureMode();
-		void SetViewerMode();
 		void OpenFile(const wxString& fileToOpen);
 
 		bool GetProcessEnd() override;
@@ -71,8 +68,6 @@ namespace Regards::Viewer
 		static void NewVersionAvailable(void* param);
 		static void CheckFile(void* param);
 
-		void ClickShowButton(const int& id, const int& refresh);
-
 		void SetDataToStatusBar(void* thumbnailMessage, const wxString& message);
 
 		bool FindNextValidFile();
@@ -87,18 +82,17 @@ namespace Regards::Viewer
 		void OnEndCheckFile(wxCommandEvent& event);
 		void OnSetRangeProgressBar(wxCommandEvent& event);
 		void OnSetValueProgressBar(wxCommandEvent& event);
-		void OnCriteriaUpdate(wxCommandEvent& event);
+
 		void OnRefreshPicture(wxCommandEvent& event);
 		void OnScanner(wxCommandEvent& event);
-		void OnFaceAdd(wxCommandEvent& event);
+
 		void OnVersionUpdate(wxCommandEvent& event);
 		void UpdateStatusBarMessage(wxCommandEvent& event);
 
-		void OnDeleteFace(wxCommandEvent& event);
 		void OnExit(wxCommandEvent& event);
 		void InitPictures(wxCommandEvent& event);
 		void PictureVideoClick(wxCommandEvent& event);
-		void CriteriaChange(wxCommandEvent& event);
+
 
 		void OnPrint(wxCommandEvent& event);
 		void OnPictureClick(wxCommandEvent& event);
@@ -117,7 +111,7 @@ namespace Regards::Viewer
 		void OnUpdateFolder(wxCommandEvent& event);
 		void OnRefreshThumbnail(wxCommandEvent& event);
 		void OnProcessThumbnail(wxCommandEvent& event);
-		void OnModelUpdate(wxCommandEvent& event);
+
 
 		void Resize() override;
 		void ExportVideo(const wxString& filename);
@@ -126,6 +120,9 @@ namespace Regards::Viewer
 
 
 		void PhotoProcess(CPhotos* photo);
+
+		wxString AddFolder(const wxString& folder, wxString* file);
+		void RemoveFolder(const wxString& folder);
 
 		//------------------------------------------------------
 		void UpdateMessage(wxCommandEvent& event);
@@ -150,7 +147,6 @@ namespace Regards::Viewer
 		wxStatusBar* statusBar;
 		//CToolbar* toolbar;
 		CCentralWindow* centralWnd;
-		CToolbarViewerMode* toolbarViewerMode;
 		std::thread* versionUpdate = nullptr;
 
 		bool isCheckingFile = false;
@@ -165,15 +161,13 @@ namespace Regards::Viewer
 		bool multithread;
 		bool needToReload;
 		int typeAffichage;
-		std::atomic<bool> updateCriteria;
+		//std::atomic<bool> updateCriteria;
 		bool updateFolder = false;
 		bool refreshFolder;
 		std::atomic<int> numElementTraitement;
 		bool start;
 		bool criteriaSendMessage;
 		bool checkVersion;
-		bool setViewerMode = false;
-		bool setPictureMode = false;
 		int faceDetection = 0;
 		bool isThumbnailProcess = false;
 		CExportDiaporama* exportDiaporama = nullptr;

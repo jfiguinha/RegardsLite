@@ -27,7 +27,7 @@ CSavePicture::~CSavePicture()
 {
 }
 
-const wxString GetPictureFilter()
+const wxString CSavePicture::GetPictureFilter()
 {
 	vector<wxString> listExtension = CLibResource::GetSavePictureExtension();
 	vector<wxString> listFormat = CLibResource::GetSavePictureFormat();

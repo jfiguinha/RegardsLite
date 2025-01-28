@@ -11,6 +11,7 @@ public:
 	static void ExportPicture(wxWindow* window, const wxString& filename);
 	static wxString LoadPicture();
 	static wxArrayString LoadMultiplePicture();
+	static const wxString GetPictureFilter();
 
 private:
 	static wxString SelectExternalFormat(wxWindow* window, const wxString& filename);

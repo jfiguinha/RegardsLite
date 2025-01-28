@@ -13,7 +13,6 @@
 #include <MainParam.h>
 #include <MainParamInit.h>
 #include <SqlInsertFile.h>
-#include <CategoryFolderWindow.h>
 #include <ThumbnailBuffer.h>
 #include <config_id.h>
 #include <TreatmentData.h>
@@ -37,21 +36,6 @@ CFolderProcess::~CFolderProcess()
 {
 
 }
-
-//---------------------------------------------------------------
-//
-//---------------------------------------------------------------
-void CFolderProcess::UpdateCriteria(bool criteriaSendMessage)
-{
-	wxWindow* window = mainWindow->FindWindowById(CRITERIAFOLDERWINDOWID);
-	if (window)
-	{
-		wxCommandEvent evt(wxEVT_COMMAND_TEXT_UPDATED, wxEVENT_UPDATECRITERIA);
-		evt.SetExtraLong((criteriaSendMessage == true) ? 1 : 0);
-		window->GetEventHandler()->AddPendingEvent(evt);
-	}
-}
-
 
 
 //---------------------------------------------------------------

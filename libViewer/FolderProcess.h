@@ -34,7 +34,6 @@ namespace Regards::Viewer
 	public:
 		CFolderProcess(CMainWindow* mainWindow);
 		~CFolderProcess();
-		void UpdateCriteria(bool criteriaSendMessage);
 		void RefreshFolder(bool& folderChange, int& nbFile);
 		//void UpdateFolderStatic();
 

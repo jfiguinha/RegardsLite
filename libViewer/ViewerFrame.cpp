@@ -23,7 +23,6 @@
 #include <SavePicture.h>
 #include <ScannerFrame.h>
 #include <ImageLoadingFormat.h>
-#include "ListFace.h"
 #include "WaitingWindow.h"
 #include <wx/stdpaths.h>
 #include <SqlThumbnail.h>
@@ -34,6 +33,7 @@
 #include <wx/wfstream.h>
 #include <wx/txtstrm.h>
 #include <FileUtility.h>
+#include <wx/dirdlg.h>
 #include <wx/progdlg.h>
 #include "DownloadFile.h"
 #ifdef __APPLE__
@@ -236,7 +236,9 @@ CViewerFrame::CViewerFrame(const wxString& title, const wxPoint& pos, const wxSi
 	menuSizeIcon->Append(ID_SIZEICONLESS, labelDecreaseIconSize_link, labelDecreaseIconSize);
 	menuSizeIcon->Append(ID_SIZEICONMORE, labelEnlargeIconSize_link, labelEnlargeIconSize);
 
-	//menuFile->Append(ID_EXPORT, "&Export", "Export");
+	menuFile->Append(ID_OPENFILE, "Open &File", "Open File");
+	menuFile->Append(ID_OPENFOLDER, "&Open Folder", "Open Folder");
+
 #ifdef WIN32
 	menuFile->Append(ID_ASSOCIATE, "&Associate", "Associate");
     menuFile->AppendSeparator();
@@ -278,6 +280,10 @@ CViewerFrame::CViewerFrame(const wxString& title, const wxPoint& pos, const wxSi
 	Connect(ID_SCANNER, wxEVT_MENU, wxCommandEventHandler(CViewerFrame::OnScanner));
     Connect(wxID_EDIT, wxEVT_MENU, wxCommandEventHandler(CViewerFrame::OnEdit));
     Connect(ID_DIAPORAMA, wxEVT_MENU, wxCommandEventHandler(CViewerFrame::OnExportDiaporama));
+
+	Connect(ID_OPENFOLDER, wxEVT_MENU, wxCommandEventHandler(CViewerFrame::OnOpenFolder));
+	Connect(ID_OPENFILE, wxEVT_MENU, wxCommandEventHandler(CViewerFrame::OnOpenFile));
+
 	mainWindow->Bind(wxEVT_CHAR_HOOK, &CViewerFrame::OnKeyDown, this);
 	mainWindow->Bind(wxEVT_KEY_UP, &CViewerFrame::OnKeyUp, this);
 
@@ -297,6 +303,37 @@ CViewerFrame::CViewerFrame(const wxString& title, const wxPoint& pos, const wxSi
 
 
 	
+}
+
+
+void CViewerFrame::OnOpenFile(wxCommandEvent& event)
+{
+	wxString openPicture = CLibResource::LoadStringFromResource(L"LBLOPENPICTUREFILE", 1);
+
+	wxFileDialog openFileDialog(nullptr, openPicture, "", "",
+		"*.*", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
+
+	if (openFileDialog.ShowModal() == wxID_CANCEL)
+		return; // the user changed idea..
+
+
+	//int filterIndex = openFileDialog.Ge
+
+	mainWindow->OpenFile(openFileDialog.GetPath());
+}
+
+void CViewerFrame::OnOpenFolder(wxCommandEvent& event)
+{
+	wxString openPicture = CLibResource::LoadStringFromResource(L"LBLOPENPICTUREFILE", 1);
+	
+	wxDirDialog openFileDialog(NULL, "Choose input directory", "",
+		wxDD_DEFAULT_STYLE | wxDD_DIR_MUST_EXIST);
+
+
+	if (openFileDialog.ShowModal() == wxID_CANCEL)
+		return; // the user changed idea..
+
+	mainWindow->OpenFolder(openFileDialog.GetPath());
 }
 
 bool CViewerFrame::VerifyIAModel()
@@ -373,25 +410,6 @@ void CViewerFrame::NewModelsAvailable()
 
 	if (!fileExist || localVersion != line)
 	{
-
-		/*
-
-		wxString path = CFileUtility::GetProgramFolderPath() + "\\RegardsDownloader.exe";
-		SHELLEXECUTEINFO ShExecInfo = { 0 };
-		ShExecInfo.cbSize = sizeof(SHELLEXECUTEINFO);
-		ShExecInfo.fMask = SEE_MASK_NOCLOSEPROCESS;
-		ShExecInfo.hwnd = NULL;
-		ShExecInfo.lpVerb = NULL;
-		ShExecInfo.lpFile = path;
-		ShExecInfo.lpParameters = L"";
-		ShExecInfo.lpDirectory = NULL;
-		ShExecInfo.nShow = SW_SHOWNORMAL;
-		ShExecInfo.hInstApp = NULL;
-		ShellExecuteEx(&ShExecInfo);
-		WaitForSingleObject(ShExecInfo.hProcess, INFINITE);
-		CloseHandle(ShExecInfo.hProcess);
-		*/
-
 
 		wxProgressDialog dialog("Downloading models ...", "Please wait...", 100, this, wxPD_APP_MODAL | wxPD_AUTO_HIDE |
 			wxPD_CAN_ABORT |
@@ -475,11 +493,6 @@ void CViewerFrame::OpenPictureFile()
 		evt.SetInt(1);
 		evt.SetClientData(file);
 		mainWindow->GetEventHandler()->AddPendingEvent(evt);
-
-		if (dirpath == "")
-			mainWindow->SetPictureMode();
-		else
-			mainWindow->SetViewerMode();
 	}   
 }
 
@@ -562,24 +575,6 @@ int CViewerFrame::ShowScanner()
 {
     wxString pathProgram  = "";
 #ifdef __APPLE__
-    /*
-	if (frameScanner != nullptr)
-	{
-		frameScanner->Show(true);
-		frameScanner->Raise();
-	}
-	else
-	{
-		frameScanner = new CScannerFrame("Regards PDF", mainInterface, wxPoint(50, 50), wxSize(1200, 800));
-		frameScanner->Centre(wxBOTH);
-		frameScanner->Show(true);
-	}
-	const int value = frameScanner->OnOpen();
-	if (value == -1)
-	{
-		frameScanner->Show(false);
-		this->Raise();
-	}*/
     pathProgram = CFileUtility::GetProgramFolderPath() + "/RegardsViewer -p RegardsPDF";
 #else
 #ifdef __WXMSW__
@@ -622,13 +617,6 @@ void CViewerFrame::OnAssociate(wxCommandEvent& event)
 {
 	wxString path = CFileUtility::GetProgramFolderPath() + "\\associate.exe";
 	ShellExecute(this->GetHWND(), L"runas", path, nullptr, nullptr, SW_SHOWNORMAL);
-	//wxExecute(path, wxEXEC_SYNC);
-	/*
-	Association associate(this);
-	associate.ShowModal();
-	if (associate.IsOk())
-		associate.AssociateExtension();
-	*/
 }
 #endif
 void CViewerFrame::OnPrint(wxCommandEvent& event)
@@ -800,15 +788,6 @@ void CViewerFrame::OnKeyDown(wxKeyEvent& event)
 				if (pictureEndLoading)
 					loadPictureTimer->Start(50, true);
 				pictureEndLoading = false;
-				/*
-				printf("Image Suivante \n");
-				wxWindow* mainWindow = this->FindWindowById(CENTRALVIEWERWINDOWID);
-				if (mainWindow != nullptr)
-				{
-					wxCommandEvent evt(wxEVENT_PICTURENEXT);
-					mainWindow->GetEventHandler()->AddPendingEvent(evt);
-				}
-				*/
 			}
 			break;
 
@@ -853,83 +832,10 @@ void CViewerFrame::OnKeyDown(wxKeyEvent& event)
 			}
 			break;
 
-
-		case WXK_F2:
-			{
-				wxCommandEvent event(wxEVENT_SETMODEVIEWER);
-				OnWindowFace(event);
-			}
-			break;
-
-		case WXK_F3:
-			{
-				wxCommandEvent event(wxEVENT_SETMODEVIEWER);
-				OnWindowFolder(event);
-			}
-			break;
-
-		case WXK_F4:
-			{
-				wxCommandEvent event(wxEVENT_SETMODEVIEWER);
-				OnWindowViewer(event);
-			}
-			break;
-
-		case WXK_F6:
-			{
-				wxCommandEvent event(wxEVENT_SETMODEVIEWER);
-				OnWindowPicture(event);
-			}
-			break;
-
 		default: ;
 		}
 	}
 	event.Skip();
-}
-
-void CViewerFrame::OnWindowFace(wxCommandEvent& event)
-{
-	wxWindow* central = this->FindWindowById(CENTRALVIEWERWINDOWID);
-	if (central != nullptr)
-	{
-		wxCommandEvent _event(wxEVENT_SETMODEVIEWER);
-		_event.SetInt(WINDOW_FACE);
-		wxPostEvent(central, _event);
-	}
-}
-
-void CViewerFrame::OnWindowFolder(wxCommandEvent& event)
-{
-	wxWindow* central = this->FindWindowById(CENTRALVIEWERWINDOWID);
-	if (central != nullptr)
-	{
-		wxCommandEvent _event(wxEVENT_SETMODEVIEWER);
-		_event.SetInt(WINDOW_EXPLORER);
-		wxPostEvent(central, _event);
-	}
-}
-
-void CViewerFrame::OnWindowViewer(wxCommandEvent& event)
-{
-	wxWindow* central = this->FindWindowById(CENTRALVIEWERWINDOWID);
-	if (central != nullptr)
-	{
-		wxCommandEvent _event(wxEVENT_SETMODEVIEWER);
-		_event.SetInt(WINDOW_VIEWER);
-		wxPostEvent(central, _event);
-	}
-}
-
-void CViewerFrame::OnWindowPicture(wxCommandEvent& event)
-{
-	wxWindow* central = this->FindWindowById(CENTRALVIEWERWINDOWID);
-	if (central != nullptr)
-	{
-		wxCommandEvent _event(wxEVENT_SETMODEVIEWER);
-		_event.SetInt(WINDOW_PICTURE);
-		wxPostEvent(central, _event);
-	}
 }
 
 
@@ -943,26 +849,11 @@ void CViewerFrame::SetFullscreen()
         int top = 0, left = 0, width = 0, height = 0;
         CToggleScreen toggle;
         toggle.ToggleFullscreen(this);
-        /*
-        toggle.GetFullscreenSize(width, height, left, top);
-        oldWidth = mainWindow->GetWindowWidth();
-        oldHeight = mainWindow->GetWindowHeight();
-        //mainWindow->SetSize(0, 0, oldWidth, oldHeight);
-        //this->Maximize();
-        int sizeWeight = wxDisplay().GetGeometry().GetHeight() - (height + top);
-        double scaleFactor = GetContentScaleFactor();
-        printf("SetFullscreen left : %d top : %d sizeWeight : %d \n", left, top, sizeWeight);
-        printf("SetFullscreen width : %d height : %d scaleFactor : %f \n", wxDisplay().GetGeometry().GetWidth(), wxDisplay().GetGeometry().GetHeight(), scaleFactor);
-        //mainWindow->SetSize(0, 0, wxDisplay().GetGeometry().GetWidth(), wxDisplay().GetGeometry().GetHeight() - sizeWeight + 5);
-        */
-      //  mainWindow->SetSize(0, 0, wxDisplay().GetGeometry().GetWidth(), wxDisplay().GetGeometry().GetHeight()- sizeWeight + 5);
-
         
 #else
 		this->ShowFullScreen(true);
 #endif
-        //this->CentreOnScreen();
-        //this->Maximize();
+
 	}
 }
 
@@ -973,8 +864,6 @@ void CViewerFrame::SetScreen()
 #ifdef __APPLE__
     CToggleScreen toggle;
     toggle.ToggleFullscreen(this);
-   // mainWindow->SetSize(0, 0, oldWidth, oldHeight);
-   /// this->Maximize();
 #else
     this->ShowFullScreen(false);
 #endif
@@ -1050,30 +939,14 @@ void CViewerFrame::SetPosProgressBar(const int& position)
 void CViewerFrame::OnConfiguration(wxCommandEvent& event)
 {
 	auto regardsParam = CParamInit::getInstance();
-	int pictureSize = regardsParam->GetFaceDetectionPictureSize();
 	ConfigRegards configFile(this);
 	configFile.ShowModal();
 	if (configFile.IsOk())
 	{
-		const int newPictureSize = regardsParam->GetFaceDetectionPictureSize();
-		if (pictureSize != newPictureSize)
+		if (mainWindow != nullptr)
 		{
-			//Suppression de toutes les Faces
-			CSQLRemoveData::DeleteFaceDatabase();
-
-			if (mainWindow != nullptr)
-			{
-				wxCommandEvent evt(wxEVENT_REFRESHFOLDERLIST);
-				mainWindow->GetEventHandler()->AddPendingEvent(evt);
-			}
-
-			wxWindow* window = this->FindWindowById(CRITERIAFOLDERWINDOWID);
-			if (window)
-			{
-				wxCommandEvent evt(wxEVENT_UPDATECRITERIA);
-				evt.SetExtraLong(0);
-				window->GetEventHandler()->AddPendingEvent(evt);
-			}
+			wxCommandEvent evt(wxEVENT_REFRESHFOLDERLIST);
+			mainWindow->GetEventHandler()->AddPendingEvent(evt);
 		}
 	}
 }
@@ -1224,26 +1097,6 @@ void CViewerFrame::OnPageSetup(wxCommandEvent& WXUNUSED(event))
 	(*g_pageSetupData) = pageSetupDialog.GetPageSetupDialogData();
 }
 
-void CViewerFrame::OnFacePertinence(wxCommandEvent& event)
-{
-	CMainParam* viewerParam = CMainParamInit::getInstance();
-	if (viewerParam != nullptr)
-	{
-		double pertinence = viewerParam->GetPertinenceValue();
-		PertinenceValue configFile(this);
-		configFile.SetValue(pertinence);
-		configFile.ShowModal();
-		if (configFile.IsOk())
-		{
-			viewerParam->SetPertinenceValue(configFile.GetValue());
-			if (mainWindow != nullptr)
-			{
-				wxCommandEvent evt(wxEVENT_REFRESHFOLDERLIST);
-				mainWindow->GetEventHandler()->AddPendingEvent(evt);
-			}
-		}
-	}
-}
 #ifdef __WXMAC__
 void CViewerFrame::OnPageMargins(wxCommandEvent& WXUNUSED(event))
 {
@@ -1274,11 +1127,6 @@ wxBEGIN_EVENT_TABLE(CViewerFrame, wxFrame)
 		EVT_MENU(ID_SIZEICONLESS, CViewerFrame::OnIconSizeLess)
 		EVT_MENU(ID_SIZEICONMORE, CViewerFrame::OnIconSizeMore)
 		EVT_MENU(ID_ERASEDATABASE, CViewerFrame::OnEraseDatabase)
-
-		EVT_MENU(ID_WINDOWFACE, CViewerFrame::OnWindowFace)
-		EVT_MENU(ID_WINDOWFOLDER, CViewerFrame::OnWindowFolder)
-		EVT_MENU(ID_WINDOWVIEWER, CViewerFrame::OnWindowViewer)
-		EVT_MENU(ID_WINDOWPICTURE, CViewerFrame::OnWindowPicture)
 		//EVT_MENU(ID_INTERPOLATIONFILTER, CViewerFrame::OnInterpolationFilter)
 		EVT_MENU(wxID_ABOUT, CViewerFrame::OnAbout)
 		EVT_MENU(WXPRINT_PAGE_SETUP, CViewerFrame::OnPageSetup)

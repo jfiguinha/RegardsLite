@@ -45,7 +45,6 @@ CPanelInfosWnd::CPanelInfosWnd(wxWindow* parent, wxWindowID id)
 	historyEffectWnd = nullptr;
 	thumbnailEffectWnd = nullptr;
 	filtreEffectWnd = nullptr;
-	criteriaTreeWnd = nullptr;
 
 	webBrowser = nullptr;
 	infosToolbar = nullptr;
@@ -213,20 +212,6 @@ CPanelInfosWnd::CPanelInfosWnd(wxWindow* parent, wxWindowID id)
 		infosToolbar = new CToolbarInfos(this, wxID_ANY, theme, this, false);
 	}
 
-	if (viewerTheme != nullptr)
-	{
-		CThemeScrollBar themeScroll;
-		viewerTheme->GetScrollTheme(&themeScroll);
-
-		CThemeSplitter themeSplitter;
-		viewerTheme->GetSplitterTheme(&themeSplitter);
-		criteriaTreeWnd = new CCriteriaWindow(this, wxID_ANY, themeSplitter);
-
-		auto tabInfosFile = new CTabWindowData();
-		tabInfosFile->SetWindow(criteriaTreeWnd);
-		tabInfosFile->SetId(WM_CRITERIA);
-		listWindow.push_back(tabInfosFile);
-	}
 
 	toolbarWindow = infosToolbar;
 
@@ -254,7 +239,6 @@ CPanelInfosWnd::~CPanelInfosWnd()
 	delete(infosFileWnd);
 	delete(historyEffectWnd);
 	delete(filtreEffectWnd);
-	delete(criteriaTreeWnd);
 	delete(thumbnailEffectWnd);
 	delete(infosToolbar);
 	delete(webBrowser);
@@ -482,11 +466,7 @@ void CPanelInfosWnd::LoadInfo()
 		infosToolbar->SetInfosPush();
 		windowVisible = WM_INFOS;
 		break;
-	case WM_CRITERIA:
-		criteriaTreeWnd->SetFile(filename);
-		infosToolbar->SetCriteriaPush();
-		windowVisible = WM_CRITERIA;
-		break;
+
 	case WM_HISTORY:
 		HistoryUpdate();
 		infosToolbar->SetHistoryPush();

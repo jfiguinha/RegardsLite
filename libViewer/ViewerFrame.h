@@ -32,10 +32,8 @@ namespace Regards::Viewer
 		ID_CATEGORYDETECTION = 14,
 		ID_ASSOCIATE = 15,
 		ID_ExternalProgram = 16,
-		ID_WINDOWFACE = 17,
-		ID_WINDOWFOLDER = 18,
-		ID_WINDOWVIEWER = 19,
-		ID_WINDOWPICTURE = 20,
+		ID_OPENFILE = 17,
+		ID_OPENFOLDER = 18,
         ID_DIAPORAMA = 21,
         ID_EDIT = 22,
 		ID_VIDEO = 1018,
@@ -88,7 +86,7 @@ namespace Regards::Viewer
 		void OnHelp(wxCommandEvent& event);
 		void OnIconSizeLess(wxCommandEvent& event);
 		void OnIconSizeMore(wxCommandEvent& event);
-		void OnFacePertinence(wxCommandEvent& event);
+
 		void OnPictureEndLoading(wxCommandEvent& event);
 		void OnKeyDown(wxKeyEvent& event);
 		void OnKeyUp(wxKeyEvent& event);
@@ -104,7 +102,13 @@ namespace Regards::Viewer
         void OnExportDiaporama(wxCommandEvent& event);
 		void OnExit(wxCommandEvent& event);
 		void OnPageSetup(wxCommandEvent& event);
+
+		void OnOpenFile(wxCommandEvent& event);
+		void OnOpenFolder(wxCommandEvent& event);
+
 		void OnFileSystemModified(wxFileSystemWatcherEvent& event);
+
+
 		void HideScanner(wxCommandEvent& event);
 #ifdef __WXMAC__
 			void OnPageMargins(wxCommandEvent& event);
@@ -114,10 +118,6 @@ namespace Regards::Viewer
 		void OnTimerEndLoadPicture(wxTimerEvent& event);
 		bool CheckDatabase(FolderCatalogVector& folderList);
 
-		void OnWindowFace(wxCommandEvent& event);
-		void OnWindowFolder(wxCommandEvent& event);
-		void OnWindowViewer(wxCommandEvent& event);
-		void OnWindowPicture(wxCommandEvent& event);
         void OnWindowFullScreen(wxCommandEvent & event);
         void OpenPictureFile();
 		void NewModelsAvailable();
