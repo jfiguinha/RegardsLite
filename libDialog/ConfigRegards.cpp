@@ -41,21 +41,18 @@ ConfigRegards::ConfigRegards(wxWindow* parent)
 	btOk = static_cast<wxButton*>(FindWindow(XRCID("ID_OK")));
 	scTime = static_cast<wxSpinCtrl*>(FindWindow(XRCID("ID_SCTIME")));
 	stTime = static_cast<wxStaticText*>(FindWindow(XRCID("ID_STTIME")));
-	scProcessExif = static_cast<wxSpinCtrl*>(FindWindow(XRCID("ID_SCEXIF")));
-	scProcessFace = static_cast<wxSpinCtrl*>(FindWindow(XRCID("ID_SCFACE")));
+
 	scProcessThumbnail = static_cast<wxSpinCtrl*>(FindWindow(XRCID("ID_SCTHUMBNAIL")));
 	btCancel = static_cast<wxButton*>(FindWindow(XRCID("ID_CANCEL")));
 	sbThumbnail = static_cast<wxStaticBox*>(FindWindow(XRCID("ID_STATICBOX2")));
-	//ID_RBVIDEOFACEDETECTION
-	rbVideoFaceDetection = static_cast<wxRadioBox*>(FindWindow(XRCID("ID_RBVIDEOFACEDETECTION")));
-	rbFaceDetection = static_cast<wxRadioBox*>(FindWindow(XRCID("ID_RBFACEDETECTION")));
+
 	txtPicturePath = static_cast<wxTextCtrl*>(FindWindow(XRCID("ID_TXTPICTUREPATH")));
 	btPicturePath = static_cast<wxButton*>(FindWindow(XRCID("ID_PICTUREPATH")));
 	txtVideoPath = static_cast<wxTextCtrl*>(FindWindow(XRCID("ID_TXTVIDEOPATH")));
 	btVideoPath = static_cast<wxButton*>(FindWindow(XRCID("ID_VIDEOPATH")));
 
 	rbDatabaseInMemory = static_cast<wxRadioBox*>(FindWindow(XRCID("ID_RBDATAINMEMORY")));
-	rbAutoRotate = static_cast<wxRadioBox*>(FindWindow(XRCID("ID_RBROTATEAUTO")));
+
 	rbInterpolation = static_cast<wxComboBox*>(FindWindow(XRCID("ID_CBINTERPOLATIONFILTER")));
 	cbHardwareAccelerator = static_cast<wxComboBox*>(FindWindow(XRCID("ID_CBHARDWAREACCELERATE")));
 	rbOpenCLOpenGLInterop = static_cast<wxRadioBox*>(FindWindow(XRCID("ID_RBOPENGLOPENCLINTEROP")));
@@ -65,9 +62,6 @@ ConfigRegards::ConfigRegards(wxWindow* parent)
 	txtMusicDiaporamaPath = static_cast<wxTextCtrl*>(FindWindow(XRCID("ID_TXTMUSICDIAPORAMAPATH")));
 	btMusicDiaporamaPath = static_cast<wxButton*>(FindWindow(XRCID("ID_MUSICDIAPORAMAPATH")));
 
-
-	rbUSESUPERDNN = static_cast<wxRadioBox*>(FindWindow(XRCID("ID_RBUSESUPERDNN")));
-	cbUSESUPERDNNFILTER = static_cast<wxComboBox*>(FindWindow(XRCID("ID_CBUSESUPERDNNFILTER")));
 
 
 	rbVideoEncoderHard = static_cast<wxComboBox*>(FindWindow(XRCID("ID_CBVIDEOENCODERHARD")));
@@ -218,11 +212,7 @@ void ConfigRegards::init()
 	else
 		rbTransitionDiaporamaEffect->SetSelection(transitionDiaporama);
 
-	int autoRotate = regardsParam->GetDetectOrientation();
-	if (autoRotate == 0)
-		rbAutoRotate->SetSelection(1);
-	else
-		rbAutoRotate->SetSelection(0);
+
 
 	int autoContrast = regardsParam->GetAutoConstrast();
 	if (autoContrast == 0)
