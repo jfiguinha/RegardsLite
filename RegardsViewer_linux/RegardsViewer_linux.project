@@ -233,7 +233,6 @@
         <Library Value="poppler"/>
         <Library Value="fontconfig"/>
         <Library Value="FreeImage"/>
-        <Library Value="sane"/>
         <Library Value="avif"/>
         <Library Value="heif"/>
         <Library Value="qpdf"/>
