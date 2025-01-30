@@ -27,7 +27,6 @@
 
 
 #include <utility.h>
-#include <ncnn/gpu.h>
 #include <ParamInit.h>
 #include <RegardsConfigParam.h>
 
@@ -40,66 +39,8 @@ static const char* CL_GL_SHARING_EXT = "cl_khr_gl_sharing";
 extern string platformName;
 extern cv::ocl::OpenCLExecutionContext clExecCtx;
 extern bool isOpenCLInitialized;
-extern ncnn::VulkanDevice* vkdev;
 using namespace Regards::OpenCL;
 
-void COpenCLContext::AssociateToVulkan()
-{
-
-	bool findNvidia = false;
-	bool findIntel = false;
-	bool findAmd = false;
-	int numNvidia = 0;
-	int numAmd = 0;
-	int numIntel = 0;
-	int select = 0;
-	cl_uint numPlatforms = ncnn::get_gpu_count();
-	for (int i = 0; i < numPlatforms; i++)
-	{
-		const ncnn::GpuInfo& pguInfo = ncnn::get_gpu_info(i);
-		string deviceName = pguInfo.device_name();
-		for (auto& c : deviceName)
-		{
-			c = tolower(c);
-		}
-		if (deviceName.find("nvidia") != std::string::npos)
-		{
-			findNvidia = true;
-			numNvidia = i;
-		}
-
-		if (deviceName.find("amd") != std::string::npos)
-		{
-			findAmd = true;
-			numAmd = i;
-		}
-
-		if (deviceName.find("intel") != std::string::npos)
-		{
-			findIntel = true;
-			numIntel = i;
-		}
-	}
-
-	if (platformName.find("Intel") == 0 && findIntel)
-    {
-        vkdev = ncnn::get_gpu_device(numIntel);
-        printf("Vulkan Intel \n");
-    }
-	else if(platformName.find("NVIDIA") == 0 && findNvidia)
-    {
-		vkdev = ncnn::get_gpu_device(numNvidia);
-        printf("Vulkan NVIDIA \n");
-    }
-	else if (findAmd)
-    {
-		vkdev = ncnn::get_gpu_device(numAmd);
-        printf("Vulkan AMD \n");
-    }
-    else
-        vkdev = nullptr;
-
-}
 
 wxString COpenCLContext::GetDeviceInfo(cl_device_id device, cl_device_info param_name)
 {
@@ -420,8 +361,6 @@ printf("initializeContextFromGL wayland\n");
 	clRetainContext(context);
 
 	cv::ocl::Device(cv::ocl::Device::fromHandle(device));
-
-	AssociateToVulkan();
     
     printf("initializeContextFromGL 8\n");
 
@@ -552,7 +491,6 @@ void COpenCLContext::CreateDefaultOpenCLContext()
 		//cv::ocl::Device(context.device(0));
 		clExecCtx = cv::ocl::OpenCLExecutionContext::getCurrent();
 		platformName = clExecCtx.getDevice().vendorName();
-		AssociateToVulkan();
 	}
 
 

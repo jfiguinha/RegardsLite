@@ -22,7 +22,7 @@
 #include <wx/cmdline.h>
 #include <wx/display.h>
 #include <VideoConverterFrame.h>
-#include <ncnn/gpu.h>
+
 #include <signal.h>
 #include <wxffmpegFrame.h>
 //#define TEST_WINDOWMANAGER
@@ -155,7 +155,7 @@ wxImage defaultPicture;
 wxImage defaultPictureThumbnailPicture;
 wxImage defaultPictureThumbnailVideo;
 bool preprocessisAvailable = true;
-ncnn::VulkanDevice * vkdev = nullptr;
+
 std::mutex muProcessAvailable;
 float value[256];
 

@@ -21,7 +21,6 @@
 #include <FilterWindowParam.h>
 #include <FilterData.h>
 #include <OpenCLContext.h>
-#include <ncnn/gpu.h>
 
 #ifdef USE_CUDA
 #include <opencv2/cudaarithm.hpp>

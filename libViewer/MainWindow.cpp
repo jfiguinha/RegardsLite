@@ -297,6 +297,16 @@ void CMainWindow::OnVersionUpdate(wxCommandEvent& event)
 
 	isCheckNewVersion = false;
 
+
+	if (hasUpdate)
+	{
+		wxString title = CLibResource::LoadStringFromResource("LBLINFOS", 1);
+		wxString infos = CLibResource::LoadStringFromResource("LBLNEWVERSIONAVAILABLE", 1);
+
+		wxMessageBox(infos, title, wxOK | wxICON_INFORMATION);
+	}
+
+
 }
 
 
