@@ -632,7 +632,6 @@
     <ClInclude Include="ThumbnailViewerVideo.h" />
     <ClInclude Include="Toolbar.h" />
     <ClInclude Include="ToolbarInfos.h" />
-    <ClInclude Include="ToolbarPhoto.h" />
     <ClInclude Include="TreatmentData.h" />
     <ClInclude Include="ViewerFrame.h" />
     <ClInclude Include="WaitingWindow.h" />
@@ -666,7 +665,6 @@
     <ClCompile Include="ThumbnailViewerVideo.cpp" />
     <ClCompile Include="toolbar.cpp" />
     <ClCompile Include="ToolbarInfos.cpp" />
-    <ClCompile Include="ToolbarPhoto.cpp" />
     <ClCompile Include="ViewerFrame.cpp" />
     <ClCompile Include="WaitingWindow.cpp" />
   </ItemGroup>

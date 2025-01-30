@@ -108,9 +108,6 @@
     <ClInclude Include="PanelInfosWnd.h">
       <Filter>Panel\include</Filter>
     </ClInclude>
-    <ClInclude Include="ToolbarPhoto.h">
-      <Filter>Toolbar\include</Filter>
-    </ClInclude>
     <ClInclude Include="PictureElement.h">
       <Filter>Fichiers d%27en-tête</Filter>
     </ClInclude>
@@ -193,9 +190,6 @@
     </ClCompile>
     <ClCompile Include="CheckVersion.cpp">
       <Filter>CheckVersion</Filter>
-    </ClCompile>
-    <ClCompile Include="ToolbarPhoto.cpp">
-      <Filter>Toolbar\source</Filter>
     </ClCompile>
     <ClCompile Include="WaitingWindow.cpp">
       <Filter>Fichiers sources</Filter>

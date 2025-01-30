@@ -262,16 +262,6 @@ bool MyApp::OnInit()
 		printf("Unable to make folder temp");
 		exit(0);
 	}	
-	if(!LocaleMakeDir("Face"))
-	{
-		printf("Unable to make folder Face");
-		exit(0);
-	}
-	if (!LocaleMakeDir("model"))
-	{
-		printf("Unable to make folder Face");
-		exit(0);
-	}
     
     if(!wxFileExists(regardsdocumentdb_path))
         wxCopyFile(regardsdb_path, regardsdocumentdb_path);
@@ -478,13 +468,7 @@ bool MyApp::OnInit()
 	}
 	else
 	{
-        /*
-		frameStart = new MyFrameIntro("Welcome to Regards", "REGARDS V2", wxPoint(50, 50), wxSize(450, 340), this);
-		frameStart->Centre(wxBOTH);
-		frameStart->Show(true);
-        */
         ShowViewer();
-
 		CViewerFrame::SetViewerMode(true);
 	}
 
