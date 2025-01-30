@@ -28,13 +28,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ffmpeg_application.cpp" />
-    <ClCompile Include="win32\stdatomic.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ffmpeg_application.h" />
-    <ClInclude Include="win32\stdalign.h" />
-    <ClInclude Include="win32\stdatomic.h" />
-    <ClInclude Include="win32\threads.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
