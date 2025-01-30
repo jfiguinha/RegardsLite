@@ -1,7 +1,4 @@
 # RegardsLite
-//**************************************************************************	
-Description
-//**************************************************************************
 
 Regards is a modern photo viewer. 
 Support highDPI definition screen.
