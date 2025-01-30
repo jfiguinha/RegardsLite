@@ -18,8 +18,8 @@ Video extension support :
 
 mp4, dat, m4s, vob, mod, mpv2, mp2, m1v, mpe, mpg, mpeg, wtv, dvr-ms, m2ts, m2t, avi, wmv, asf, vm, mov, qt, vp8, vp9, webm, mkv, y4m
 
-//**************************************************************************
-//Installation
+//**************************************************************************<br>
+//Installation<br>
 //**************************************************************************
 
 Linux Mint 20 or Ubuntu 20.04 x64 Installation
@@ -35,8 +35,8 @@ Installation on Windows
 Installation on Mac os X 10.13 and Later
 - Open DMG file and Copy RegardsViewer to Application Folder.
 
-//**************************************************************************
-//Configuration
+//**************************************************************************<br>
+//Configuration<br>
 //**************************************************************************
 
 Works on minimum windows 7 and above, Mac OS X 10.13 and above, Ubuntu 20.04 x64, Linux Manjaro and above. 
