@@ -74,14 +74,7 @@ constexpr auto TIMER_LOADPICTURESTART = 5;
 #endif
 
 
-#ifndef wxHAS_IMAGES_IN_RESOURCES
-#ifdef __WXGTK__
-#include "../Resource/sample.xpm"
-#else
-#include "../../Resource/sample.xpm"
-#endif
-#endif
-
+#include "../Regards/Resources/regardsliteicon.xpm"
 
 bool CViewerFrame::viewerMode = true;
 
@@ -109,7 +102,7 @@ CViewerFrame::CViewerFrame(const wxString& title, const wxPoint& pos, const wxSi
 	onExit = false;
 	fileToOpen = openfile;
 	mainWindowWaiting = nullptr;
-	SetIcon(wxICON(sample));
+	SetIcon(wxICON(regardsliteicon));
 #ifndef __WXMSW__
 	frameScanner = nullptr;
 #endif
