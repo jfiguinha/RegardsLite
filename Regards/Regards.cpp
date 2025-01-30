@@ -37,7 +37,6 @@ cv::ocl::OpenCLExecutionContext clExecCtx;
 
 using namespace cv;
 using namespace Regards::Picture;
-using namespace Regards::Video;
 using namespace Regards::OpenCL;
 extern int Start(int argc, char **argv);
 

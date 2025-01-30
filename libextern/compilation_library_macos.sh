@@ -34,7 +34,7 @@ cd ..
 
 cd vcpkg
 ./vcpkg install ffmpeg[gpl,aom,dav1d,x265,x264,openh264,vpx,webp,vorbis,mp3lame,openjpeg,opus,fdk-aac,ffmpeg] --allow-unsupported
-./vcpkg install opencv4[contrib,core,dnn,ffmpeg,ipp,jpeg,tbb,png,tiff,webp,openexr,opengl]
+./vcpkg install opencv4[contrib,core,ffmpeg,ipp,jpeg,tbb,png,tiff,webp,openexr,opengl]
 ./vcpkg install libde265
 ./vcpkg install exiv2[video,xmp,bmff]
 ./vcpkg install libavif[aom,dav1d]
@@ -46,7 +46,6 @@ cd vcpkg
 ./vcpkg install sqlite3
 ./vcpkg install freeimage
 ./vcpkg install libjxl
-./vcpkg install openal-soft
 ./vcpkg install libepoxy
 cd ..
 

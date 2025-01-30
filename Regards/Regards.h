@@ -24,7 +24,7 @@
 #include <VideoConverterFrame.h>
 
 #include <signal.h>
-#include <wxffmpegFrame.h>
+
 //#define TEST_WINDOWMANAGER
 #ifdef __WXGTK__
  #include <X11/Xlib.h>   

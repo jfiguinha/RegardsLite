@@ -296,13 +296,6 @@
         <Library Value="Imath-3_1"/>
         <Library Value="deflate"/>
         <Library Value="archive"/>
-        <Library Value="ncnn"/>
-        <Library Value="MachineIndependent"/>
-        <Library Value="glslang"/>
-        <Library Value="glslang-default-resource-limits"/>
-        <Library Value="GenericCodeGen"/>
-        <Library Value="OSDependent"/>
-        <Library Value="SPIRV"/>
         <Library Value="x265"/>
         <Library Value="dav1d"/>
         <Library Value="wayland-egl"/>
@@ -397,7 +390,6 @@
         <Library Value="yuv"/>
         <Library Value="tinyxml2"/>
         <Library Value="omp"/>
-        <Library Value="openal"/>
       </Linker>
       <ResourceCompiler Options=""/>
     </GlobalSettings>
@@ -552,7 +544,6 @@
       <PreBuild/>
       <PostBuild>
         <Command Enabled="yes">cp -R ../Regards/Resources ./Release</Command>
-        <Command Enabled="yes">cp ../libextern/vcpkg/installed/x64-linux/lib/libvulkan.so.1.3.290 ./Release/libvulkan.so</Command>
         <Command Enabled="yes">cp ../libextern/ffmpeg-master/lib/libavcodec.so.61 ./Release</Command>
         <Command Enabled="yes">cp ../libextern/ffmpeg-master/lib/libavdevice.so.61 ./Release</Command>
         <Command Enabled="yes">cp ../libextern/ffmpeg-master/lib/libavfilter.so.10 ./Release</Command>
