@@ -146,6 +146,9 @@
     <Image Include="..\Regards\Resources\viewer.ico">
       <Filter>Fichiers de ressources</Filter>
     </Image>
+    <Image Include="..\Regards\Resources\regardsliteicon.ico">
+      <Filter>Fichiers de ressources</Filter>
+    </Image>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\Regards\Regards.cpp">

@@ -1002,6 +1002,7 @@ XCOPY /E /H /C /I "$(SolutionDir)Regards\Resources" $(SolutionDir)$(Platform)\$(
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <Image Include="..\Regards\Resources\regardsliteicon.ico" />
     <Image Include="..\Regards\Resources\viewer.ico" />
     <Image Include="..\resource\explorer.ico" />
     <Image Include="..\resource\viewer.ico" />
