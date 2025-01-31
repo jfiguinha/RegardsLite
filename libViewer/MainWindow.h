@@ -66,7 +66,7 @@ namespace Regards::Viewer
 		void UpdateFolderStatic();
 
 		static void NewVersionAvailable(void* param);
-
+		static void CheckFile(void* param);
 
 		void SetDataToStatusBar(void* thumbnailMessage, const wxString& message);
 
@@ -79,7 +79,7 @@ namespace Regards::Viewer
 		void OnUpdateInfos(wxCommandEvent& event);
 		void OnShowToolbar(wxCommandEvent& event);
 		void OnStatusSetText(wxCommandEvent& event);
-
+		void OnEndCheckFile(wxCommandEvent& event);
 		void OnSetRangeProgressBar(wxCommandEvent& event);
 		void OnSetValueProgressBar(wxCommandEvent& event);
 
@@ -96,7 +96,7 @@ namespace Regards::Viewer
 
 		void OnPrint(wxCommandEvent& event);
 		void OnPictureClick(wxCommandEvent& event);
-
+		void Md5Checking(wxCommandEvent& event);
 		void PrintPreview(wxCommandEvent& event);
 
 
@@ -149,10 +149,12 @@ namespace Regards::Viewer
 		CCentralWindow* centralWnd;
 		std::thread* versionUpdate = nullptr;
 
+		bool isCheckingFile = false;
 		IStatusBarInterface* statusBarViewer;
 		wxRect posWindow;
 
 		wxString localFilename;
+		std::atomic<int> nbProcessMD5;
 		std::atomic<int> endApplication;
 		bool showToolbar;
 		CMainParam* viewerParam;

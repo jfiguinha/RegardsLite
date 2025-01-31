@@ -76,7 +76,63 @@ public:
 	wxString video;
 };
 
+class CThreadCheckFile
+{
+public:
+	CThreadCheckFile()
+	{
+		mainWindow = nullptr;
+	}
 
+	~CThreadCheckFile()
+	{
+	};
+
+
+	std::thread* checkFile = nullptr;
+	CMainWindow* mainWindow;
+	int pictureSize;
+	int numFile;
+};
+
+void CMainWindow::CheckFile(void* param)
+{
+	CThreadCheckFile* checkFile = (CThreadCheckFile*)param;
+	if (checkFile != nullptr)
+	{
+		for (int i = checkFile->numFile; i < checkFile->pictureSize; i++)
+		{
+			CPhotos photo = CThumbnailBuffer::GetVectorValue(i);
+			checkFile->mainWindow->PhotoProcess(&photo);
+			if (checkFile->mainWindow->endApplication)
+				break;
+			std::this_thread::sleep_for(50ms);
+		}
+	}
+
+
+	wxCommandEvent evt(wxEVENT_ENDCHECKFILE);
+	evt.SetClientData(checkFile);
+	checkFile->mainWindow->GetEventHandler()->AddPendingEvent(evt);
+}
+
+void CMainWindow::OnEndCheckFile(wxCommandEvent& event)
+{
+	CThreadCheckFile* checkFile = (CThreadCheckFile*)event.GetClientData();
+	if (checkFile != nullptr)
+	{
+		if (checkFile->checkFile != nullptr)
+		{
+			checkFile->checkFile->join();
+			delete checkFile->checkFile;
+		}
+
+		isCheckingFile = false;
+		delete checkFile;
+	}
+
+	processIdle = true;
+}
 
 CThreadVideoData::~CThreadVideoData()
 {
@@ -91,7 +147,7 @@ CMainWindow::CMainWindow(wxWindow* parent, wxWindowID id, IStatusBarInterface* s
 	: CWindowMain("CMainWindow", parent, id)
 {
 	fullscreen = false;
-
+	nbProcessMD5 = 0;
 	showToolbar = true;
 	multithread = true;
 	needToReload = false;
@@ -130,12 +186,14 @@ CMainWindow::CMainWindow(wxWindow* parent, wxWindowID id, IStatusBarInterface* s
 	Connect(TOOLBAR_UPDATE_ID, wxCommandEventHandler(CMainWindow::OnShowToolbar));
 	Connect(wxEVT_IDLE, wxIdleEventHandler(CMainWindow::OnIdle));
 
+	Connect(wxEVENT_ENDCHECKFILE, wxCommandEventHandler(CMainWindow::OnEndCheckFile));
+
 	Connect(wxEVENT_ONPICTURECLICK, wxCommandEventHandler(CMainWindow::OnPictureClick));
 
 	Connect(wxEVENT_PICTUREVIDEOCLICK, wxCommandEventHandler(CMainWindow::PictureVideoClick));
 	Connect(wxEVENT_REFRESHFOLDER, wxCommandEventHandler(CMainWindow::InitPictures));
 	Connect(wxEVENT_REFRESHPICTURE, wxCommandEventHandler(CMainWindow::OnRefreshPicture));
-
+	Connect(wxEVENT_MD5CHECKING, wxCommandEventHandler(CMainWindow::Md5Checking));
 	Connect(wxEVENT_SETSTATUSTEXT, wxCommandEventHandler(CMainWindow::OnStatusSetText));
 	Connect(wxEVT_EXIT, wxCommandEventHandler(CMainWindow::OnExit));
 	Connect(wxEVENT_SETRANGEPROGRESSBAR, wxCommandEventHandler(CMainWindow::OnSetRangeProgressBar));
@@ -803,7 +861,16 @@ void CMainWindow::PhotoProcess(CPhotos* photo)
 		CMainParam* config = CMainParamInit::getInstance();
 		if (config != nullptr)
 		{
-			numElementTraitement++;
+			if (config->GetCheckThumbnailValidity() && nbProcessMD5 < nbProcesseur)
+			{
+				auto path = new CThreadMD5();
+				path->filename = photo->GetPath();
+				path->mainWindow = this;
+				path->thread = new thread(CMd5Check::CheckMD5, path);
+				nbProcessMD5++;
+			}
+			else
+				numElementTraitement++;
 		}
 	}
 	else
@@ -850,6 +917,22 @@ void CMainWindow::ProcessIdle()
 
 		hasDoneOneThings = true;
 	}
+	else if (numElementTraitement < pictureSize)
+	{
+		if (!isCheckingFile)
+		{
+			CThreadCheckFile* checkFile = new CThreadCheckFile();
+			checkFile->mainWindow = this;
+			checkFile->pictureSize = pictureSize;
+			checkFile->numFile = numElementTraitement;
+			checkFile->checkFile = new std::thread(CheckFile, checkFile);
+			isCheckingFile = true;
+			std::this_thread::sleep_for(100ms);
+		}
+
+		//hasDoneOneThings = true;
+	}
+
 
 	ProcessThumbnail();
 
@@ -1087,6 +1170,31 @@ void CMainWindow::OnIdle(wxIdleEvent& evt)
 	StartThread();
 }
 
+//---------------------------------------------------------------
+//
+//---------------------------------------------------------------
+void CMainWindow::Md5Checking(wxCommandEvent& event)
+{
+	auto path = static_cast<CThreadMD5*>(event.GetClientData());
+	if (path != nullptr)
+	{
+		if (path->thread != nullptr)
+		{
+			path->thread->join();
+			delete(path->thread);
+			path->thread = nullptr;
+		}
+		delete path;
+	}
+	nbProcessMD5--;
+	numElementTraitement++;
+	wxString label = CLibResource::LoadStringFromResource(L"LBLFILECHECKING", 1);
+	wxString message = label + to_string(numElementTraitement) + L"/" + to_string(CThumbnailBuffer::GetVectorSize());
+	if (statusBarViewer != nullptr)
+	{
+		statusBarViewer->SetText(3, message);
+	}
+}
 
 
 //---------------------------------------------------------------
@@ -1223,7 +1331,7 @@ bool CMainWindow::GetProcessEnd()
 {
 	endApplication = true;
 
-	if (nbProcess > 0)
+	if (nbProcessMD5 > 0 || nbProcess > 0 || isCheckingFile)
 		return false;
 
 	return true;
@@ -1316,6 +1424,9 @@ void CMainWindow::OpenFile(const wxString& fileToOpen)
     //Test if folder is on database
     CSqlFolderCatalog sqlFolderCatalog;
     int64_t idFolder = sqlFolderCatalog.GetFolderCatalogId(NUMCATALOGID, folder);
+    
+    cout << "Folder : " << folder << " " << idFolder << endl;
+    
     if (idFolder == -1)
     {
         CSQLRemoveData::DeleteCatalog(1);
@@ -1335,11 +1446,16 @@ bool CMainWindow::OpenFolder(const wxString& path)
 	{
 
 		bool find = false;
+        
+        
 
 		wxString folder = path;
         //Test if folder is on database
         CSqlFolderCatalog sqlFolderCatalog;
         int64_t idFolder = sqlFolderCatalog.GetFolderCatalogId(NUMCATALOGID, folder);
+        
+        cout << "Folder : " << folder << " " << idFolder << endl;
+        
         if (idFolder == -1)
         {
             CSQLRemoveData::DeleteCatalog(1);

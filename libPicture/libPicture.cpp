@@ -2412,7 +2412,7 @@ void CLibPicture::LoadPicture(const wxString& fileName, const bool& isThumbnail,
 
 void CLibPicture::ApplyOrientation(const wxString& fileName, const bool& applyExif, CImageLoadingFormat* bitmap)
 {
-    printf("CLibPicture::ApplyOrientation \n");
+    //printf("CLibPicture::ApplyOrientation \n");
 	int orientation = -1;
 	if (TestIsExifCompatible(fileName) && applyExif)
 	{
@@ -2420,7 +2420,7 @@ void CLibPicture::ApplyOrientation(const wxString& fileName, const bool& applyEx
 		orientation = metadata.GetOrientation();
 		bitmap->SetOrientation(orientation);
         
-        printf("CLibPicture::ApplyOrientation orientation : %d \n", orientation);
+        //printf("CLibPicture::ApplyOrientation orientation : %d \n", orientation);
 	}
 }
 
