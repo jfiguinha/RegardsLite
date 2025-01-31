@@ -96,7 +96,7 @@ namespace Regards::Viewer
 		void OnClose(wxCloseEvent& event);
 		void OnConfiguration(wxCommandEvent& event);
 		void OnEraseDatabase(wxCommandEvent& event);
-		void OnScanner(wxCommandEvent& event);
+
         void OnEdit(wxCommandEvent& event);
         void OnExportDiaporama(wxCommandEvent& event);
 		void OnExit(wxCommandEvent& event);
@@ -107,8 +107,6 @@ namespace Regards::Viewer
 
 		void OnFileSystemModified(wxFileSystemWatcherEvent& event);
 
-
-		void HideScanner(wxCommandEvent& event);
 #ifdef __WXMAC__
 			void OnPageMargins(wxCommandEvent& event);
 #endif

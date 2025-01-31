@@ -253,7 +253,7 @@ CViewerFrame::CViewerFrame(const wxString& title, const wxPoint& pos, const wxSi
 	wxWindow::SetLabel(wxT("RegardsLite Viewer"));
 	//Connect(wxEVT_SIZE, wxSizeEventHandler(CViewerFrame::OnSize));
 	Connect(wxEVT_CLOSE_WINDOW, wxCloseEventHandler(CViewerFrame::OnClose));
-	Connect(wxEVENT_CLOSESCANNER, wxCommandEventHandler(CViewerFrame::HideScanner));
+
 	Connect(wxEVENT_PICTUREENDLOADING, wxCommandEventHandler(CViewerFrame::OnPictureEndLoading));
 	Connect(wxID_PRINT, wxEVT_MENU, wxCommandEventHandler(CViewerFrame::OnPrint));
 	Connect(ID_EXPORT, wxEVT_MENU, wxCommandEventHandler(CViewerFrame::OnExport));
@@ -475,20 +475,7 @@ int CViewerFrame::ShowScanner()
 	return 0;
 }
 
-void CViewerFrame::OnScanner(wxCommandEvent& event)
-{
-	ShowScanner();
-}
 
-void CViewerFrame::HideScanner(wxCommandEvent& event)
-{
-#ifdef __APPLE__
-	if (frameScanner != nullptr)
-	{
-		frameScanner->Show(false);
-	}
-#endif
-}
 
 void CViewerFrame::OnExport(wxCommandEvent& event)
 {

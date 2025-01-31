@@ -243,6 +243,8 @@ bool GLTexture::SetData(Regards::Picture::CPictureArray& bitmap)
 {   
 	CRegardsConfigParam* regardsParam = CParamInit::getInstance();
 	int openclOpenGLInterop = regardsParam->GetIsOpenCLOpenGLInteropSupport();
+    
+    //openclOpenGLInterop = 0;
 
 	int kind = bitmap.Kind();
 

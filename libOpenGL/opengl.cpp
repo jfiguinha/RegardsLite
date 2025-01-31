@@ -1731,7 +1731,7 @@ Context& initializeContextFromGL()
 
 } // namespace cv::ogl::ocl
 
-void convertToGLTexture2D(InputArray src, Texture2D& texture)
+void openclOpenGLInterop(InputArray src, Texture2D& texture)
 {
     CV_UNUSED(src); CV_UNUSED(texture);
 #if !defined(HAVE_OPENGL)

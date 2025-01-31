@@ -1,8 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <CodeLite_Project Name="libViewer" InternalType="Library" Version="11000">
-  <VirtualDirectory Name="cvPlot">
-    <File Name="../libextern/CvPlot/src/cvplot.cpp"/>
-  </VirtualDirectory>
   <Plugins>
     <Plugin Name="qmake">
       <![CDATA[00020001N0005Debug0000000000000001N0007Release000000000000]]>
@@ -29,6 +26,9 @@
  }]]]>
     </Plugin>
   </Plugins>
+  <VirtualDirectory Name="cvPlot">
+    <File Name="../libextern/CvPlot/src/cvplot.cpp"/>
+  </VirtualDirectory>
   <VirtualDirectory Name="FolderProcess">
     <File Name="md5check.h"/>
     <File Name="md5check.cpp"/>

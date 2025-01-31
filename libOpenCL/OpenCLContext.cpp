@@ -193,8 +193,6 @@ void COpenCLContext::initializeContextFromGL()
 
 	cv::ocl::Device(cv::ocl::Device::fromHandle(device));
 
-	AssociateToVulkan();
-
 	clReleaseDevice(device);
 	clReleaseContext(context);
 	clExecCtx.bind();
