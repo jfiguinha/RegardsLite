@@ -84,7 +84,7 @@ namespace Regards::Viewer
 		void OnSetValueProgressBar(wxCommandEvent& event);
 
 		void OnRefreshPicture(wxCommandEvent& event);
-		void OnScanner(wxCommandEvent& event);
+
 
 		void OnVersionUpdate(wxCommandEvent& event);
 		void UpdateStatusBarMessage(wxCommandEvent& event);
@@ -96,7 +96,7 @@ namespace Regards::Viewer
 
 		void OnPrint(wxCommandEvent& event);
 		void OnPictureClick(wxCommandEvent& event);
-		void Md5Checking(wxCommandEvent& event);
+
 		void PrintPreview(wxCommandEvent& event);
 
 
@@ -154,7 +154,7 @@ namespace Regards::Viewer
 		wxRect posWindow;
 
 		wxString localFilename;
-		std::atomic<int> nbProcessMD5;
+
 		std::atomic<int> endApplication;
 		bool showToolbar;
 		CMainParam* viewerParam;

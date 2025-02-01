@@ -34,9 +34,20 @@ CThumbnailDataSQL::CThumbnailDataSQL(const wxString& filename, const bool& testV
 
 	if(isVideo)
 	{
-		nbFrame = 20;
-		this->generateVideoPlayer = true;
-		videoCaptureCV = nullptr;
+		if (libPicture.TestIsVideo(filename))
+		{
+			nbFrame = 20;
+			this->generateVideoPlayer = true;
+			videoCaptureCV = nullptr;
+		}
+		else
+		{
+			isAnimation = true;
+			isVideo = false;
+
+			CSqlThumbnailVideo sqlThumbnailVideo;
+			nbFrame = sqlThumbnailVideo.GetNbThumbnail(filename);
+		}
 
 		/*
 		if (libPicture.TestIsVideoValid(filename))

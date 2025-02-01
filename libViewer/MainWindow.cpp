@@ -38,7 +38,7 @@
 #include <ParamInit.h>
 #include "FolderProcess.h"
 #include <wx/busyinfo.h>
-#include "md5check.h"
+
 #include <ImageVideoThumbnail.h>
 #include <ThreadLoadingBitmap.h>
 #include "window_mode_id.h"
@@ -145,7 +145,7 @@ CMainWindow::CMainWindow(wxWindow* parent, wxWindowID id, IStatusBarInterface* s
 	: CWindowMain("CMainWindow", parent, id)
 {
 	fullscreen = false;
-	nbProcessMD5 = 0;
+
 	showToolbar = true;
 	multithread = true;
 	needToReload = false;
@@ -191,7 +191,7 @@ CMainWindow::CMainWindow(wxWindow* parent, wxWindowID id, IStatusBarInterface* s
 	Connect(wxEVENT_PICTUREVIDEOCLICK, wxCommandEventHandler(CMainWindow::PictureVideoClick));
 	Connect(wxEVENT_REFRESHFOLDER, wxCommandEventHandler(CMainWindow::InitPictures));
 	Connect(wxEVENT_REFRESHPICTURE, wxCommandEventHandler(CMainWindow::OnRefreshPicture));
-	Connect(wxEVENT_MD5CHECKING, wxCommandEventHandler(CMainWindow::Md5Checking));
+
 	Connect(wxEVENT_SETSTATUSTEXT, wxCommandEventHandler(CMainWindow::OnStatusSetText));
 	Connect(wxEVT_EXIT, wxCommandEventHandler(CMainWindow::OnExit));
 	Connect(wxEVENT_SETRANGEPROGRESSBAR, wxCommandEventHandler(CMainWindow::OnSetRangeProgressBar));
@@ -201,7 +201,7 @@ CMainWindow::CMainWindow(wxWindow* parent, wxWindowID id, IStatusBarInterface* s
 
 	Connect(wxEVENT_PRINT, wxCommandEventHandler(CMainWindow::OnPrint));
 	Connect(wxEVENT_SETVALUEPROGRESSBAR, wxCommandEventHandler(CMainWindow::OnSetValueProgressBar));
-	Connect(wxEVENT_SHOWSCANNER, wxCommandEventHandler(CMainWindow::OnScanner));
+
 	Connect(wxEVENT_OPENFILEORFOLDER, wxCommandEventHandler(CMainWindow::OnOpenFileOrFolder));
 	Connect(wxEVENT_EDITFILE, wxCommandEventHandler(CMainWindow::OnEditFile));
 	Connect(wxEVENT_EXPORTFILE, wxCommandEventHandler(CMainWindow::OnExportFile));
@@ -853,16 +853,7 @@ void CMainWindow::PhotoProcess(CPhotos* photo)
 		CMainParam* config = CMainParamInit::getInstance();
 		if (config != nullptr)
 		{
-			if (config->GetCheckThumbnailValidity() && nbProcessMD5 < nbProcesseur)
-			{
-				auto path = new CThreadMD5();
-				path->filename = photo->GetPath();
-				path->mainWindow = this;
-				path->thread = new thread(CMd5Check::CheckMD5, path);
-				nbProcessMD5++;
-			}
-			else
-				numElementTraitement++;
+			numElementTraitement++;
 		}
 	}
 	else
@@ -1162,31 +1153,6 @@ void CMainWindow::OnIdle(wxIdleEvent& evt)
 	StartThread();
 }
 
-//---------------------------------------------------------------
-//
-//---------------------------------------------------------------
-void CMainWindow::Md5Checking(wxCommandEvent& event)
-{
-	auto path = static_cast<CThreadMD5*>(event.GetClientData());
-	if (path != nullptr)
-	{
-		if (path->thread != nullptr)
-		{
-			path->thread->join();
-			delete(path->thread);
-			path->thread = nullptr;
-		}
-		delete path;
-	}
-	nbProcessMD5--;
-	numElementTraitement++;
-	wxString label = CLibResource::LoadStringFromResource(L"LBLFILECHECKING", 1);
-	wxString message = label + to_string(numElementTraitement) + L"/" + to_string(CThumbnailBuffer::GetVectorSize());
-	if (statusBarViewer != nullptr)
-	{
-		statusBarViewer->SetText(3, message);
-	}
-}
 
 
 //---------------------------------------------------------------
@@ -1323,16 +1289,12 @@ bool CMainWindow::GetProcessEnd()
 {
 	endApplication = true;
 
-	if (nbProcessMD5 > 0 || nbProcess > 0 || isCheckingFile)
+	if ( nbProcess > 0 || isCheckingFile)
 		return false;
 
 	return true;
 }
 
-void CMainWindow::OnScanner(wxCommandEvent& event)
-{
-	statusBarViewer->ShowScanner();
-}
 
 void CMainWindow::OnExit(wxCommandEvent& event)
 {
@@ -1344,12 +1306,27 @@ void CMainWindow::OnOpenFileOrFolder(wxCommandEvent& event)
 	auto file = static_cast<wxString*>(event.GetClientData());
 	if (file != nullptr)
 	{
-		init = true;
-		int type = event.GetInt();
-		if (type == 1)
-			OpenFile(*file);
-		else
-			OpenFolder(*file);
+		bool find = false;
+		wxFileName filename(*file);
+		wxString folder = filename.GetPath();
+
+		//Test if folder is on database
+		CSqlFolderCatalog sqlFolderCatalog;
+		int64_t idFolder = sqlFolderCatalog.GetFolderCatalogId(NUMCATALOGID, folder);
+
+		cout << "Folder : " << folder << " " << idFolder << endl;
+
+		if (idFolder == -1)
+		{
+
+			init = true;
+			int type = event.GetInt();
+			if (type == 1)
+				OpenFile(*file);
+			else
+				OpenFolder(*file);
+		}
+
 
 		delete file;
 	}
