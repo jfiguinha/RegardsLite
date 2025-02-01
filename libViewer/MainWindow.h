@@ -168,7 +168,7 @@ namespace Regards::Viewer
 		bool start;
 		bool criteriaSendMessage;
 		bool checkVersion;
-		int faceDetection = 0;
+
 		bool isThumbnailProcess = false;
 		CExportDiaporama* exportDiaporama = nullptr;
 		wxString firstFileToShow = "";

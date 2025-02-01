@@ -283,9 +283,6 @@ CViewerFrame::CViewerFrame(const wxString& title, const wxPoint& pos, const wxSi
     else
         loadPictureStartTimer->Start(10, true);
 
-
-
-	
 }
 
 

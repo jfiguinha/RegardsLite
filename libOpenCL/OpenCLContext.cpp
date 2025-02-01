@@ -442,7 +442,7 @@ void ShowInfos()
 
 void COpenCLContext::CreateDefaultOpenCLContext()
 {
-	ShowInfos();
+	//ShowInfos();
 	
 	cv::ocl::Context context;
 	if (!context.create(cv::ocl::Device::TYPE_GPU))

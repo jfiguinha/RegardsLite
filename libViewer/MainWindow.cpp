@@ -242,12 +242,6 @@ CMainWindow::CMainWindow(wxWindow* parent, wxWindowID id, IStatusBarInterface* s
 		firstFileToShow = localFilename = fileToOpen;
 
 
-	CRegardsConfigParam* regardsParam = CParamInit::getInstance();
-	if (regardsParam != nullptr)
-	{
-		faceDetection = regardsParam->GetFaceDetection();
-	}
-
 	UpdateFolderStatic();
 	CSqlPhotosWithoutThumbnail sqlPhoto;
 	sqlPhoto.GetPhotoList(&photoList, 0);
