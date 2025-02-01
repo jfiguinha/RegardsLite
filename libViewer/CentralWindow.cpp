@@ -13,7 +13,6 @@
 #include <wx/display.h>
 #include "AnimationToolbar.h"
 #include <ConvertUtility.h>
-#include "ListPicture.h"
 #include "WindowManager.h"
 #include "ThumbnailViewerVideo.h"
 #include <SqlPhotos.h>
@@ -27,7 +26,6 @@
 #include <ShowElement.h>
 #include <RegardsConfigParam.h>
 #include <ImageVideoThumbnail.h>
-#include <ThumbnailFolder.h>
 #include <ThreadLoadingBitmap.h>
 
 using namespace Regards::Video;
@@ -182,17 +180,10 @@ CCentralWindow::CCentralWindow(wxWindow* parent, wxWindowID id,
 	windowManager->AddWindow(previewWindow, Pos::wxCENTRAL, false, 0, rect, PREVIEWVIEWERID, false);
 
 
-	if (viewerTheme != nullptr)
-	{
-		listPicture = new CListPicture(windowManager, LISTPICTUREID);
-		listPicture->Show(false);
-	}
-
 	Connect(wxEVT_ANIMATIONTIMERSTOP, wxCommandEventHandler(CCentralWindow::StopAnimationEvent));
 	Connect(wxTIMER_DIAPORAMATIMERSTART, wxCommandEventHandler(CCentralWindow::StartDiaporamaMessage));
 
 	Connect(VIDEO_END_ID, wxCommandEventHandler(CCentralWindow::OnVideoEnd));
-	Connect(wxEVENT_CHANGETYPEAFFICHAGE, wxCommandEventHandler(CCentralWindow::ChangeTypeAffichage));
 	Connect(wxEVENT_SETMODEVIEWER, wxCommandEventHandler(CCentralWindow::SetMode));
 	Connect(VIDEO_UPDATE_ID, wxCommandEventHandler(CCentralWindow::SetVideoPos));
 	Connect(wxTIMER_ANIMATION, wxEVT_TIMER, wxTimerEventHandler(CCentralWindow::OnTimerAnimation), nullptr, this);
@@ -249,12 +240,7 @@ void CCentralWindow::UpdateThumbnailIcone(wxCommandEvent& event)
 
 	if (longWindow == 0)
 	{
-		if (listPicture != nullptr)
-		{
-			CThumbnailFolder* ptFolder = listPicture->GetPtThumbnailFolder();
-			if (ptFolder->IsShown())
-				ptFolder->Refresh();
-		}
+
 		if (thumbnailPicture != nullptr)
 		{
 			if (thumbnailPicture->IsShown())
@@ -280,14 +266,7 @@ void CCentralWindow::UpdateThumbnailIcone(wxCommandEvent& event)
 			}
 			break;
 
-		case LISTPICTUREID:
-			if (listPicture != nullptr)
-			{
-				CThumbnailFolder* ptFolder = listPicture->GetPtThumbnailFolder();
-				if (ptFolder->IsShown())
-					ptFolder->Refresh();
-			}
-			break;
+
 		case THUMBNAILVIEWERPICTURE:
 			if (thumbnailPicture != nullptr)
 			{
@@ -674,9 +653,6 @@ int CCentralWindow::LoadPicture(const wxString& filename, const bool& refresh)
 
 	if (thumbnailPicture != nullptr)
 		thumbnailPicture->SetActifItem(GetPhotoId(filename), true);
-	if (listPicture != nullptr)
-		listPicture->SetActifItem(GetPhotoId(filename), true);
-
 
 	int outItem = 0;
 
@@ -1119,22 +1095,10 @@ void CCentralWindow::LoadAnimationBitmap(const wxString& filename, const int& nu
 }
 
 
-void CCentralWindow::ChangeTypeAffichage(wxCommandEvent& event)
-{
-	if (listPicture != nullptr)
-	{
-		const long typeAffichage = event.GetExtraLong();
-		listPicture->ChangeTypeAffichage(typeAffichage);
-	}
-}
-
 
 
 void CCentralWindow::SetListeFile(const wxString& filename, const int& typeAffichage)
 {
-
-	if (listPicture != nullptr)
-		listPicture->SetListeFile(typeAffichage);
 
 	if (thumbnailPicture != nullptr)
 		thumbnailPicture->ApplyListeFile();
@@ -1240,7 +1204,7 @@ void CCentralWindow::SetMode(wxCommandEvent& event)
 	previewWindow->SetNormalMode();
 	panelInfosWindow->Show(false);
 	panelInfosClick->Show(false);
-	listPicture->Show(false);
+
 
 	if (windowInit)
 	{

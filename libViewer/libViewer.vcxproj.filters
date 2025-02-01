@@ -69,22 +69,10 @@
     <ClInclude Include="ImageList.h">
       <Filter>DataStructure</Filter>
     </ClInclude>
-    <ClInclude Include="ThumbnailFolder.h">
-      <Filter>Thumbnail\include</Filter>
-    </ClInclude>
-    <ClInclude Include="ThumbnailToolBar.h">
-      <Filter>Thumbnail\include</Filter>
-    </ClInclude>
-    <ClInclude Include="ThumbnailToolBarZoom.h">
-      <Filter>Thumbnail\include</Filter>
-    </ClInclude>
     <ClInclude Include="ThumbnailViewerVideo.h">
       <Filter>Thumbnail\include</Filter>
     </ClInclude>
     <ClInclude Include="AnimationToolbar.h">
-      <Filter>Fichiers d%27en-tête</Filter>
-    </ClInclude>
-    <ClInclude Include="ListPicture.h">
       <Filter>Fichiers d%27en-tête</Filter>
     </ClInclude>
     <ClInclude Include="MainWindow.h">
@@ -152,19 +140,7 @@
     <ClCompile Include="ImageList.cpp">
       <Filter>DataStructure</Filter>
     </ClCompile>
-    <ClCompile Include="ThumbnailFolder.cpp">
-      <Filter>Thumbnail\source</Filter>
-    </ClCompile>
-    <ClCompile Include="ThumbnailToolBar.cpp">
-      <Filter>Thumbnail\source</Filter>
-    </ClCompile>
-    <ClCompile Include="ThumbnailToolBarZoom.cpp">
-      <Filter>Thumbnail\source</Filter>
-    </ClCompile>
     <ClCompile Include="AnimationToolbar.cpp">
-      <Filter>Fichiers sources</Filter>
-    </ClCompile>
-    <ClCompile Include="ListPicture.cpp">
       <Filter>Fichiers sources</Filter>
     </ClCompile>
     <ClCompile Include="MainWindow.cpp">

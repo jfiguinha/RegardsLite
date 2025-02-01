@@ -143,7 +143,7 @@ namespace Regards
 			void UpdateThumbnailIconeSize(wxCommandEvent& event);
 
 			void OnVideoStop(wxCommandEvent& event);
-			void ChangeTypeAffichage(wxCommandEvent& event);
+
 			void SetMode(wxCommandEvent& event);
 			void OnShowPicture(wxCommandEvent& event);
 			void SetVideoPos(wxCommandEvent& event);
@@ -157,7 +157,7 @@ namespace Regards
 			void UpdateThumbnailIcone(wxCommandEvent& event);
 			void OnRefreshThumbnail(wxCommandEvent& event);
 
-			CListPicture* listPicture;
+
 			CThumbnailViewerPicture* thumbnailPicture;
 			//CPanelPhotoWnd* panelPhotoWnd;
 			CMainParam* viewerconfig;

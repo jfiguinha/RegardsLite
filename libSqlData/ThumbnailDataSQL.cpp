@@ -34,6 +34,11 @@ CThumbnailDataSQL::CThumbnailDataSQL(const wxString& filename, const bool& testV
 
 	if(isVideo)
 	{
+		nbFrame = 20;
+		this->generateVideoPlayer = true;
+		videoCaptureCV = nullptr;
+
+		/*
 		if (libPicture.TestIsVideoValid(filename))
 		{
 			nbFrame = 20;
@@ -47,7 +52,8 @@ CThumbnailDataSQL::CThumbnailDataSQL(const wxString& filename, const bool& testV
 
 			CSqlThumbnailVideo sqlThumbnailVideo;
 			nbFrame = sqlThumbnailVideo.GetNbThumbnail(filename);
-		}
+		}*/
+		
 	}
 
 	CRegardsConfigParam* regardsParam = CParamInit::getInstance();
@@ -188,6 +194,9 @@ cv::Mat CThumbnailDataSQL::GetImage(bool& isDefault)
 			frameOut = sqlThumbnailVideo.GetThumbnail(filename, 0, isDefault);
 		}
 	}
+
+	if (frameOut.empty())
+		isDefault = true;
 
     defaultPicture = isDefault;
     if(isDefault)

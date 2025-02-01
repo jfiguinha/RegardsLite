@@ -32,8 +32,6 @@
 #include <FiltreEffetCPU.h>
 #include "CheckVersion.h"
 #include <IBitmapWnd.h>
-#include <ListPicture.h>
-#include <ThumbnailFolder.h>
 #include <MainTheme.h>
 #include <MainThemeInit.h>
 #include <SqlPhotosWithoutThumbnail.h>
