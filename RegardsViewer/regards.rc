@@ -49,25 +49,6 @@ WXICON_SMALL_REMOVEABLE ICON                    "wx/msw/removble.ico"
 
 /////////////////////////////////////////////////////////////////////////////
 //
-// Menu
-//
-
-WXWINDOWMENU MENU
-BEGIN
-    POPUP "&Window"
-    BEGIN
-        MENUITEM "&Cascade",                    4002
-        MENUITEM "Tile &Horizontally",          4001
-        MENUITEM "Tile &Vertically",            4005
-        MENUITEM "",                            65535
-        MENUITEM "&Arrange Icons",              4003
-        MENUITEM "&Next",                       4004
-    END
-END
-
-
-/////////////////////////////////////////////////////////////////////////////
-//
 // Cursor
 //
 
@@ -132,8 +113,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,82,0,0
- PRODUCTVERSION 2,82,0,0
+ FILEVERSION 2,0,0,2
+ PRODUCTVERSION 2,0,0,2
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -175,38 +156,6 @@ END
 LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_UK
 #pragma code_page(1252)
 
-/////////////////////////////////////////////////////////////////////////////
-//
-// Dialog
-//
-
-IDD_PROGRESS DIALOG 0, 0, 184, 63
-STYLE DS_SETFONT | DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_VISIBLE | WS_CAPTION | WS_SYSMENU
-CAPTION "Progress"
-FONT 8, "MS Shell Dlg"
-BEGIN
-    DEFPUSHBUTTON   "Cancel",IDCANCEL,127,43,50,14
-    LTEXT           "Reading data from the scanner....",IDC_MESSAGE,7,7,170,8
-    CONTROL         "1",IDC_PROGRESS_BAR,"msctls_progress32",WS_BORDER,7,22,170,14
-END
-
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// String Table
-//
-
-STRINGTABLE DISCARDABLE
-BEGIN
-
-
-
-IDS_WAIT "Wait..."
-IDS_STATUS_TRANSFER_FROM_DEVICE "Reading data from the device (%d%% complete)"
-IDS_STATUS_PROCESSING_DATA "Processing data (%d%% complete)"
-IDS_STATUS_TRANSFER_TO_CLIENT "Transferring data (%d%% complete)"
-IDS_ERROR_GET_IMAGE_DLG "Unable to retrieve image from device. Verify the device is properly connected and try again."
-END
 
 /////////////////////////////////////////////////////////////////////////////
 //

@@ -74,8 +74,6 @@ constexpr auto TIMER_LOADPICTURESTART = 5;
 #endif
 
 
-#include "../Regards/Resources/regardsliteicon.xpm"
-
 bool CViewerFrame::viewerMode = true;
 
 using namespace Regards::Viewer;
@@ -102,10 +100,12 @@ CViewerFrame::CViewerFrame(const wxString& title, const wxPoint& pos, const wxSi
 	onExit = false;
 	fileToOpen = openfile;
 	mainWindowWaiting = nullptr;
-	SetIcon(wxICON(regardsliteicon));
-#ifndef __WXMSW__
-	frameScanner = nullptr;
-#endif
+
+	wxString resourcePath = CFileUtility::GetResourcesFolderPathWithExt("regardsliteicon.xpm");
+	wxIcon icon(resourcePath, wxBITMAP_TYPE_XPM);
+	SetIcon(icon);
+
+
 	viewerParam = new CMainParam();
 	CMainParamInit::Initialize(viewerParam);
 	Maximize();
