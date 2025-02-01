@@ -1170,7 +1170,6 @@ void CCentralWindow::SetMode(wxCommandEvent& event)
 {
 	bool showInfos = true;
 	bool showThumbnail = true;
-	bool showFolder = true;
 	bool showVideoThumbnail = true;
 	windowMode = event.GetInt();
 	if (windowMode == oldWindowMode)
@@ -1192,7 +1191,6 @@ void CCentralWindow::SetMode(wxCommandEvent& event)
 		{
 			config->GetShowInfos(showInfos);
 			config->GetShowThumbnail(showThumbnail);
-			config->GetShowFolder(showFolder);
 		}
 	}
 
@@ -1208,11 +1206,6 @@ void CCentralWindow::SetMode(wxCommandEvent& event)
 
 	if (windowInit)
 	{
-		if (!showFolder)
-			windowManager->HidePaneWindow(Pos::wxLEFT);
-		else
-			windowManager->ShowPaneWindow(Pos::wxLEFT);
-
 		if (!showInfos)
 			windowManager->HidePaneWindow(Pos::wxRIGHT);
 		else
@@ -1265,11 +1258,17 @@ void CCentralWindow::SetMode(wxCommandEvent& event)
     printf("CCentralWindow::SetMode Show Infos : %d \n", showInfos);
 
 	if (windowInit)
+	{
 		if (!showInfos)
-        {
-            windowManager->HidePaneWindow(Pos::wxRIGHT);
-        }
-                   
+		{
+			windowManager->HidePaneWindow(Pos::wxRIGHT);
+		}
+		else if (isVideo || isAnimation)
+		{
+			windowManager->HidePaneWindow(Pos::wxRIGHT);
+			windowManager->ShowPaneWindow(Pos::wxRIGHT);
+		}
+	}
 
 
 	windowInit = false;
