@@ -66,7 +66,6 @@
     <File Name="PreviewWnd.cpp"/>
     <File Name="toolbar.cpp"/>
     <File Name="ViewerFrame.cpp"/>
-    <File Name="ListPicture.cpp"/>
     <File Name="AnimationToolbar.cpp"/>
   </VirtualDirectory>
   <VirtualDirectory Name="include">
@@ -83,23 +82,16 @@
     <File Name="PreviewToolbar.h"/>
     <File Name="PreviewWnd.h"/>
     <File Name="Toolbar.h"/>
-    <File Name="ListPicture.h"/>
     <File Name="AnimationToolbar.h"/>
     <File Name="ViewerFrame.h"/>
   </VirtualDirectory>
   <VirtualDirectory Name="Thumbnail">
     <VirtualDirectory Name="src">
       <File Name="ThumbnailViewerPicture.cpp"/>
-      <File Name="ThumbnailFolder.cpp"/>
-      <File Name="ThumbnailToolBar.cpp"/>
-      <File Name="ThumbnailToolBarZoom.cpp"/>
       <File Name="ThumbnailViewerVideo.cpp"/>
     </VirtualDirectory>
     <VirtualDirectory Name="include">
       <File Name="ThumbnailViewerPicture.h"/>
-      <File Name="ThumbnailFolder.h"/>
-      <File Name="ThumbnailToolBar.h"/>
-      <File Name="ThumbnailToolBarZoom.h"/>
       <File Name="ThumbnailViewerVideo.h"/>
     </VirtualDirectory>
   </VirtualDirectory>
