@@ -63,8 +63,9 @@ namespace Regards::Viewer
 
 	private:
 
+		void StartOpening();
 		void UpdateFolderStatic();
-
+		static void OpenExternalFile(void* param);
 		static void NewVersionAvailable(void* param);
 		static void CheckFile(void* param);
 
@@ -111,7 +112,7 @@ namespace Regards::Viewer
 		void OnUpdateFolder(wxCommandEvent& event);
 		void OnRefreshThumbnail(wxCommandEvent& event);
 		void OnProcessThumbnail(wxCommandEvent& event);
-
+		void OnEndOpenExternalFile(wxCommandEvent& event);
 
 		void Resize() override;
 		void ExportVideo(const wxString& filename);
@@ -138,7 +139,7 @@ namespace Regards::Viewer
 		int thumbnailPos = 0;
 		//std::map<wxString, bool> listFile;
 
-
+		wxString fileToOpen = "";
 		bool isCheckNewVersion = false;
 		wxString tempVideoFile = "";
 		wxString tempAudioVideoFile = "";
@@ -148,7 +149,7 @@ namespace Regards::Viewer
 		//CToolbar* toolbar;
 		CCentralWindow* centralWnd;
 		std::thread* versionUpdate = nullptr;
-
+		std::thread* openExternalFileThread = nullptr;
 		bool isCheckingFile = false;
 		IStatusBarInterface* statusBarViewer;
 		wxRect posWindow;

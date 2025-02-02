@@ -214,6 +214,7 @@ CMainWindow::CMainWindow(wxWindow* parent, wxWindowID id, IStatusBarInterface* s
 	Connect(wxEVENT_UPDATEMESSAGE, wxCommandEventHandler(CMainWindow::UpdateMessage));
 	Connect(wxEVENT_REFRESHTHUMBNAIL, wxCommandEventHandler(CMainWindow::OnRefreshThumbnail));
 	Connect(wxEVENT_ICONETHUMBNAILGENERATION, wxCommandEventHandler(CMainWindow::OnProcessThumbnail));
+	Connect(wxEVENT_ENDOPENEXTERNALFILE, wxCommandEventHandler(CMainWindow::OnEndOpenExternalFile));
 	/*----------------------------------------------------------------------
 	 *
 	 * Manage Event
@@ -230,7 +231,7 @@ CMainWindow::CMainWindow(wxWindow* parent, wxWindowID id, IStatusBarInterface* s
 		wxGA_HORIZONTAL);
 	progressBar->SetRange(100);
 	progressBar->SetValue(50);
-
+	this->fileToOpen = fileToOpen;
 	//updateFolder = true;
 	listProcessWindow.push_back(this);
 	CMainParam* config = CMainParamInit::getInstance();
@@ -240,15 +241,55 @@ CMainWindow::CMainWindow(wxWindow* parent, wxWindowID id, IStatusBarInterface* s
 		firstFileToShow = localFilename = fileToOpen;
 
 
-	UpdateFolderStatic();
+	//UpdateFolderStatic();
 	CSqlPhotosWithoutThumbnail sqlPhoto;
 	sqlPhoto.GetPhotoList(&photoList, 0);
 	versionUpdate = new std::thread(NewVersionAvailable, this);
+	openExternalFileThread = new std::thread(OpenExternalFile, this);
 
 	isCheckNewVersion = true;
+	/*
 	refreshFolder = true;
 	processIdle = true;
+	*/
     endApplication = false;
+}
+
+void CMainWindow::StartOpening()
+{
+	if (fileToOpen != "")
+	{
+		OpenFile(fileToOpen);
+	}
+	else
+	{
+		UpdateFolderStatic();
+	}
+
+	//refreshFolder = true;
+	
+}
+
+void CMainWindow::OpenExternalFile(void* param)
+{
+	CMainWindow* local = (CMainWindow*)param;
+	if (local != nullptr)
+		local->StartOpening();
+
+	auto localevent = new wxCommandEvent(wxEVENT_ENDOPENEXTERNALFILE);
+	wxQueueEvent(local, localevent);
+}
+
+void CMainWindow::OnEndOpenExternalFile(wxCommandEvent& event)
+{
+	if (openExternalFileThread->joinable())
+	{
+		openExternalFileThread->join();
+		delete openExternalFileThread;
+		openExternalFileThread = nullptr;
+	}
+
+	processIdle = true;
 }
 
 void CMainWindow::OnRefreshThumbnail(wxCommandEvent& event)
