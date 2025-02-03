@@ -32,7 +32,7 @@
 #include <CudaEffectVideo.h>
 #endif
 #include <VideoStabilization.h>
-
+#include <ass.h>
 using namespace Regards::OpenCV;
 #ifdef USE_CUDA
 using namespace Regards::Cuda;
@@ -44,6 +44,7 @@ using namespace Regards::Sqlite;
 #define TIMER_FPS 0x10001
 #define TIMER_PLAYSTART 0x10002
 #define TIMER_PLAYSTOP 0x10003
+#define TIMER_SUBTITLE 0x10004
 
 extern bool firstElementToShow;
 AVFrame* copyFrameBuffer = nullptr;
@@ -120,6 +121,7 @@ vector<int> CVideoControlSoft::GetListTimer()
 	list.push_back(TIMER_PLAYSTOP);
 	list.push_back(TIMER_FPS);
 	list.push_back(TIMER_PLAYSTART);
+	list.push_back(TIMER_SUBTITLE);
 	return list;
 }
 
@@ -160,6 +162,11 @@ void CVideoControlSoft::OnTimer(wxTimerEvent& event)
 	case TIMER_PLAYSTART:
 		OnPlayStart(event);
 		break;
+	case TIMER_SUBTITLE:
+	{
+		subtilteUpdate = false;
+		break;
+	}
 	}
 }
 
@@ -219,6 +226,7 @@ void CVideoControlSoft::SetParent(wxWindow* parent)
 	fpsTimer = new wxTimer(parentRender, TIMER_FPS);
 	playStartTimer = new wxTimer(parentRender, TIMER_PLAYSTART);
 	playStopTimer = new wxTimer(parentRender, TIMER_PLAYSTOP);
+	assSubtitleTimer = new wxTimer(parentRender, TIMER_SUBTITLE);
 	ffmfc = new CFFmfc(parentRender, wxID_ANY);
 }
 
@@ -777,7 +785,7 @@ void CVideoControlSoft::UpdateFiltre(CEffectParameter* effectParameter)
 	}
 	else if (videoParameter->streamSubtitleUpdate)
 	{
-		//ChangeAudioStream(videoParameter->streamAudioIndex);
+		ChangeSubtitleStream(videoParameter->streamSubtitleIndex);
 		videoParameter->streamSubtitleUpdate = 0;
 	}
 
@@ -993,6 +1001,9 @@ CVideoControlSoft::~CVideoControlSoft()
 	}
     */
 
+	if (assSubtitleTimer->IsRunning())
+		assSubtitleTimer->Stop();
+
 	if (playStartTimer->IsRunning())
 		playStartTimer->Stop();
 
@@ -1006,6 +1017,7 @@ CVideoControlSoft::~CVideoControlSoft()
 		delete openCVStabilization;
 
 	delete playStartTimer;
+	delete assSubtitleTimer;
 	delete fpsTimer;
 
 	if (renderBitmapOpenGL != nullptr)
@@ -1027,12 +1039,26 @@ CVideoControlSoft::~CVideoControlSoft()
 	localContext = nullptr;
 }
 
+void CVideoControlSoft::SetSubtituleText(const char* textSub, int timing)
+{
+	muSubtitle.lock();
+	subtitleText = textSub;
+	std::vector<wxString> listString = CConvertUtility::split(subtitleText, ',');
+	int timeShow = atoi(listString.at(0));
+	subtitleText = listString.at(listString.size() - 1);
+	subtilteUpdate = true;
+	typeSubtitle = 1;
+	assSubtitleTimer->StartOnce(timing);
+	muSubtitle.unlock();
+}
+
+
 void CVideoControlSoft::SetSubtitulePicture(cv::Mat& picture)
 {
 	muSubtitle.lock();
 	picture.copyTo(pictureSubtitle);
 	subtilteUpdate = true;
-
+	typeSubtitle = 0;
 	muSubtitle.unlock();
 }
 
@@ -1260,6 +1286,12 @@ void CVideoControlSoft::OnPaint3D(wxGLCanvas* canvas, CRenderOpenGL* renderOpenG
 	}
     renderOpenGL->CreateScreenRender(width, height, CRgbaquad(0, 0, 0, 0));
 
+
+	int widthOutput = 0;
+	int heightOutput = 0;
+	wxRect rc(0, 0, 0, 0);
+	CalculPositionVideo(widthOutput, heightOutput, rc);
+
 	if (videoRenderStart)
 	{
         
@@ -1296,28 +1328,63 @@ void CVideoControlSoft::OnPaint3D(wxGLCanvas* canvas, CRenderOpenGL* renderOpenG
         #endif
 			renderOpenGL->Print(0, 1, scale_factor, CConvertUtility::ConvertToUTF8(msgFrame));
 		}
-		muVideoEffect.unlock();
-
-		muSubtitle.lock();
-
-		if (subtilteUpdate && !pictureSubtitle.empty())
-		{
-			renderBitmapOpenGL->SetSubtitle(pictureSubtitle);
-			subtilteUpdate = false;
-		}
-		else if (subtilteUpdate)
-		{
-			//renderBitmapOpenGL->DeleteSubtitle();
-			subtilteUpdate = false;
-		}
-
-		muSubtitle.unlock();
 
 		if (videoEffectParameter.enableSubtitle)
 		{
+			muSubtitle.lock();
+
+			if (subtilteUpdate)
+			{
+				if (typeSubtitle == 0 && !pictureSubtitle.empty())
+				{
+					renderBitmapOpenGL->SetSubtitle(pictureSubtitle);
+					subtilteUpdate = false;
+				}
+				else if(typeSubtitle == 1)
+				{
+					int frame_w = 1280;
+					int frame_h = 720;
+
+	#ifndef WIN32
+					double scale_factor = parentRender->GetContentScaleFactor();
+	#else
+					double scale_factor = 1.0f;
+	#endif
+					/*
+					cv::Mat subtitle;
+					//Ass subtitle
+					string textStr = subtitleText.ToStdString();
+					//cv::Mat subtitle = CAssToBitmap::ExportToBitmap((char *)textStr.c_str(), textStr.length(), frame_w, frame_h);
+					subtitle.create(frame_w, frame_h, CV_8UC4);
+					cv::putText(subtitle,
+						textStr,
+						cv::Point(5, 5), // Coordinates (Bottom-left corner of the text string in the image)
+						cv::FONT_HERSHEY_COMPLEX_SMALL, // Font
+						1.0, // Scale. 2.0 = 2x bigger
+						cv::Scalar(255, 255, 255), // BGR Color
+						1, // Line Thickness (Optional)
+						cv::LINE_AA); // Anti-alias (Optional, see version note)
+
+					renderBitmapOpenGL->SetSubtitle(subtitle);
+					*/
+
+
+
+					renderOpenGL->PrintSubtitle(width - widthOutput, 1, scale_factor, CConvertUtility::ConvertToUTF8(subtitleText));
+
+				}
+			
+			}
+			else if (subtilteUpdate)
+			{
+				subtilteUpdate = false;
+			}
+
+			muSubtitle.unlock();
+
 			renderBitmapOpenGL->ShowSubtitle();
 		}
-
+		muVideoEffect.unlock();
 	}
 
 

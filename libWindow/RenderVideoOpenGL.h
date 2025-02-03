@@ -39,5 +39,6 @@ namespace Regards::OpenGL
 		GLTexture* textureSubtitle = nullptr;
 		CRenderOpenGL* renderOpenGL = nullptr;
 		GLuint fboId;
+
 	};
 }
