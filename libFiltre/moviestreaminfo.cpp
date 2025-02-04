@@ -237,10 +237,10 @@ void MovieStreamInfo::initializeVideo()
 				}
 				//printf("STREAM_%s_%s=%s\n", stream_type,tag->key, tag->value);
 			}
-			if (indexAudio == i)
+			if (indexAudio == m_pFormatContext->streams[i]->index)
 				streamInfo.selected = true;
 
-			streamInfo.indexStream = i;
+			streamInfo.indexStream = m_pFormatContext->streams[i]->index;
 			streamInfo.typeStream = 1;
 			listStream.push_back(streamInfo);
 		}
@@ -259,14 +259,15 @@ void MovieStreamInfo::initializeVideo()
 				}
 			}
 
-			streamInfo.indexStream = i;
-			if (indexVideo == i)
+			streamInfo.indexStream = m_pFormatContext->streams[i]->index;
+			if (indexVideo == m_pFormatContext->streams[i]->index)
 				streamInfo.selected = true;
 			streamInfo.typeStream = 2;
 			listStream.push_back(streamInfo);
 		}
 		else if (m_pFormatContext->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_SUBTITLE)
 		{
+			
 			AVDictionaryEntry* tag = nullptr;
 			CStreamInfo streamInfo;
 			streamInfo.streamLibelle = "Track Subtitle : " + to_string(i);
@@ -281,10 +282,10 @@ void MovieStreamInfo::initializeVideo()
 				//printf("STREAM_%s_%s=%s\n", stream_type,tag->key, tag->value);
 			}
 
-			if (indexSubtitle == i)
+			if (indexSubtitle == m_pFormatContext->streams[i]->index)
 				streamInfo.selected = true;
 
-			streamInfo.indexStream = i;
+			streamInfo.indexStream = m_pFormatContext->streams[i]->index - 1;
 			streamInfo.typeStream = 3;
 			listStream.push_back(streamInfo);
 		}

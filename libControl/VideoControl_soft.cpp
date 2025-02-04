@@ -32,7 +32,7 @@
 #include <CudaEffectVideo.h>
 #endif
 #include <VideoStabilization.h>
-#include <ass.h>
+
 using namespace Regards::OpenCV;
 #ifdef USE_CUDA
 using namespace Regards::Cuda;
@@ -1045,12 +1045,24 @@ void CVideoControlSoft::SetSubtituleText(const char* textSub, int timing)
 	subtitleText = textSub;
 	std::vector<wxString> listString = CConvertUtility::split(subtitleText, ',');
 	int timeShow = atoi(listString.at(0));
-	subtitleText = listString.at(listString.size() - 1);
+	if (listString.size() > 9)
+	{
+		subtitleText = "";
+		for (int i = 8; i < listString.size(); i++)
+		{
+			subtitleText.append(listString.at(i) + ",");
+		}
+		subtitleText = subtitleText.SubString(0,subtitleText.size() - 1);
+	}
+	else
+		subtitleText = listString.at(listString.size() - 1);
+	
+	
 	subtilteUpdate = true;
 	typeSubtitle = 1;
 	if (assSubtitleTimer->IsRunning())
 		assSubtitleTimer->Stop();
-	assSubtitleTimer->StartOnce(timing);
+	assSubtitleTimer->StartOnce(10);
 	muSubtitle.unlock();
 }
 
@@ -1372,7 +1384,7 @@ void CVideoControlSoft::OnPaint3D(wxGLCanvas* canvas, CRenderOpenGL* renderOpenG
 
 
 
-					renderOpenGL->PrintSubtitle(width - widthOutput, 1, scale_factor, CConvertUtility::ConvertToUTF8(subtitleText));
+					renderOpenGL->PrintSubtitle(width - widthOutput, 1, scale_factor, subtitleText);
 
 				}
 			

@@ -192,22 +192,55 @@ void CRenderOpenGL::Print(int x, int y, double scale_factor, const char* text)
     
 };
 
-void CRenderOpenGL::PrintSubtitle(int x, int y, double scale_factor, const char* text)
+void CRenderOpenGL::PrintSubtitle(int x, int y, double scale_factor, wxString text)
 {
 	float font_height = 15;
 
-
-	glRasterPos2f(x, font_height * 4);
-	//get the length of the string to display
-	int len = static_cast<int>(strlen(text));
-
-	//glScalef(scale_factor,scale_factor,scale_factor); 
-
-	//loop to display character by character
-	for (auto i = 0; i < len; i++)
+	std::vector<wxString> list = CConvertUtility::split(text, '\\');
+	if (list.size() > 0)
 	{
-		glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24, text[i]);
+		wxString line = list[0];
+		glRasterPos2f(x, font_height * 4);
+		//get the length of the string to display
+		int len = static_cast<int>(line.Length());
+
+		//glScalef(scale_factor,scale_factor,scale_factor); 
+
+		//loop to display character by character
+		for (auto i = 0; i < len; i++)
+		{
+			wxUniChar c = line[i];
+			char letter;
+			c.GetAsChar(&letter);
+			glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24, c);
+		}
+
+		for (int i = 1;i < list.size();i++)
+		{
+			wxUniChar c = list[i][0];
+			if (c == 'N')
+			{
+				//New Line
+				wxString line = list[i];
+				glRasterPos2f(x, font_height * 2);
+				//get the length of the string to display
+				int len = static_cast<int>(line.Length());
+
+				//glScalef(scale_factor,scale_factor,scale_factor); 
+
+				//loop to display character by character
+				for (auto i = 1; i < len; i++)
+				{
+					wxUniChar c = line[i];
+					char letter;
+					c.GetAsChar(&letter);
+					glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24, c);
+				}
+			}
+		}
 	}
+
+
 
 };
 

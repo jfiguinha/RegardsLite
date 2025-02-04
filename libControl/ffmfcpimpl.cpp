@@ -374,8 +374,19 @@ void CFFmfcPimpl::video_display(VideoState* is)
 						wxString text = "";
 						for (int i = 0; i < sp->sub.num_rects; i++)
 						{
+
 							AVSubtitleRect* rect = sp->sub.rects[i];
-							text += rect->ass;
+							if (rect->ass != nullptr)
+							{
+								wxString mystring = wxString::FromUTF8(rect->ass, strlen(rect->ass));
+								text += mystring;
+							}
+							else if (rect->text != nullptr)
+							{
+								wxString mystring = wxString::FromUTF8(rect->text, strlen(rect->text));
+								text += mystring;
+							}
+
 						}
 						if (dlg != nullptr)
 							dlg->SetSubtituleText(text, sp->sub.end_display_time);
