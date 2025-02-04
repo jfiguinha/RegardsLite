@@ -323,14 +323,6 @@ bool CMainWindow::CheckDatabase(FolderCatalogVector& folderList)
 		}
 	}
 
-	if (folderChange)
-	{
-		auto viewerParam = CMainParamInit::getInstance();
-		wxString sqlRequest = viewerParam->GetLastSqlRequest();
-
-		CSqlFindPhotos sqlFindPhotos;
-		sqlFindPhotos.SearchPhotos(sqlRequest);
-	}
 
 	return folderChange;
 }
