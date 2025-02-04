@@ -3,6 +3,8 @@
 #include <WindowMain.h>
 #include <ToolbarInterface.h>
 #include "IconeList.h"
+#include <wx/fswatcher.h>
+#include <FolderCatalog.h>
 #include <InfosSeparationBar.h>
 using namespace Regards::Window;
 
@@ -86,7 +88,11 @@ namespace Regards::Viewer
 
 		void OnRefreshPicture(wxCommandEvent& event);
 
-
+		void OnTimereventFileSysTimer(wxTimerEvent& event);
+		bool RemoveFSEntry(const wxString& dirPath);
+		bool AddFSEntry(const wxString& dirPath);
+		void OnFileSystemModified(wxFileSystemWatcherEvent& event);
+		bool CheckDatabase(FolderCatalogVector& folderList);
 		void OnVersionUpdate(wxCommandEvent& event);
 		void UpdateStatusBarMessage(wxCommandEvent& event);
 
@@ -101,7 +107,6 @@ namespace Regards::Viewer
 		void PrintPreview(wxCommandEvent& event);
 
 
-		void OnFaceInfosUpdate(wxCommandEvent& event);
 		void OnExportFile(wxCommandEvent& event);
 		void OnUpdateExifThumbnail(wxCommandEvent& event);
 
@@ -178,5 +183,7 @@ namespace Regards::Viewer
 		vector<wxString> photoList;
 		CFolderProcess* folderProcess = nullptr;
 		std::map<wxString, bool> listFile;
+		wxFileSystemWatcher* m_watcher;
+		wxTimer* eventFileSysTimer = nullptr;
 	};
 }

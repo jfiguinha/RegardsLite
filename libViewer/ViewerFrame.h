@@ -1,7 +1,7 @@
 #pragma once
 #include <StatusBarInterface.h>
 #include "wx/print.h"
-#include <wx/fswatcher.h>
+
 #include <MyFrameIntro.h>
 #include <MainInterface.h>
 #include <FolderCatalog.h>
@@ -72,8 +72,7 @@ namespace Regards::Viewer
 		};
 		static bool GetViewerMode();
 		static void SetViewerMode(const bool& viewerMode);
-		bool AddFSEntry(const wxString& dirPath) override;
-		bool RemoveFSEntry(const wxString& dirPath) override;
+
 		int ShowScanner() override;
 
 	private:
@@ -91,7 +90,7 @@ namespace Regards::Viewer
 		void OnKeyUp(wxKeyEvent& event);
 		void OnAbout(wxCommandEvent& event);
 		void OnHello(wxCommandEvent& event);
-		void OnOpenFile(wxTimerEvent& event);
+
 		void CheckAllProcessEnd(wxTimerEvent& event);
 		void OnClose(wxCloseEvent& event);
 		void OnConfiguration(wxCommandEvent& event);
@@ -105,12 +104,12 @@ namespace Regards::Viewer
 		void OnOpenFile(wxCommandEvent& event);
 		void OnOpenFolder(wxCommandEvent& event);
 
-		void OnFileSystemModified(wxFileSystemWatcherEvent& event);
+
 
 #ifdef __WXMAC__
 			void OnPageMargins(wxCommandEvent& event);
 #endif
-		void OnTimereventFileSysTimer(wxTimerEvent& event);
+
 		void OnTimerLoadPicture(wxTimerEvent& event);
 		void OnTimerEndLoadPicture(wxTimerEvent& event);
 		bool CheckDatabase(FolderCatalogVector& folderList);
@@ -124,7 +123,7 @@ namespace Regards::Viewer
 
 		bool repeatEvent = false;
 		int eventToLoop = 0;
-		FolderCatalogVector folderList;
+		
 		IMainInterface* mainInterface;
 		CMainParam* viewerParam;
 		CMainTheme* viewerTheme;
@@ -148,13 +147,12 @@ namespace Regards::Viewer
         int oldHeight = 0;
 		
 		wxTimer* endLoadPictureTimer;
-		wxTimer* loadPictureStartTimer;
 		wxTimer* loadPictureTimer;
-		wxTimer* eventFileSysTimer = nullptr;
+		
 		wxString filenameTimer;
 		int nbTime;
 
 		//CImageLoadingFormat * picture;
-		wxFileSystemWatcher* m_watcher;
+		
 	};
 }

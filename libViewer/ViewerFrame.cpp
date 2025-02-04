@@ -47,9 +47,8 @@ using namespace Regards::Picture;
 using namespace Regards::Internet;
 
 constexpr auto TIMER_LOADPICTURE = 2;
-constexpr auto TIMER_EVENTFILEFS = 3;
 constexpr auto TIMER_LOADPICTUREEND = 4;
-constexpr auto TIMER_LOADPICTURESTART = 5;
+
 #if !wxUSE_PRINTING_ARCHITECTURE
 #error "You must set wxUSE_PRINTING_ARCHITECTURE to 1 in setup.h, and recompile the library."
 #endif
@@ -116,17 +115,6 @@ CViewerFrame::CViewerFrame(const wxString& title, const wxPoint& pos, const wxSi
 	this->mainInterface->parent = this;
 
 
-	
-	CSqlFindFolderCatalog folderCatalog;
-	folderCatalog.GetFolderCatalog(&folderList, NUMCATALOGID);
-	
-
-	m_watcher = new wxFileSystemWatcher();
-	m_watcher->SetOwner(this);
-	Connect(wxEVT_FSWATCHER, wxFileSystemWatcherEventHandler(CViewerFrame::OnFileSystemModified));
-
-	CheckDatabase(folderList);
-
 	exitTimer = new wxTimer(this, wxTIMER_EXIT);
 	Connect(wxTIMER_EXIT, wxEVT_TIMER, wxTimerEventHandler(CViewerFrame::CheckAllProcessEnd), nullptr, this);
 
@@ -153,9 +141,9 @@ CViewerFrame::CViewerFrame(const wxString& title, const wxPoint& pos, const wxSi
 	//preview = nullptr;
 	m_previewModality = wxPreviewFrame_AppModal;
 	loadPictureTimer = new wxTimer(this, TIMER_LOADPICTURE);
-	eventFileSysTimer = new wxTimer(this, TIMER_EVENTFILEFS);
+
 	endLoadPictureTimer = new wxTimer(this, TIMER_LOADPICTUREEND);
-	loadPictureStartTimer = new wxTimer(this, TIMER_LOADPICTURESTART);
+
 	auto menuFile = new wxMenu;
 
 	wxString labelDecreaseIconSize = CLibResource::LoadStringFromResource(L"labelDecreaseIconSize", 1);
@@ -274,8 +262,6 @@ CViewerFrame::CViewerFrame(const wxString& title, const wxPoint& pos, const wxSi
 
 	Connect(TIMER_LOADPICTUREEND, wxEVT_TIMER, wxTimerEventHandler(CViewerFrame::OnTimerEndLoadPicture), nullptr, this);
 	Connect(TIMER_LOADPICTURE, wxEVT_TIMER, wxTimerEventHandler(CViewerFrame::OnTimerLoadPicture), nullptr, this);
-	Connect(TIMER_EVENTFILEFS, wxEVT_TIMER, wxTimerEventHandler(CViewerFrame::OnTimereventFileSysTimer), nullptr, this);
-	Connect(TIMER_LOADPICTURESTART, wxEVT_TIMER, wxTimerEventHandler(CViewerFrame::OnOpenFile), nullptr, this);
 	Connect(wxEVT_FULLSCREEN,  wxCommandEventHandler(CViewerFrame::OnWindowFullScreen));
 	
 	//if (!openFirstFile)
@@ -341,120 +327,6 @@ void CViewerFrame::OnWindowFullScreen(wxCommandEvent & event)
         SetFullscreen();
 }
 
-void CViewerFrame::OnOpenFile(wxTimerEvent& event)
-{
-    OpenPictureFile();
-}
-
-void CViewerFrame::OpenPictureFile()
-{
- 	CLibPicture libPicture;
-	wxString dirpath = "";
-	if (fileToOpen == "")
-	{
-		if (folderList.size() == 0)
-		{
-			wxArrayString files;
-			dirpath = wxStandardPaths::Get().GetUserDir(wxStandardPaths::Dir_Pictures);
-			wxDir::GetAllFiles(dirpath, &files, wxEmptyString, wxDIR_FILES);
-			if (files.size() > 0)
-				sort(files.begin(), files.end());
-
-			for (wxString file : files)
-			{
-				if (libPicture.TestImageFormat(file) != 0)
-				{
-					fileToOpen = file;
-					break;
-				}
-			}
-		}
-	}
-
-	if (fileToOpen != "")
-	{
-		auto file = new wxString(fileToOpen);
-		wxCommandEvent evt(wxEVENT_OPENFILEORFOLDER);
-		evt.SetInt(1);
-		evt.SetClientData(file);
-		mainWindow->GetEventHandler()->AddPendingEvent(evt);
-	}   
-}
-
-
-bool CViewerFrame::CheckDatabase(FolderCatalogVector& folderList)
-{
-	wxString libelle = CLibResource::LoadStringFromResource(L"LBLBUSYINFO", 1);
-	wxBusyCursor busy;
-	//wxBusyInfo wait(libelle);
-
-	bool folderChange = false;
-
-	//Test de la validité des répertoires
-	for (CFolderCatalog folderlocal : folderList)
-	{
-		if (!wxDirExists(folderlocal.GetFolderPath()))
-		{
-			//Remove Folder
-			CSQLRemoveData::DeleteFolder(folderlocal.GetNumFolder());
-			folderChange = true;
-		}
-		else
-		{
-			CViewerFrame::AddFSEntry(folderlocal.GetFolderPath());
-		}
-	}
-
-
-	//Test de la validité des fichiers
-	PhotosVector photoList;
-	CSqlThumbnail sqlThumbnail;
-	CSqlFindPhotos findphotos;
-	findphotos.GetAllPhotos(&photoList);
-	for (CPhotos photo : photoList)
-	{
-		if (!wxFileExists(photo.GetPath()))
-		{
-			//Remove Folder
-			CSQLRemoveData::DeletePhoto(photo.GetId());
-			folderChange = true;
-		}
-	}
-
-	//Thumbnail Photo Verification
-
-	vector<int> listPhoto = sqlThumbnail.GetAllPhotoThumbnail();
-	for (int numPhoto : listPhoto)
-	{
-		wxString thumbnail = CFileUtility::GetThumbnailPath(to_string(numPhoto));
-		if (!wxFileExists(thumbnail))
-		{
-			sqlThumbnail.EraseThumbnail(numPhoto);
-		}
-	}
-
-	CSqlFacePhoto sqlFacePhoto;
-	vector<int> listFacePhoto = sqlFacePhoto.GetAllThumbnailFace();
-	for (int numPhoto : listFacePhoto)
-	{
-		wxString thumbnail = CFileUtility::GetFaceThumbnailPath(numPhoto);
-		if (!wxFileExists(thumbnail))
-		{
-			sqlFacePhoto.EraseFace(numPhoto);
-		}
-	}
-
-	if (folderChange)
-	{
-		auto viewerParam = CMainParamInit::getInstance();
-		wxString sqlRequest = viewerParam->GetLastSqlRequest();
-
-		CSqlFindPhotos sqlFindPhotos;
-		sqlFindPhotos.SearchPhotos(sqlRequest);
-	}
-
-	return folderChange;
-}
 
 int CViewerFrame::ShowScanner()
 {
@@ -503,43 +375,13 @@ void CViewerFrame::OnPrint(wxCommandEvent& event)
 	}
 }
 
-bool CViewerFrame::RemoveFSEntry(const wxString& dirPath)
-{
-	if (m_watcher == nullptr)
-		return false;
 
-	if (wxDirExists(dirPath) == false)
-		return false;
-
-	const wxFileName dirname(dirPath, "");
-	return m_watcher->Remove(dirname);
-}
-
-bool CViewerFrame::AddFSEntry(const wxString& dirPath)
-{
-	if (m_watcher == nullptr)
-		return false;
-
-	if (wxDirExists(dirPath) == false)
-		return false;
-
-	const wxFileName dirname(dirPath, "");
-	return m_watcher->AddTree(
-		dirname, wxFSW_EVENT_CREATE | wxFSW_EVENT_DELETE | wxFSW_EVENT_RENAME | wxFSW_EVENT_MODIFY);
-}
 
 void CViewerFrame::OnClose(wxCloseEvent& event)
 {
 	Exit();
 }
 
-void CViewerFrame::OnTimereventFileSysTimer(wxTimerEvent& event)
-{
-	//printf("OnFileSystemModified \n");
-	const wxCommandEvent evt(wxEVENT_REFRESHFOLDER);
-	mainWindow->GetEventHandler()->AddPendingEvent(evt);
-	eventFileSysTimer->Stop();
-}
 
 
 void CViewerFrame::OnHelp(wxCommandEvent& event)
@@ -580,7 +422,7 @@ void CViewerFrame::Exit()
 	{
 		nbTime = 0;
 		CWindowMain::SetEndProgram();
-		eventFileSysTimer->Stop();
+		
 		loadPictureTimer->Stop();
 		mainWindowWaiting = new CWaitingWindow(this, wxID_ANY);
 		mainWindow->Show(false);
@@ -761,10 +603,7 @@ CViewerFrame::~CViewerFrame()
 
 	delete(loadPictureTimer);
 
-	if (eventFileSysTimer->IsRunning())
-		eventFileSysTimer->Stop();
 
-	delete(eventFileSysTimer);
 
 	if (endLoadPictureTimer->IsRunning())
 		endLoadPictureTimer->Stop();
@@ -824,20 +663,6 @@ void CViewerFrame::OnConfiguration(wxCommandEvent& event)
 }
 
 
-void CViewerFrame::OnFileSystemModified(wxFileSystemWatcherEvent& event)
-{
-	if (eventFileSysTimer != nullptr)
-	{
-		eventFileSysTimer->Stop();
-		if (mainWindow != nullptr)
-		{
-			//if (!mainWindow->IsVideo())
-			//{
-			eventFileSysTimer->Start(1000);
-			//}
-		}
-	}
-}
 
 void CViewerFrame::OnIconSizeLess(wxCommandEvent& event)
 {

@@ -32,6 +32,5 @@ public:
 	virtual void ShowViewer()
 	{
 	};
-	virtual bool AddFSEntry(const wxString& dirPath) { return true; };
-	virtual bool RemoveFSEntry(const wxString& dirPath) { return true; };
+
 };

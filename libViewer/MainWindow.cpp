@@ -23,6 +23,7 @@
 #include "StatusText.h"
 #include <ThumbnailMessage.h>
 #include <SqlThumbnailVideo.h>
+#include <SqlFindFolderCatalog.h>
 #define LIBHEIC
 #include <picture_id.h>
 #include <ShowElement.h>
@@ -50,6 +51,8 @@ using namespace Regards::Control;
 using namespace Regards::Viewer;
 using namespace std;
 using namespace Regards::Sqlite;
+
+constexpr auto TIMER_EVENTFILEFS = 3;
 
 bool firstTime = true;
 
@@ -162,6 +165,7 @@ CMainWindow::CMainWindow(wxWindow* parent, wxWindowID id, IStatusBarInterface* s
 
 	CMainTheme* viewerTheme = CMainThemeInit::getInstance();
 	viewerParam = CMainParamInit::getInstance();
+	eventFileSysTimer = new wxTimer(this, TIMER_EVENTFILEFS);
 
 	if (viewerTheme != nullptr)
 	{
@@ -177,7 +181,6 @@ CMainWindow::CMainWindow(wxWindow* parent, wxWindowID id, IStatusBarInterface* s
 	 *
 	 ----------------------------------------------------------------------*/
 
-	Connect(wxEVENT_FACEINFOSUPDATE, wxCommandEventHandler(CMainWindow::OnFaceInfosUpdate));
 	Connect(wxEVENT_SETSCREEN, wxCommandEventHandler(CMainWindow::SetScreenEvent));
 	Connect(wxEVENT_INFOS, wxCommandEventHandler(CMainWindow::OnUpdateInfos));
 	Connect(wxEVENT_REFRESHFOLDERLIST, wxCommandEventHandler(CMainWindow::RefreshFolderList));
@@ -215,6 +218,8 @@ CMainWindow::CMainWindow(wxWindow* parent, wxWindowID id, IStatusBarInterface* s
 	Connect(wxEVENT_REFRESHTHUMBNAIL, wxCommandEventHandler(CMainWindow::OnRefreshThumbnail));
 	Connect(wxEVENT_ICONETHUMBNAILGENERATION, wxCommandEventHandler(CMainWindow::OnProcessThumbnail));
 	Connect(wxEVENT_ENDOPENEXTERNALFILE, wxCommandEventHandler(CMainWindow::OnEndOpenExternalFile));
+
+	Connect(TIMER_EVENTFILEFS, wxEVT_TIMER, wxTimerEventHandler(CMainWindow::OnTimereventFileSysTimer), nullptr, this);
 	/*----------------------------------------------------------------------
 	 *
 	 * Manage Event
@@ -241,6 +246,11 @@ CMainWindow::CMainWindow(wxWindow* parent, wxWindowID id, IStatusBarInterface* s
 		firstFileToShow = localFilename = fileToOpen;
 
 
+
+	m_watcher = new wxFileSystemWatcher();
+	m_watcher->SetOwner(this);
+	Connect(wxEVT_FSWATCHER, wxFileSystemWatcherEventHandler(CMainWindow::OnFileSystemModified));
+
 	//UpdateFolderStatic();
 	CSqlPhotosWithoutThumbnail sqlPhoto;
 	sqlPhoto.GetPhotoList(&photoList, 0);
@@ -252,7 +262,120 @@ CMainWindow::CMainWindow(wxWindow* parent, wxWindowID id, IStatusBarInterface* s
 	refreshFolder = true;
 	processIdle = true;
 	*/
-    endApplication = false;
+	endApplication = false;
+
+	bool find = false;
+
+	FolderCatalogVector folderList;
+	CSqlFindFolderCatalog folderCatalog;
+	folderCatalog.GetFolderCatalog(&folderList, NUMCATALOGID);
+	CheckDatabase(folderList);
+}
+
+bool CMainWindow::CheckDatabase(FolderCatalogVector& folderList)
+{
+	wxString libelle = CLibResource::LoadStringFromResource(L"LBLBUSYINFO", 1);
+	wxBusyCursor busy;
+	//wxBusyInfo wait(libelle);
+
+	bool folderChange = false;
+
+	//Test de la validité des répertoires
+	for (CFolderCatalog folderlocal : folderList)
+	{
+		if (!wxDirExists(folderlocal.GetFolderPath()))
+		{
+			//Remove Folder
+			CSQLRemoveData::DeleteFolder(folderlocal.GetNumFolder());
+			folderChange = true;
+		}
+		else
+		{
+			AddFSEntry(folderlocal.GetFolderPath());
+		}
+	}
+
+
+	//Test de la validité des fichiers
+	PhotosVector photoList;
+	CSqlThumbnail sqlThumbnail;
+	CSqlFindPhotos findphotos;
+	findphotos.GetAllPhotos(&photoList);
+	for (CPhotos photo : photoList)
+	{
+		if (!wxFileExists(photo.GetPath()))
+		{
+			//Remove Folder
+			CSQLRemoveData::DeletePhoto(photo.GetId());
+			folderChange = true;
+		}
+	}
+
+	//Thumbnail Photo Verification
+
+	vector<int> listPhoto = sqlThumbnail.GetAllPhotoThumbnail();
+	for (int numPhoto : listPhoto)
+	{
+		wxString thumbnail = CFileUtility::GetThumbnailPath(to_string(numPhoto));
+		if (!wxFileExists(thumbnail))
+		{
+			sqlThumbnail.EraseThumbnail(numPhoto);
+		}
+	}
+
+	if (folderChange)
+	{
+		auto viewerParam = CMainParamInit::getInstance();
+		wxString sqlRequest = viewerParam->GetLastSqlRequest();
+
+		CSqlFindPhotos sqlFindPhotos;
+		sqlFindPhotos.SearchPhotos(sqlRequest);
+	}
+
+	return folderChange;
+}
+
+void CMainWindow::OnFileSystemModified(wxFileSystemWatcherEvent& event)
+{
+	if (eventFileSysTimer != nullptr)
+	{
+		eventFileSysTimer->Stop();
+		eventFileSysTimer->Start(1000);
+	}
+}
+
+void CMainWindow::OnTimereventFileSysTimer(wxTimerEvent& event)
+{
+	//printf("OnFileSystemModified \n");
+	const wxCommandEvent evt(wxEVENT_REFRESHFOLDER);
+	this->GetEventHandler()->AddPendingEvent(evt);
+	eventFileSysTimer->Stop();
+}
+
+
+bool CMainWindow::RemoveFSEntry(const wxString& dirPath)
+{
+	if (m_watcher == nullptr)
+		return false;
+
+	if (wxDirExists(dirPath) == false)
+		return false;
+
+	const wxFileName dirname(dirPath, "");
+	return m_watcher->Remove(dirname);
+}
+
+bool CMainWindow::AddFSEntry(const wxString& dirPath)
+{
+	if (m_watcher == nullptr)
+		return false;
+
+	if (wxDirExists(dirPath) == false)
+		return false;
+
+	const wxFileName dirname(dirPath, "");
+	return m_watcher->AddTree(
+		dirname, wxFSW_EVENT_CREATE | wxFSW_EVENT_DELETE | wxFSW_EVENT_RENAME | wxFSW_EVENT_MODIFY);
 }
 
 void CMainWindow::StartOpening()
@@ -1201,6 +1324,11 @@ void CMainWindow::OnIdle(wxIdleEvent& evt)
 //---------------------------------------------------------------
 CMainWindow::~CMainWindow()
 {
+
+	if (eventFileSysTimer->IsRunning())
+		eventFileSysTimer->Stop();
+
+	delete(eventFileSysTimer);
 	delete(progressBar);
 	delete(statusBar);
 	delete(centralWnd);
@@ -1430,17 +1558,26 @@ void CMainWindow::OpenFile(const wxString& fileToOpen)
 	bool find = false;
 	wxFileName filename(fileToOpen);
 	wxString folder = filename.GetPath();
-    
+	FolderCatalogVector folderList;
     //Test if folder is on database
     CSqlFolderCatalog sqlFolderCatalog;
     int64_t idFolder = sqlFolderCatalog.GetFolderCatalogId(NUMCATALOGID, folder);
+	
     
     cout << "Folder : " << folder << " " << idFolder << endl;
     
     if (idFolder == -1)
     {
+		CSqlFindFolderCatalog folderCatalog;
+		folderCatalog.GetFolderCatalog(&folderList, NUMCATALOGID);
+		for (CFolderCatalog folderlocal : folderList)
+		{
+			RemoveFSEntry(folderlocal.GetFolderPath());
+		}
+
         CSQLRemoveData::DeleteCatalog(1);
         AddFolder(folder, nullptr);
+		AddFSEntry(folder);
     }
 	firstFileToShow = fileToOpen;
 	UpdateFolderStatic();
@@ -1456,21 +1593,32 @@ bool CMainWindow::OpenFolder(const wxString& path)
 	{
 
 		bool find = false;
-        
+		FolderCatalogVector folderList;
         
 
 		wxString folder = path;
         //Test if folder is on database
         CSqlFolderCatalog sqlFolderCatalog;
         int64_t idFolder = sqlFolderCatalog.GetFolderCatalogId(NUMCATALOGID, folder);
+
+
         
         cout << "Folder : " << folder << " " << idFolder << endl;
         
         if (idFolder == -1)
         {
+			CSqlFindFolderCatalog folderCatalog;
+			folderCatalog.GetFolderCatalog(&folderList, NUMCATALOGID);
+			for (CFolderCatalog folderlocal : folderList)
+			{
+				RemoveFSEntry(folderlocal.GetFolderPath());
+			}
+
             CSQLRemoveData::DeleteCatalog(1);
             firstFileToShow = AddFolder(path, nullptr);
+			AddFSEntry(path);
         }
+		
 
 
 		UpdateFolderStatic();
@@ -1493,12 +1641,6 @@ void CMainWindow::InitPictures(wxCommandEvent& event)
 	processIdle = true;
 }
 
-
-void CMainWindow::OnFaceInfosUpdate(wxCommandEvent& event)
-{
-	printf("OnFaceInfosUpdate /n");
-	processIdle = true;
-}
 
 void CMainWindow::OnRefreshPicture(wxCommandEvent& event)
 {
