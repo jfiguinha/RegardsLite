@@ -16,13 +16,13 @@ ReserveFile `${NSISDIR}\Plugins\EmbeddedLists.dll`
 
 ;--------------------------------
 ;General
-!define MUI_PRODUCT "RegardsLite Viewer 2.0.0.2"
+!define MUI_PRODUCT "RegardsLite Viewer 2.0.0.3"
 !define MUI_FILE "RegardsLite"
 !define MUI_ICON "regardsliteicon.ico"
 !define UninstId "RegardsLiteViewer2" ; You might want to use a GUID here
 
   ;Name and file
-  Name "Regards Viewer 2.0.0.2"
+  Name "Regards Viewer 2.0.0.3"
   OutFile "RegardsLiteViewer2Setup.exe"
 
   ;Default installation folder
@@ -134,7 +134,7 @@ Call openLinkNewWindow
 
 ;--------------------------------
 ;Installer Sections
-Section "RegardsLite Viewer 2.0.0.2" SecRegardsViewer
+Section "RegardsLite Viewer 2.0.0.3" SecRegardsViewer
 
   SetOutPath "$INSTDIR"
 
@@ -184,7 +184,7 @@ SectionEnd
 ;Descriptions
 
   ;Language strings
-  LangString DESC_SecRegardsViewer ${LANG_ENGLISH} "Regards Viewer 2.0.0.2"
+  LangString DESC_SecRegardsViewer ${LANG_ENGLISH} "Regards Viewer 2.0.0.3"
   LangString DESC_SecVisualStudio ${LANG_ENGLISH} "Visual Studio 2017 Redistribuable x64"
   ;Assign language strings to sections
   !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
