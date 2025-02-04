@@ -285,7 +285,7 @@ void MovieStreamInfo::initializeVideo()
 			if (indexSubtitle == m_pFormatContext->streams[i]->index)
 				streamInfo.selected = true;
 
-			streamInfo.indexStream = m_pFormatContext->streams[i]->index - 1;
+			streamInfo.indexStream = m_pFormatContext->streams[i]->index;
 			streamInfo.typeStream = 3;
 			listStream.push_back(streamInfo);
 		}

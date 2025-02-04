@@ -1356,35 +1356,14 @@ void CVideoControlSoft::OnPaint3D(wxGLCanvas* canvas, CRenderOpenGL* renderOpenG
 				}
 				else if(typeSubtitle == 1)
 				{
-					int frame_w = 1280;
-					int frame_h = 720;
 
 	#ifndef WIN32
 					double scale_factor = parentRender->GetContentScaleFactor();
 	#else
 					double scale_factor = 1.0f;
 	#endif
-					/*
-					cv::Mat subtitle;
-					//Ass subtitle
-					string textStr = subtitleText.ToStdString();
-					//cv::Mat subtitle = CAssToBitmap::ExportToBitmap((char *)textStr.c_str(), textStr.length(), frame_w, frame_h);
-					subtitle.create(frame_w, frame_h, CV_8UC4);
-					cv::putText(subtitle,
-						textStr,
-						cv::Point(5, 5), // Coordinates (Bottom-left corner of the text string in the image)
-						cv::FONT_HERSHEY_COMPLEX_SMALL, // Font
-						1.0, // Scale. 2.0 = 2x bigger
-						cv::Scalar(255, 255, 255), // BGR Color
-						1, // Line Thickness (Optional)
-						cv::LINE_AA); // Anti-alias (Optional, see version note)
 
-					renderBitmapOpenGL->SetSubtitle(subtitle);
-					*/
-
-
-
-					renderOpenGL->PrintSubtitle(width - widthOutput, 1, scale_factor, subtitleText);
+					renderOpenGL->PrintSubtitle(width / 2, height / 4, scale_factor, subtitleText);
 
 				}
 			

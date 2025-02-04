@@ -195,12 +195,14 @@ void CRenderOpenGL::Print(int x, int y, double scale_factor, const char* text)
 void CRenderOpenGL::PrintSubtitle(int x, int y, double scale_factor, wxString text)
 {
 	float font_height = 15;
+	float font_width = glutBitmapWidth(GLUT_BITMAP_TIMES_ROMAN_24, 'x');;
+
 
 	std::vector<wxString> list = CConvertUtility::split(text, '\\');
 	if (list.size() > 0)
 	{
 		wxString line = list[0];
-		glRasterPos2f(x, font_height * 4);
+		glWindowPos2i(x - ((font_width * line.size()) / 2), y);
 		//get the length of the string to display
 		int len = static_cast<int>(line.Length());
 
@@ -222,7 +224,7 @@ void CRenderOpenGL::PrintSubtitle(int x, int y, double scale_factor, wxString te
 			{
 				//New Line
 				wxString line = list[i];
-				glRasterPos2f(x, font_height * 2);
+				glWindowPos2i(x - ((font_width * line.size()) / 2), y - font_height * 2);
 				//get the length of the string to display
 				int len = static_cast<int>(line.Length());
 
