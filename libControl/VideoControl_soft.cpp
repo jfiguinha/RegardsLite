@@ -1048,6 +1048,8 @@ void CVideoControlSoft::SetSubtituleText(const char* textSub, int timing)
 	subtitleText = listString.at(listString.size() - 1);
 	subtilteUpdate = true;
 	typeSubtitle = 1;
+	if (assSubtitleTimer->IsRunning())
+		assSubtitleTimer->Stop();
 	assSubtitleTimer->StartOnce(timing);
 	muSubtitle.unlock();
 }
