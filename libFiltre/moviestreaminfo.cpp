@@ -240,7 +240,7 @@ void MovieStreamInfo::initializeVideo()
 			if (indexAudio == m_pFormatContext->streams[i]->index)
 				streamInfo.selected = true;
 
-			streamInfo.indexStream = m_pFormatContext->streams[i]->index;
+			streamInfo.indexStream = i;
 			streamInfo.typeStream = 1;
 			listStream.push_back(streamInfo);
 		}
@@ -259,7 +259,7 @@ void MovieStreamInfo::initializeVideo()
 				}
 			}
 
-			streamInfo.indexStream = m_pFormatContext->streams[i]->index;
+			streamInfo.indexStream = i;
 			if (indexVideo == m_pFormatContext->streams[i]->index)
 				streamInfo.selected = true;
 			streamInfo.typeStream = 2;
@@ -285,7 +285,7 @@ void MovieStreamInfo::initializeVideo()
 			if (indexSubtitle == m_pFormatContext->streams[i]->index)
 				streamInfo.selected = true;
 
-			streamInfo.indexStream = m_pFormatContext->streams[i]->index;
+			streamInfo.indexStream = i;
 			streamInfo.typeStream = 3;
 			listStream.push_back(streamInfo);
 		}

@@ -175,7 +175,10 @@ void CRenderOpenGL::Print(int x, int y, double scale_factor, const char* text)
         font_height = font_height * 2;
 
 
-	glRasterPos2f(x, height - font_height);
+	//glRasterPos2f(x, height - font_height);
+
+	glWindowPos2i(x, height - font_height);
+
 	//get the length of the string to display
 	int len = static_cast<int>(strlen(text));
     
