@@ -1785,7 +1785,8 @@ cv::Mat CVideoControlSoft::GetBitmapRGBA(AVFrame* tmp_frame)
 		if (sws_init_context(localContext, nullptr, nullptr) < 0)
 		{
 			sws_freeContext(localContext);
-			throw std::logic_error("Failed to initialise scale context");
+			localContext = nullptr;
+			return bitmapData;
 		}
 	}
 
@@ -2312,7 +2313,7 @@ void CVideoControlSoft::SetFrameData(AVFrame *dst)
 		enableopenCL = 0;
 	}
 
-	if (!enableopenCL || (dst->format != AV_PIX_FMT_YUV420P && dst->format != AV_PIX_FMT_NV12))
+	if (!enableopenCL)
 	{
 		isffmpegDecode = true;
 		int nWidth = dst->width;
@@ -2330,6 +2331,28 @@ void CVideoControlSoft::SetFrameData(AVFrame *dst)
 		//muBitmap.lock();
 		bitmapData.copyTo(pictureFrame);
 		//muBitmap.unlock();
+	}
+	else if (enableopenCL && (dst->format != AV_PIX_FMT_YUV420P && dst->format != AV_PIX_FMT_NV12))
+	{
+		isffmpegDecode = false;
+		int nWidth = dst->width;
+		int nHeight = dst->height;
+		if (videoEffectParameter.denoiseEnable && videoEffectParameter.effectEnable)
+		{
+			if (hq3d == nullptr)
+				hq3d = new Chqdn3d(nWidth, nHeight, videoEffectParameter.denoisingLevel, videoEffectParameter.templateWindowSize, videoEffectParameter.searchWindowSize);
+			else
+				hq3d->UpdateParameter(nWidth, nHeight, videoEffectParameter.denoisingLevel, videoEffectParameter.templateWindowSize, videoEffectParameter.searchWindowSize);
+			uint8_t* outData = hq3d->ApplyDenoise3D(dst->data[0], dst->linesize[0], nHeight);
+			memcpy(dst->data[0], outData, dst->linesize[0] * nHeight);
+		}
+		cv::Mat bitmapData = GetBitmapRGBA(dst);
+		if (openclEffectYUV != nullptr)
+		{
+
+			Regards::Picture::CPictureArray pictureArray(bitmapData);
+			openclEffectYUV->SetMatrix(pictureArray);
+		}
 	}
 	else
 	{
@@ -2361,47 +2384,7 @@ void CVideoControlSoft::SetFrameData(AVFrame *dst)
 
 			//AVFrame* tmp_frame = dst;
 			openclEffectYUV->SetAVFrame(&videoEffectParameter, dst, _colorSpace, isLimited);
-			/*
-			if (tmp_frame->format == AV_PIX_FMT_NV12)
-			{
-				//muBitmap.lock();
-				//Test if denoising Effect
-				if (videoEffectParameter.denoiseEnable && videoEffectParameter.effectEnable)
-				{
-					uint8_t * outData = openclEffectYUV->HQDn3D(tmp_frame->data[0], tmp_frame->linesize[0], nHeight, videoEffectParameter.denoisingLevel, videoEffectParameter.templateWindowSize, videoEffectParameter.searchWindowSize);
-					openclEffectYUV->SetNV12(outData, tmp_frame->linesize[0] * nHeight, tmp_frame->data[1],
-						tmp_frame->linesize[1] * (nHeight / 2), tmp_frame->linesize[0], nHeight,
-						tmp_frame->linesize[0], nWidth, nHeight, isLimited, _colorSpace);
 
-				}
-				else
-					openclEffectYUV->SetNV12(tmp_frame->data[0], tmp_frame->linesize[0] * nHeight, tmp_frame->data[1],
-											 tmp_frame->linesize[1] * (nHeight / 2), tmp_frame->linesize[0], nHeight,
-											 tmp_frame->linesize[0], nWidth, nHeight, isLimited, _colorSpace);
-				//muBitmap.unlock();
-			}
-			else if (tmp_frame->format == AV_PIX_FMT_YUV420P)
-			{
-				//muBitmap.lock();
-				if (videoEffectParameter.denoiseEnable && videoEffectParameter.effectEnable)
-				{
-					uint8_t* outData = openclEffectYUV->HQDn3D(tmp_frame->data[0], tmp_frame->linesize[0], nHeight, videoEffectParameter.denoisingLevel, videoEffectParameter.templateWindowSize, videoEffectParameter.searchWindowSize);
-					openclEffectYUV->SetYUV420P(outData, tmp_frame->linesize[0] * nHeight, tmp_frame->data[1],
-						tmp_frame->linesize[1] * (nHeight / 2), tmp_frame->data[2],
-						tmp_frame->linesize[2] * (nHeight / 2), tmp_frame->linesize[0], nHeight,
-						tmp_frame->linesize[0], nWidth, nHeight, isLimited, _colorSpace);
-				}
-				else
-				{
-                    openclEffectYUV->SetYUV420P(tmp_frame->data[0], tmp_frame->linesize[0] * nHeight, tmp_frame->data[1],
-						tmp_frame->linesize[1] * (nHeight / 2), tmp_frame->data[2],
-						tmp_frame->linesize[2] * (nHeight / 2), tmp_frame->linesize[0], nHeight,
-						tmp_frame->linesize[0], nWidth, nHeight, isLimited, _colorSpace);
-				}
-
-				//muBitmap.unlock();
-			}
-			*/
 		}
 
 	}

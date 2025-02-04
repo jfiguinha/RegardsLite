@@ -554,6 +554,7 @@ void COpenCLEffectVideo::SetYUV420P(uint8_t* bufferY, int sizeY, uint8_t* buffer
 	}
 }
 
+
 void COpenCLEffectVideo::SetAVFrame(CVideoEffectParameter* videoEffectParameter, AVFrame*& tmp_frame, int colorSpace, int isLimited)
 {
 	int nWidth = tmp_frame->width;
@@ -597,6 +598,10 @@ void COpenCLEffectVideo::SetAVFrame(CVideoEffectParameter* videoEffectParameter,
 		}
 
 		//muBitmap.unlock();
+	}
+	else
+	{
+
 	}
 }
 

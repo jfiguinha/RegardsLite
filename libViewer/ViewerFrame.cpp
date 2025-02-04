@@ -652,14 +652,7 @@ void CViewerFrame::OnConfiguration(wxCommandEvent& event)
 	auto regardsParam = CParamInit::getInstance();
 	ConfigRegards configFile(this);
 	configFile.ShowModal();
-	if (configFile.IsOk())
-	{
-		if (mainWindow != nullptr)
-		{
-			wxCommandEvent evt(wxEVENT_REFRESHFOLDERLIST);
-			mainWindow->GetEventHandler()->AddPendingEvent(evt);
-		}
-	}
+	configFile.IsOk();
 }
 
 

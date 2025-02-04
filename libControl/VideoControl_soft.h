@@ -307,4 +307,7 @@ protected:
 
 	wxString subtitleText = "";
 	int typeSubtitle = 0;
+
+	int widthContext = 0;
+	int heightContext = 0;
 };
