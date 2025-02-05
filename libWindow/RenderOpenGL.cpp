@@ -200,12 +200,13 @@ void CRenderOpenGL::PrintSubtitle(int x, int y, double scale_factor, wxString te
 	float font_height = 15;
     void * font_choose = GLUT_BITMAP_TIMES_ROMAN_24;
 	float font_width = glutBitmapWidth(font_choose, 'x');;
-    int xPos = x - ((font_width * line.size()) / 2);
+    int xPos = 0;
 
 	std::vector<wxString> list = CConvertUtility::split(text, '\\');
 	if (list.size() > 0)
 	{
 		wxString line = list[0];
+        xPos = x - ((font_width * line.size()) / 2);
 		glWindowPos2i(xPos, y);
 		//get the length of the string to display
 		int len = static_cast<int>(line.Length());
