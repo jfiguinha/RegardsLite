@@ -198,26 +198,28 @@ void CRenderOpenGL::Print(int x, int y, double scale_factor, const char* text)
 void CRenderOpenGL::PrintSubtitle(int x, int y, double scale_factor, wxString text)
 {
 	float font_height = 15;
-	float font_width = glutBitmapWidth(GLUT_BITMAP_TIMES_ROMAN_24, 'x');;
-
+    void * font_choose = GLUT_BITMAP_TIMES_ROMAN_24;
+	float font_width = glutBitmapWidth(font_choose, 'x');;
+    int xPos = x - ((font_width * line.size()) / 2);
 
 	std::vector<wxString> list = CConvertUtility::split(text, '\\');
 	if (list.size() > 0)
 	{
 		wxString line = list[0];
-		glWindowPos2i(x - ((font_width * line.size()) / 2), y);
+		glWindowPos2i(xPos, y);
 		//get the length of the string to display
 		int len = static_cast<int>(line.Length());
 
 		//glScalef(scale_factor,scale_factor,scale_factor); 
-
+        int xPosition = 0;
 		//loop to display character by character
 		for (auto i = 0; i < len; i++)
 		{
 			wxUniChar c = line[i];
 			char letter;
 			c.GetAsChar(&letter);
-			glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24, c);
+			glutBitmapCharacter(font_choose, c);
+            xPosition += font_width;
 		}
 
 		for (int i = 1;i < list.size();i++)
@@ -239,9 +241,27 @@ void CRenderOpenGL::PrintSubtitle(int x, int y, double scale_factor, wxString te
 					wxUniChar c = line[i];
 					char letter;
 					c.GetAsChar(&letter);
-					glutBitmapCharacter(GLUT_BITMAP_TIMES_ROMAN_24, c);
+					glutBitmapCharacter(font_choose, c);
 				}
 			}
+            else
+            {
+				wxString line = list[i];
+				glWindowPos2i(xPos + xPosition + font_width, y - font_height * 2);
+				//get the length of the string to display
+				int len = static_cast<int>(line.Length());
+
+				//glScalef(scale_factor,scale_factor,scale_factor); 
+
+				//loop to display character by character
+				for (auto i = 1; i < len; i++)
+				{
+					wxUniChar c = line[i];
+					char letter;
+					c.GetAsChar(&letter);
+					glutBitmapCharacter(font_choose, c);
+				}
+            }
 		}
 	}
 
