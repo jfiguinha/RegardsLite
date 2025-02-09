@@ -356,6 +356,14 @@ void CPreviewWnd::HideToolbar(wxCommandEvent& event)
 			}
 		}
 	}
+
+	wxWindow* window = this->FindWindowById(FRAMEVIEWER_ID);
+	if (window != nullptr)
+	{
+		wxCommandEvent evt(ID_WINDOWUPDATESHOW);
+		evt.SetInt(11);
+		window->GetEventHandler()->AddPendingEvent(evt);
+	}
 }
 
 void CPreviewWnd::ShowValidationToolbar(const bool& visible, const int& filtre)
@@ -421,6 +429,14 @@ void CPreviewWnd::ShowToolbar(wxCommandEvent& event)
 			showElement->ShowToolbar();
 			Resize();
 		}
+	}
+
+	wxWindow* window = this->FindWindowById(FRAMEVIEWER_ID);
+	if (window != nullptr)
+	{
+		wxCommandEvent evt(ID_WINDOWUPDATESHOW);
+		evt.SetInt(10);
+		window->GetEventHandler()->AddPendingEvent(evt);
 	}
 }
 

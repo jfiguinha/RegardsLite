@@ -362,7 +362,17 @@ void CViewerFrame::OnShowThumbnail(wxCommandEvent& event)
 
 void CViewerFrame::OnUpdateWindowShow(wxCommandEvent& event)
 {
-	UpdateMenuCheck();
+	int id = event.GetInt();
+	if (id == 10)
+	{
+		toolbarItem->Check(true);
+	}
+	else if (id == 11)
+	{
+		toolbarItem->Check(false);
+	}
+	else
+		UpdateMenuCheck();
 }
 
 void CViewerFrame::OnShowToolbar(wxCommandEvent& event)
