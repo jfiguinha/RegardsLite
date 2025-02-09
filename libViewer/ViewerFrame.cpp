@@ -355,10 +355,22 @@ void CViewerFrame::OnShowThumbnail(wxCommandEvent& event)
 void CViewerFrame::OnShowToolbar(wxCommandEvent& event)
 {
 	int windowMode = WINDOW_VIEWER;
+	bool isCheck = toolbarItem->IsChecked();
+	wxWindow* window = this->FindWindowById(PREVIEWVIEWERID);
+	if (window != nullptr)
+	{
+		if (isCheck)
+		{
+			wxCommandEvent evt(wxEVENT_SHOWTOOLBAR);
+			window->GetEventHandler()->AddPendingEvent(evt);
+		}
+		else
+		{
+			wxCommandEvent evt(wxEVENT_HIDETOOLBAR);
+			window->GetEventHandler()->AddPendingEvent(evt);
+		}
 
-	wxCommandEvent event(wxEVENT_SETMODEVIEWER);
-	event.SetInt(windowMode);
-	wxPostEvent(this, event);
+	}
 }
 
 void CViewerFrame::OnShowThumbnailVideo(wxCommandEvent& event)

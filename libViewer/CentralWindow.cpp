@@ -212,10 +212,6 @@ CCentralWindow::CCentralWindow(wxWindow* parent, wxWindowID id,
 
 	Connect(wxEVENT_ICONESIZEREFRESH, wxCommandEventHandler(CCentralWindow::UpdateThumbnailIconeSize));
 
-	Connect(wxEVENT_SHOWINFOS, wxCommandEventHandler(CCentralWindow::ShowInfos));
-	Connect(wxEVENT_SHOWTHUMBNAIL, wxCommandEventHandler(CCentralWindow::ShowThumbnail));
-	Connect(wxEVENT_SHOWTHUMBNAILVIDEO, wxCommandEventHandler(CCentralWindow::ShowThumbnailVideo));
-
 	animationTimer = new wxTimer(this, wxTIMER_ANIMATION);
 	processLoadPicture = false;
 	windowManager->HideWindow(Pos::wxTOP, false);
@@ -230,21 +226,6 @@ CCentralWindow::CCentralWindow(wxWindow* parent, wxWindowID id,
 	Connect(wxTIMER_DIAPORAMA, wxEVT_TIMER, wxTimerEventHandler(CCentralWindow::OnTimerDiaporama), nullptr, this);
 }
 
-
-void CCentralWindow::ShowInfos(wxCommandEvent& event)
-{
-
-}
-
-void CCentralWindow::ShowThumbnail(wxCommandEvent& event)
-{
-
-}
-
-void CCentralWindow::ShowThumbnailVideo(wxCommandEvent& event)
-{
-
-}
 
 void CCentralWindow::UpdateThumbnailIcone(wxCommandEvent& event)
 {
@@ -1192,18 +1173,10 @@ void CCentralWindow::SetMode(wxCommandEvent& event)
 	bool showThumbnail = true;
 	bool showVideoThumbnail = true;
 	windowMode = event.GetInt();
-	if (windowMode == oldWindowMode)
-		return;
+	bool windowInit = true;
 
 	CMainParam* config = CMainParamInit::getInstance();
 
-	if (!windowInit && oldWindowMode == WINDOW_VIEWER)
-	{
-		showVideoThumbnail = windowManager->GetPaneState(Pos::wxTOP);
-		CMainParam* main_param = CMainParamInit::getInstance();
-		if (main_param != nullptr)
-			main_param->SetShowVideoThumbnail(showVideoThumbnail);
-	}
 
 	if (windowInit)
 	{

@@ -129,9 +129,7 @@ namespace Regards
 			void OnAnimationStart(wxCommandEvent& event);
 			void OnAnimationStop(wxCommandEvent& event);
 
-			void ShowInfos(wxCommandEvent& event);
-			void ShowThumbnail(wxCommandEvent& event);
-			void ShowThumbnailVideo(wxCommandEvent& event);
+
 
 			void StartDiaporamaMessage(wxCommandEvent& event);
 			void StopAnimationEvent(wxCommandEvent& event);
