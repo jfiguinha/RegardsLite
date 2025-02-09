@@ -214,6 +214,17 @@ void CWindowManager::HideWindow(Pos position, const bool& refresh)
 		Init();
 		Resize();
 	}
+
+	{
+		wxWindow* window = this->GetParent();
+		if (window != nullptr)
+		{
+			wxCommandEvent evt(wxEVENT_WINDOWMANAGERUPDATE);
+			window->GetEventHandler()->AddPendingEvent(evt);
+		}
+	}
+
+
 }
 
 void CWindowManager::HidePaneWindow(Pos position, const int& refresh)
@@ -335,6 +346,16 @@ void CWindowManager::ShowWindow(Pos position, const bool& refresh)
 	{
 		Init();
 		Resize();
+	}
+
+
+	{
+		wxWindow* window = this->GetParent();
+		if (window != nullptr)
+		{
+			wxCommandEvent evt(wxEVENT_WINDOWMANAGERUPDATE);
+			window->GetEventHandler()->AddPendingEvent(evt);
+		}
 	}
 }
 

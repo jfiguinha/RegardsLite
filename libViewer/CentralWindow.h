@@ -129,7 +129,7 @@ namespace Regards
 			void OnAnimationStart(wxCommandEvent& event);
 			void OnAnimationStop(wxCommandEvent& event);
 
-
+			void WindowManagerUpdate(wxCommandEvent& event);
 
 			void StartDiaporamaMessage(wxCommandEvent& event);
 			void StopAnimationEvent(wxCommandEvent& event);

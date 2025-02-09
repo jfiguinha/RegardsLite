@@ -212,6 +212,8 @@ CCentralWindow::CCentralWindow(wxWindow* parent, wxWindowID id,
 
 	Connect(wxEVENT_ICONESIZEREFRESH, wxCommandEventHandler(CCentralWindow::UpdateThumbnailIconeSize));
 
+	Connect(wxEVENT_WINDOWMANAGERUPDATE, wxCommandEventHandler(CCentralWindow::WindowManagerUpdate));
+
 	animationTimer = new wxTimer(this, wxTIMER_ANIMATION);
 	processLoadPicture = false;
 	windowManager->HideWindow(Pos::wxTOP, false);
@@ -226,6 +228,31 @@ CCentralWindow::CCentralWindow(wxWindow* parent, wxWindowID id,
 	Connect(wxTIMER_DIAPORAMA, wxEVT_TIMER, wxTimerEventHandler(CCentralWindow::OnTimerDiaporama), nullptr, this);
 }
 
+void CCentralWindow::WindowManagerUpdate(wxCommandEvent& event)
+{
+	int showInfos;
+	int showThumbnail;
+	int showVideoThumbnail;
+	//Save Window Mode
+	CMainParam* config = CMainParamInit::getInstance();
+	if (config != nullptr)
+	{
+		showVideoThumbnail = windowManager->GetPaneState(Pos::wxTOP);
+		showThumbnail = windowManager->GetPaneState(Pos::wxBOTTOM);
+		showInfos = windowManager->GetPaneState(Pos::wxRIGHT);
+
+		config->SetShowInfos(showInfos);
+		config->SetShowThumbnail(showThumbnail);
+		config->SetShowVideoThumbnail(showVideoThumbnail);
+
+		wxWindow* window = this->FindWindowById(FRAMEVIEWER_ID);
+		if (window != nullptr)
+		{
+			wxCommandEvent evt(ID_WINDOWUPDATESHOW);
+			window->GetEventHandler()->AddPendingEvent(evt);
+		}
+	}
+}
 
 void CCentralWindow::UpdateThumbnailIcone(wxCommandEvent& event)
 {
@@ -1015,6 +1042,7 @@ void CCentralWindow::Resize()
 				windowManager->SetSize(0, 0, wxDisplay().GetGeometry().GetWidth(), wxDisplay().GetGeometry().GetHeight());
 		}
 	}
+
 
     windowManager->SetSize(0, 0, GetWindowWidth(), GetWindowHeight());
 }
