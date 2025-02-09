@@ -179,31 +179,18 @@ CViewerFrame::CViewerFrame(const wxString& title, const wxPoint& pos, const wxSi
 	wxString labelThumbnail = CLibResource::LoadStringFromResource(L"labelThumbnail", 1); //L"&Thumbnail";
 	wxString labelHelp = CLibResource::LoadStringFromResource(L"labelHelp", 1); //L"&Help";
 
-	//auto menuWindow = new wxMenu;
-	wxString labelWindowFace = CLibResource::LoadStringFromResource(L"labelWindowFace", 1);
-	wxString labelWindowFaceLink = CLibResource::LoadStringFromResource(L"labelWindowFaceLink", 1);
-	wxString labelWindowFolder = CLibResource::LoadStringFromResource(L"labelWindowFolder", 1);
-	wxString labelWindowFolderLink = CLibResource::LoadStringFromResource(L"labelWindowFolderLink", 1);
-	wxString labelWindowViewer = CLibResource::LoadStringFromResource(L"labelWindowViewer", 1);
-	wxString labelWindowViewerLink = CLibResource::LoadStringFromResource(L"labelWindowViewerLink", 1);
-	wxString labelWindowPicture = CLibResource::LoadStringFromResource(L"labelWindowPicture", 1);
-	wxString labelWindowPictureLink = CLibResource::LoadStringFromResource(L"labelWindowPictureLink", 1);
+
     
     
 	wxString export_diaporama = CLibResource::LoadStringFromResource(L"LBLEXPORTDIAPORAMA", 1);
 	wxString lblEditor = CLibResource::LoadStringFromResource(L"LBLEDITORMODE", 1);
     wxString lblScanner = CLibResource::LoadStringFromResource(L"LBLSCANNER", 1);
     
+	auto menuView = new wxMenu;
     auto menuTools = new wxMenu;
 	menuTools->Append(ID_DIAPORAMA, export_diaporama, export_diaporama);
 
-    /*
-	menuWindow->Append(ID_WINDOWFACE, labelWindowFaceLink, labelWindowFace);
-	menuWindow->Append(ID_WINDOWFOLDER, labelWindowFolderLink, labelWindowFolder);
-	menuWindow->Append(ID_WINDOWVIEWER, labelWindowViewerLink, labelWindowViewer);
-	menuWindow->Append(ID_WINDOWPICTURE, labelWindowPictureLink, labelWindowPicture);
-    */
-    
+
 	auto menuSizeIcon = new wxMenu;
 	menuSizeIcon->Append(ID_SIZEICONLESS, labelDecreaseIconSize_link, labelDecreaseIconSize);
 	menuSizeIcon->Append(ID_SIZEICONMORE, labelEnlargeIconSize_link, labelEnlargeIconSize);
@@ -233,6 +220,28 @@ CViewerFrame::CViewerFrame(const wxString& title, const wxPoint& pos, const wxSi
 	auto menuBar = new wxMenuBar;
 	menuBar->Append(menuFile, labelFile);
 	menuBar->Append(menuSizeIcon, labelSizeIcon);
+	menuBar->Append(menuView, "View");
+
+	//auto menuWindow = new wxMenu;
+	wxString labelWindowInfos = CLibResource::LoadStringFromResource(L"labelWindowInfos", 1);
+	wxString labelWindowInfosLink = CLibResource::LoadStringFromResource(L"labelWindowInfosLink", 1);
+	wxString labelWindowThumbnail = CLibResource::LoadStringFromResource(L"labelWindowThumbnail", 1);
+	wxString labelWindowThumbnailLink = CLibResource::LoadStringFromResource(L"labelWindowThumbnailLink", 1);
+	wxString labelWindowToolbar = CLibResource::LoadStringFromResource(L"labelWindowToolbar", 1);
+	wxString labelWindowToolbarLink = CLibResource::LoadStringFromResource(L"labelWindowToolbarLink", 1);
+	wxString labelWindowThumbnailVideo = CLibResource::LoadStringFromResource(L"labelWindowThumbnailVideo", 1);
+	wxString labelWindowThumbnailVideoLink = CLibResource::LoadStringFromResource(L"labelWindowThumbnailVideoLink", 1);
+
+	toolbarItem = new wxMenuItem(menuView, ID_WINDOWTOOLBAR, labelWindowToolbar, labelWindowToolbarLink, wxITEM_CHECK);
+	thumbnailItem = new wxMenuItem(menuView, ID_WINDOWTHUMBNAIL, labelWindowThumbnail, labelWindowThumbnailLink, wxITEM_CHECK);
+	thumbnailVideoItem = new wxMenuItem(menuView, ID_WINDOWTHUMBNAILVIDEO, labelWindowThumbnailVideo, labelWindowThumbnailVideoLink, wxITEM_CHECK);
+	infosItem = new wxMenuItem(menuView, ID_WINDOWINFOS, labelWindowInfos, labelWindowInfosLink, wxITEM_CHECK);
+
+	menuView->Append(infosItem);
+	menuView->Append(thumbnailItem);
+	menuView->Append(thumbnailVideoItem);
+	menuView->Append(toolbarItem);
+
     menuBar->Append(menuTools, "Tools");
 	//menuBar->Append(menuWindow, labelWindow);
 	menuBar->Append(menuHelp, labelHelp);
@@ -255,6 +264,11 @@ CViewerFrame::CViewerFrame(const wxString& title, const wxPoint& pos, const wxSi
 	Connect(ID_OPENFOLDER, wxEVT_MENU, wxCommandEventHandler(CViewerFrame::OnOpenFolder));
 	Connect(ID_OPENFILE, wxEVT_MENU, wxCommandEventHandler(CViewerFrame::OnOpenFile));
 
+	Connect(ID_WINDOWINFOS, wxEVT_MENU, wxCommandEventHandler(CViewerFrame::OnShowInfos));
+	Connect(ID_WINDOWTHUMBNAIL, wxEVT_MENU, wxCommandEventHandler(CViewerFrame::OnShowThumbnail));
+	Connect(ID_WINDOWTHUMBNAILVIDEO, wxEVT_MENU, wxCommandEventHandler(CViewerFrame::OnShowThumbnailVideo));
+	Connect(ID_WINDOWTOOLBAR, wxEVT_MENU, wxCommandEventHandler(CViewerFrame::OnShowToolbar));
+
 	mainWindow->Bind(wxEVT_CHAR_HOOK, &CViewerFrame::OnKeyDown, this);
 	mainWindow->Bind(wxEVT_KEY_UP, &CViewerFrame::OnKeyUp, this);
 
@@ -264,15 +278,107 @@ CViewerFrame::CViewerFrame(const wxString& title, const wxPoint& pos, const wxSi
 	Connect(TIMER_LOADPICTURE, wxEVT_TIMER, wxTimerEventHandler(CViewerFrame::OnTimerLoadPicture), nullptr, this);
 	Connect(wxEVT_FULLSCREEN,  wxCommandEventHandler(CViewerFrame::OnWindowFullScreen));
 	
-	//if (!openFirstFile)
-	//	loadPictureStartTimer->Start(10, true);
-   // if(openFirstFile)
-    //    OpenPictureFile();
-    //else
-    //    loadPictureStartTimer->Start(10, true);
+	bool isPanelVisible = false;
+	CMainParam* config = CMainParamInit::getInstance();
+	if (config != nullptr)
+	{
+		config->GetShowVideoThumbnail(isPanelVisible);
+		if (isPanelVisible)
+		{
+			thumbnailVideoItem->Check(true);
+		}
+		else
+		{
+			thumbnailVideoItem->Check(false);
+		}
+		config->GetShowThumbnail(isPanelVisible);
+		if (isPanelVisible)
+		{
+			thumbnailItem->Check(true);
+		}
+		else
+		{
+			thumbnailItem->Check(false);
+		}
+		config->GetShowInfos(isPanelVisible);
+		if (isPanelVisible)
+		{
+			infosItem->Check(true);
+		}
+		else
+		{
+			infosItem->Check(false);
+		}
+		toolbarItem->Check(true);
+	}
 
 }
 
+void CViewerFrame::OnShowInfos(wxCommandEvent& event)
+{
+	int windowMode = 0;
+	bool isCheck = infosItem->IsChecked();
+	CMainParam* config = CMainParamInit::getInstance();
+	if (config != nullptr)
+	{
+		windowMode = config->GetViewerMode();
+		config->SetShowInfos(isCheck);
+	}
+	wxWindow* window = this->FindWindowById(CENTRALVIEWERWINDOWID);
+	if (window != nullptr)
+	{
+		wxCommandEvent event(wxEVENT_SETMODEVIEWER);
+		event.SetInt(windowMode);
+		wxPostEvent(window, event);
+	}
+}
+
+void CViewerFrame::OnShowThumbnail(wxCommandEvent& event)
+{
+	int windowMode = 0;
+	bool isCheck = thumbnailItem->IsChecked();
+	CMainParam* config = CMainParamInit::getInstance();
+	if (config != nullptr)
+	{
+		windowMode = config->GetViewerMode();
+		config->SetShowThumbnail(isCheck);
+	}
+	wxWindow* window = this->FindWindowById(CENTRALVIEWERWINDOWID);
+	if (window != nullptr)
+	{
+		wxCommandEvent event(wxEVENT_SETMODEVIEWER);
+		event.SetInt(windowMode);
+		wxPostEvent(window, event);
+	}
+}
+
+void CViewerFrame::OnShowToolbar(wxCommandEvent& event)
+{
+	int windowMode = WINDOW_VIEWER;
+
+	wxCommandEvent event(wxEVENT_SETMODEVIEWER);
+	event.SetInt(windowMode);
+	wxPostEvent(this, event);
+}
+
+void CViewerFrame::OnShowThumbnailVideo(wxCommandEvent& event)
+{
+	int windowMode = 0;
+	bool isCheck = thumbnailVideoItem->IsChecked();
+	CMainParam* config = CMainParamInit::getInstance();
+	if (config != nullptr)
+	{
+		windowMode = config->GetViewerMode();
+		config->SetShowVideoThumbnail(isCheck);
+	}
+	wxWindow* window = this->FindWindowById(CENTRALVIEWERWINDOWID);
+	if (window != nullptr)
+	{
+		wxCommandEvent event(wxEVENT_SETMODEVIEWER);
+		event.SetInt(windowMode);
+		wxPostEvent(window, event);
+	}
+}
 
 void CViewerFrame::OnOpenFile(wxCommandEvent& event)
 {

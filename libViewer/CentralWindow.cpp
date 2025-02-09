@@ -212,6 +212,10 @@ CCentralWindow::CCentralWindow(wxWindow* parent, wxWindowID id,
 
 	Connect(wxEVENT_ICONESIZEREFRESH, wxCommandEventHandler(CCentralWindow::UpdateThumbnailIconeSize));
 
+	Connect(wxEVENT_SHOWINFOS, wxCommandEventHandler(CCentralWindow::ShowInfos));
+	Connect(wxEVENT_SHOWTHUMBNAIL, wxCommandEventHandler(CCentralWindow::ShowThumbnail));
+	Connect(wxEVENT_SHOWTHUMBNAILVIDEO, wxCommandEventHandler(CCentralWindow::ShowThumbnailVideo));
+
 	animationTimer = new wxTimer(this, wxTIMER_ANIMATION);
 	processLoadPicture = false;
 	windowManager->HideWindow(Pos::wxTOP, false);
@@ -224,6 +228,22 @@ CCentralWindow::CCentralWindow(wxWindow* parent, wxWindowID id,
 
 	diaporamaTimer = new wxTimer(this, wxTIMER_DIAPORAMA);
 	Connect(wxTIMER_DIAPORAMA, wxEVT_TIMER, wxTimerEventHandler(CCentralWindow::OnTimerDiaporama), nullptr, this);
+}
+
+
+void CCentralWindow::ShowInfos(wxCommandEvent& event)
+{
+
+}
+
+void CCentralWindow::ShowThumbnail(wxCommandEvent& event)
+{
+
+}
+
+void CCentralWindow::ShowThumbnailVideo(wxCommandEvent& event)
+{
+
 }
 
 void CCentralWindow::UpdateThumbnailIcone(wxCommandEvent& event)

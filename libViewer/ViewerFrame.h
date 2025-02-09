@@ -35,6 +35,7 @@ namespace Regards::Viewer
 		ID_OPENFOLDER = 18,
         ID_DIAPORAMA = 21,
         ID_EDIT = 22,
+
 		ID_VIDEO = 1018,
 		ID_AUDIO = 1019,
 		ID_SUBTITLE = 1020,
@@ -91,6 +92,10 @@ namespace Regards::Viewer
 		void OnAbout(wxCommandEvent& event);
 		void OnHello(wxCommandEvent& event);
 
+		void OnShowInfos(wxCommandEvent& event);
+		void OnShowThumbnail(wxCommandEvent& event);
+		void OnShowToolbar(wxCommandEvent& event);
+		void OnShowThumbnailVideo(wxCommandEvent& event);
 		void CheckAllProcessEnd(wxTimerEvent& event);
 		void OnClose(wxCloseEvent& event);
 		void OnConfiguration(wxCommandEvent& event);
@@ -152,7 +157,10 @@ namespace Regards::Viewer
 		wxString filenameTimer;
 		int nbTime;
 
-		//CImageLoadingFormat * picture;
+		wxMenuItem* toolbarItem;
+		wxMenuItem* thumbnailItem;
+		wxMenuItem* thumbnailVideoItem;
+		wxMenuItem* infosItem;
 		
 	};
 }
