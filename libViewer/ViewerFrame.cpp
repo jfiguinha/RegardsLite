@@ -269,6 +269,8 @@ CViewerFrame::CViewerFrame(const wxString& title, const wxPoint& pos, const wxSi
 	Connect(ID_WINDOWTHUMBNAILVIDEO, wxEVT_MENU, wxCommandEventHandler(CViewerFrame::OnShowThumbnailVideo));
 	Connect(ID_WINDOWTOOLBAR, wxEVT_MENU, wxCommandEventHandler(CViewerFrame::OnShowToolbar));
 
+	Connect(ID_WINDOWUPDATESHOW, wxCommandEventHandler(CViewerFrame::OnUpdateWindowShow));
+
 	mainWindow->Bind(wxEVT_CHAR_HOOK, &CViewerFrame::OnKeyDown, this);
 	mainWindow->Bind(wxEVT_KEY_UP, &CViewerFrame::OnKeyUp, this);
 
@@ -277,7 +279,13 @@ CViewerFrame::CViewerFrame(const wxString& title, const wxPoint& pos, const wxSi
 	Connect(TIMER_LOADPICTUREEND, wxEVT_TIMER, wxTimerEventHandler(CViewerFrame::OnTimerEndLoadPicture), nullptr, this);
 	Connect(TIMER_LOADPICTURE, wxEVT_TIMER, wxTimerEventHandler(CViewerFrame::OnTimerLoadPicture), nullptr, this);
 	Connect(wxEVT_FULLSCREEN,  wxCommandEventHandler(CViewerFrame::OnWindowFullScreen));
-	
+
+	UpdateMenuCheck();
+}
+
+void CViewerFrame::UpdateMenuCheck()
+{
+
 	bool isPanelVisible = false;
 	CMainParam* config = CMainParamInit::getInstance();
 	if (config != nullptr)
@@ -311,7 +319,6 @@ CViewerFrame::CViewerFrame(const wxString& title, const wxPoint& pos, const wxSi
 		}
 		toolbarItem->Check(true);
 	}
-
 }
 
 void CViewerFrame::OnShowInfos(wxCommandEvent& event)
@@ -350,6 +357,12 @@ void CViewerFrame::OnShowThumbnail(wxCommandEvent& event)
 		event.SetInt(windowMode);
 		wxPostEvent(window, event);
 	}
+}
+
+
+void CViewerFrame::OnUpdateWindowShow(wxCommandEvent& event)
+{
+	UpdateMenuCheck();
 }
 
 void CViewerFrame::OnShowToolbar(wxCommandEvent& event)

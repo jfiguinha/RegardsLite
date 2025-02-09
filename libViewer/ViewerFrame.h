@@ -101,6 +101,7 @@ namespace Regards::Viewer
 		void OnConfiguration(wxCommandEvent& event);
 		void OnEraseDatabase(wxCommandEvent& event);
 
+		void OnUpdateWindowShow(wxCommandEvent& event);
         void OnEdit(wxCommandEvent& event);
         void OnExportDiaporama(wxCommandEvent& event);
 		void OnExit(wxCommandEvent& event);
@@ -110,7 +111,7 @@ namespace Regards::Viewer
 		void OnOpenFolder(wxCommandEvent& event);
 
 
-
+		void UpdateMenuCheck();
 #ifdef __WXMAC__
 			void OnPageMargins(wxCommandEvent& event);
 #endif

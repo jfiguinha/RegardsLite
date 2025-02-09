@@ -230,6 +230,13 @@ void CWindowManager::HidePaneWindow(Pos position, const int& refresh)
 				if (panel->IsPanelVisible())
 				{
 					panel->ClosePane(PANE_WITHCLICKTOOLBAR, refresh);
+
+					wxWindow* window = this->FindWindowById(FRAMEVIEWER_ID);
+					if (window != nullptr)
+					{
+						wxCommandEvent evt(ID_WINDOWUPDATESHOW);
+						window->GetEventHandler()->AddPendingEvent(evt);
+					}
 				}
 			}
 		}
@@ -289,6 +296,8 @@ void CWindowManager::ShowPaneWindow(Pos position, const int& refresh)
 					//if (window->fixe)
 					//	panel->SetSize(window->rect_old);
 					panel->ClickShowButton(PANE_WITHCLICKTOOLBAR, refresh);
+
+
 				}
 			}
 		}
