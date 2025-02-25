@@ -958,6 +958,13 @@ void CVideoControlSoft::EndVideoThread(wxCommandEvent& event)
 		stopVideo = true;
 		videoEnd = true;
 	}
+
+
+	if (startVideoAfterProblem)
+	{
+		PlayMovie(filename, true);
+		startVideoAfterProblem = false;
+	}
 }
 
 
@@ -1428,8 +1435,9 @@ void CVideoControlSoft::ErrorDecodingFrame()
 {
     isHardwareDecoder = false;
     startVideoAfterProblem = true;
-	ffmfc->Quit();
-	PlayMovie(filename, true);
+	QuitMovie();
+	//ffmfc->Quit();
+	//PlayMovie(filename, true);
 
     //Play(filename);
     //wxCommandEvent evt(wxEVENT_STOPVIDEO);

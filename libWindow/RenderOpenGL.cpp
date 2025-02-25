@@ -30,7 +30,12 @@
 #include FT_FREETYPE_H
 
 
-
+class CFreeTypeFace
+{
+public:
+	CFreeTypeFace() {};
+	FT_Face face;
+};
 
 extern string platformName;
 extern cv::ocl::OpenCLExecutionContext clExecCtx;
@@ -178,6 +183,10 @@ wxGLContext* CRenderOpenGL::GetGLContext()
 
 void CRenderOpenGL::Print(int x, int y, double scale_factor, const char* text)
 {
+
+	
+
+	/*
     float font_height = 15;
     
     if(scale_factor > 1.0f)
@@ -201,7 +210,10 @@ void CRenderOpenGL::Print(int x, int y, double scale_factor, const char* text)
         else
             glutBitmapCharacter(GLUT_BITMAP_HELVETICA_12, text[i]);
 	}
-    
+    */
+
+
+	RenderText(text, x, height - (heightFont * 0.3), 0.3f, vec3f(0.5, 0.8f, 0.2f));
 };
 
 void CRenderOpenGL::PrintSubtitle(int x, int y, double scale_factor, wxString text)
@@ -623,6 +635,51 @@ GLTexture* CRenderOpenGL::GetGLTexture()
 	return textureDisplay;
 }
 
+void CRenderOpenGL::LoadCharacter(unsigned char c, CFreeTypeFace& face)
+{
+	// Load character glyph 
+	if (FT_Load_Char(face.face, c, FT_LOAD_RENDER))
+	{
+		std::cout << "ERROR::FREETYTPE: Failed to load Glyph" << std::endl;
+		return;
+	}
+	// generate texture
+
+	unsigned int texture;
+	glGenTextures(1, &texture);
+	glBindTexture(GL_TEXTURE_2D, texture);
+	glTexImage2D(
+		GL_TEXTURE_2D,
+		0,
+		GL_RED,
+		face.face->glyph->bitmap.width,
+		face.face->glyph->bitmap.rows,
+		0,
+		GL_RED,
+		GL_UNSIGNED_BYTE,
+		face.face->glyph->bitmap.buffer
+	);
+	// set texture options
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+	GLTexture* glTexture = new GLTexture(texture, face.face->glyph->bitmap.width, face.face->glyph->bitmap.rows);
+
+	// now store character for later use
+	Character character = {
+		glTexture,
+		vec2d(face.face->glyph->bitmap.width, face.face->glyph->bitmap.rows),
+		vec2d(face.face->glyph->bitmap_left, face.face->glyph->bitmap_top),
+		static_cast<unsigned int>(face.face->glyph->advance.x)
+	};
+	Characters.insert(std::pair<char, Character>(c, character));
+
+	widthFont = face.face->glyph->bitmap.width;
+	heightFont = face.face->glyph->bitmap.rows;
+}
+
 int CRenderOpenGL::LoadFont(const wxString & fontName)
 {
     // FreeType
@@ -660,93 +717,17 @@ int CRenderOpenGL::LoadFont(const wxString & fontName)
         // load first 128 characters of ASCII set
         for (unsigned char c = 32; c < 127; c++)
         {
-            // Load character glyph 
-            if (FT_Load_Char(face, c, FT_LOAD_RENDER))
-            {
-                std::cout << "ERROR::FREETYTPE: Failed to load Glyph" << std::endl;
-                continue;
-            }
-            // generate texture
-           
-            unsigned int texture;
-            glGenTextures(1, &texture);
-            glBindTexture(GL_TEXTURE_2D, texture);
-            glTexImage2D(
-                GL_TEXTURE_2D,
-                0,
-                GL_RED,
-                face->glyph->bitmap.width,
-                face->glyph->bitmap.rows,
-                0,
-                GL_RED,
-                GL_UNSIGNED_BYTE,
-                face->glyph->bitmap.buffer
-            );
-            // set texture options
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-            
-			GLTexture* glTexture = new GLTexture(texture, face->glyph->bitmap.width, face->glyph->bitmap.rows);
-            
-            // now store character for later use
-            Character character = {
-                glTexture,
-                vec2d(face->glyph->bitmap.width, face->glyph->bitmap.rows),
-                vec2d(face->glyph->bitmap_left, face->glyph->bitmap_top),
-                static_cast<unsigned int>(face->glyph->advance.x)
-            };
-            Characters.insert(std::pair<char, Character>(c, character));
-
-			widthFont = face->glyph->bitmap.width;
-			heightFont = face->glyph->bitmap.rows;
+			CFreeTypeFace freetypeFace;
+			freetypeFace.face = face;
+			LoadCharacter(c, freetypeFace);
         }
 
 		// load first 128 characters of ASCII set
 		for (unsigned char c = 192; c < 255; c++)
 		{
-			// Load character glyph 
-			if (FT_Load_Char(face, c, FT_LOAD_RENDER))
-			{
-				std::cout << "ERROR::FREETYTPE: Failed to load Glyph" << std::endl;
-				continue;
-			}
-			// generate texture
-
-			unsigned int texture;
-			glGenTextures(1, &texture);
-			glBindTexture(GL_TEXTURE_2D, texture);
-			glTexImage2D(
-				GL_TEXTURE_2D,
-				0,
-				GL_RED,
-				face->glyph->bitmap.width,
-				face->glyph->bitmap.rows,
-				0,
-				GL_RED,
-				GL_UNSIGNED_BYTE,
-				face->glyph->bitmap.buffer
-			);
-			// set texture options
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-			GLTexture* glTexture = new GLTexture(texture, face->glyph->bitmap.width, face->glyph->bitmap.rows);
-
-			// now store character for later use
-			Character character = {
-				glTexture,
-				vec2d(face->glyph->bitmap.width, face->glyph->bitmap.rows),
-				vec2d(face->glyph->bitmap_left, face->glyph->bitmap_top),
-				static_cast<unsigned int>(face->glyph->advance.x)
-			};
-			Characters.insert(std::pair<char, Character>(c, character));
-
-			widthFont = face->glyph->bitmap.width;
-			heightFont = face->glyph->bitmap.rows;
+			CFreeTypeFace freetypeFace;
+			freetypeFace.face = face;
+			LoadCharacter(c, freetypeFace);
 		}
         glBindTexture(GL_TEXTURE_2D, 0);
     }
@@ -754,7 +735,7 @@ int CRenderOpenGL::LoadFont(const wxString & fontName)
     FT_Done_Face(face);
     FT_Done_FreeType(ft);
     
-    
+	return 0;
 }
 
 void CRenderOpenGL::RenderQuad(GLTexture* texture, float left, float top, float scale, bool inverted)

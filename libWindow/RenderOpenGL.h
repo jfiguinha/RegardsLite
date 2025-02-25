@@ -16,6 +16,7 @@ using namespace Regards::OpenGL;
 
 class CRegardsBitmap;
 class Character;
+class CFreeTypeFace;
 
 namespace Regards::OpenGL
 {
@@ -77,6 +78,7 @@ namespace Regards::OpenGL
         
 	protected:
         
+		void LoadCharacter(unsigned char c, CFreeTypeFace & face);
         void RenderCharacter(GLTexture* glTexture, const float & left, const float & top, const float & scale, const vec3f & color);
 		void CreateDefaultOpenCLContext();
 		void initializeContextFromGL();
