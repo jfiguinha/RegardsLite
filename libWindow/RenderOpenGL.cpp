@@ -206,8 +206,43 @@ void CRenderOpenGL::Print(int x, int y, double scale_factor, const char* text)
 
 void CRenderOpenGL::PrintSubtitle(int x, int y, double scale_factor, wxString text)
 {
-    RenderText(text, x, y, 1.0f, vec3f(0.5, 0.8f, 0.2f));
+    //RenderText(text, x, y, 1.0f, vec3f(0.5, 0.8f, 0.2f));
     
+	int xPos = 0;
+
+	std::vector<wxString> list = CConvertUtility::split(text, '\\');
+	if (list.size() > 0)
+	{
+		wxString line = list[0];
+		xPos = x - ((widthFont * line.size()) / 2);
+		//glWindowPos2i(xPos, y);
+		//get the length of the string to display
+		int len = static_cast<int>(line.Length());
+
+		//glScalef(scale_factor,scale_factor,scale_factor); 
+		int xPosition = 0;
+		RenderText(line, xPos, y, 1.0f, vec3f(0.5, 0.8f, 0.2f));
+		xPosition += widthFont * len;
+
+
+		for (int i = 1; i < list.size(); i++)
+		{
+			wxUniChar c = list[i][0];
+			if (c == 'N')
+			{
+				//New Line
+				wxString line = list[i];
+				RenderText(line, x - ((widthFont * line.size()) / 2), y - heightFont * 2, 1.0f, vec3f(0.5, 0.8f, 0.2f));
+
+			}
+			else
+			{
+				wxString line = list[i];
+				RenderText(line, xPos + xPosition + widthFont, y - heightFont * 2, 1.0f, vec3f(0.5, 0.8f, 0.2f));
+			}
+		}
+	}
+
     /*
 	float font_height = 15;
     void * font_choose = GLUT_BITMAP_TIMES_ROMAN_24;
@@ -623,7 +658,7 @@ int CRenderOpenGL::LoadFont(const wxString & fontName)
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 
         // load first 128 characters of ASCII set
-        for (unsigned char c = 0; c < 128; c++)
+        for (unsigned char c = 32; c < 127; c++)
         {
             // Load character glyph 
             if (FT_Load_Char(face, c, FT_LOAD_RENDER))
@@ -632,7 +667,7 @@ int CRenderOpenGL::LoadFont(const wxString & fontName)
                 continue;
             }
             // generate texture
-            GLTexture * glTexture = new GLTexture();
+           
             unsigned int texture;
             glGenTextures(1, &texture);
             glBindTexture(GL_TEXTURE_2D, texture);
@@ -653,7 +688,7 @@ int CRenderOpenGL::LoadFont(const wxString & fontName)
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
             
-            glTexture->SetTextureId(texture);
+			GLTexture* glTexture = new GLTexture(texture, face->glyph->bitmap.width, face->glyph->bitmap.rows);
             
             // now store character for later use
             Character character = {
@@ -663,7 +698,56 @@ int CRenderOpenGL::LoadFont(const wxString & fontName)
                 static_cast<unsigned int>(face->glyph->advance.x)
             };
             Characters.insert(std::pair<char, Character>(c, character));
+
+			widthFont = face->glyph->bitmap.width;
+			heightFont = face->glyph->bitmap.rows;
         }
+
+		// load first 128 characters of ASCII set
+		for (unsigned char c = 192; c < 255; c++)
+		{
+			// Load character glyph 
+			if (FT_Load_Char(face, c, FT_LOAD_RENDER))
+			{
+				std::cout << "ERROR::FREETYTPE: Failed to load Glyph" << std::endl;
+				continue;
+			}
+			// generate texture
+
+			unsigned int texture;
+			glGenTextures(1, &texture);
+			glBindTexture(GL_TEXTURE_2D, texture);
+			glTexImage2D(
+				GL_TEXTURE_2D,
+				0,
+				GL_RED,
+				face->glyph->bitmap.width,
+				face->glyph->bitmap.rows,
+				0,
+				GL_RED,
+				GL_UNSIGNED_BYTE,
+				face->glyph->bitmap.buffer
+			);
+			// set texture options
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+			GLTexture* glTexture = new GLTexture(texture, face->glyph->bitmap.width, face->glyph->bitmap.rows);
+
+			// now store character for later use
+			Character character = {
+				glTexture,
+				vec2d(face->glyph->bitmap.width, face->glyph->bitmap.rows),
+				vec2d(face->glyph->bitmap_left, face->glyph->bitmap_top),
+				static_cast<unsigned int>(face->glyph->advance.x)
+			};
+			Characters.insert(std::pair<char, Character>(c, character));
+
+			widthFont = face->glyph->bitmap.width;
+			heightFont = face->glyph->bitmap.rows;
+		}
         glBindTexture(GL_TEXTURE_2D, 0);
     }
     // destroy FreeType once we're finished
@@ -727,9 +811,7 @@ void CRenderOpenGL::RenderQuad(GLTexture* texture, float left, float top, float 
 
 void CRenderOpenGL::RenderCharacter(GLTexture* glTexture, const float & left, const float & top, const float & scale, const vec3f & color)
 {
-	glTexture->Enable();
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
 	printf("GLSLShader IDR_GLSL_COLOR \n ");
 	GLSLShader* m_pShader = FindShader(L"IDR_GLSL_COLOR");
 	if (m_pShader != nullptr)
@@ -744,18 +826,22 @@ void CRenderOpenGL::RenderCharacter(GLTexture* glTexture, const float & left, co
 			printf("SetParam intensity failed \n ");
 		}
 	}
-	RenderQuad(glTexture, left, top, scale);
+	RenderQuad(glTexture, left, top, scale, true);
 	if (m_pShader != nullptr)
 		m_pShader->DisableShader();
 
-	glDisable(GL_BLEND);
-	glTexture->Disable();
+	
+	//glTexture->Disable();
 }
 
 // render line of text
 // -------------------
 void CRenderOpenGL::RenderText(wxString text, float x, float y, float scale, vec3f color)
 {
+	//glTexture->Enable();
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glBindTexture(GL_TEXTURE_2D, 1);
     // iterate through all characters
     wxString::const_iterator c;
     for (c = text.begin(); c != text.end(); c++) 
@@ -779,12 +865,13 @@ void CRenderOpenGL::RenderText(wxString text, float x, float y, float scale, vec
             { xpos + w, ypos + h,   1.0f, 0.0f }           
         };
         */
-        
-        RenderCharacter(ch.glTexture, xpos, ypos, scale, color);
+        if(ch.glTexture != nullptr)
+			RenderCharacter(ch.glTexture, xpos, ypos, scale, color);
         // now advance cursors for next glyph (note that advance is number of 1/64 pixels)
         x += (ch.Advance >> 6) * scale; // bitshift by 6 to get value in pixels (2^6 = 64 (divide amount of 1/64th pixels by 64 to get amount of pixels))
     }
-
+	glBindTexture(GL_TEXTURE_2D, 0);
+	glDisable(GL_BLEND);
 }
 
 // render line of text

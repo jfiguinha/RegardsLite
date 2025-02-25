@@ -20,6 +20,7 @@ namespace Regards
 		public:
 
 			GLTexture(void);
+			GLTexture(const int& textureId, const int &width, const int &height);
 			~GLTexture(void);
 
 			void SetFilterType(GLint FilterType_i, GLint FilterValue_i);
@@ -33,11 +34,7 @@ namespace Regards
 				//glDisable(GL_TEXTURE_2D);
 				glBindTexture(GL_TEXTURE_2D, 0);
 			}
-            
-            void SetTextureId(const int & textureId)
-            {
-                m_nTextureID = textureId;
-            }
+
 
 			int GetTextureID()
 			{

@@ -90,7 +90,8 @@ namespace Regards::OpenGL
 		bool isInit = false;
 		IMouseUpdate* mouseUpdate;
 		bool openclOpenGLInterop = false;
-
+		int widthFont = 0;
+		int heightFont = 0;
         std::map<GLchar, Character> Characters;
 	};
 }
