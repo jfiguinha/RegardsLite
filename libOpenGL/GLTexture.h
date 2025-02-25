@@ -33,6 +33,11 @@ namespace Regards
 				//glDisable(GL_TEXTURE_2D);
 				glBindTexture(GL_TEXTURE_2D, 0);
 			}
+            
+            void SetTextureId(const int & textureId)
+            {
+                m_nTextureID = textureId;
+            }
 
 			int GetTextureID()
 			{
