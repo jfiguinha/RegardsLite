@@ -213,7 +213,7 @@ void CRenderOpenGL::Print(int x, int y, double scale_factor, const char* text)
     */
 
 
-	RenderText(text, x, height - (heightFont * 0.3), 0.3f, vec3f(0.5, 0.8f, 0.2f));
+	RenderText(text, x, height - (heightFont * 0.3 * scale_factor), 0.3f * scale_factor, vec3f(0.5, 0.8f, 0.2f));
 };
 
 void CRenderOpenGL::PrintSubtitle(int x, int y, double scale_factor, wxString text)
@@ -226,31 +226,33 @@ void CRenderOpenGL::PrintSubtitle(int x, int y, double scale_factor, wxString te
 	if (list.size() > 0)
 	{
 		wxString line = list[0];
-		xPos = x - ((widthFont * line.size()) / 2);
+		xPos = x - ((widthFont * scale_factor * line.size()) / 2);
 		//glWindowPos2i(xPos, y);
 		//get the length of the string to display
 		int len = static_cast<int>(line.Length());
 
 		//glScalef(scale_factor,scale_factor,scale_factor); 
 		int xPosition = 0;
-		RenderText(line, xPos, y, 1.0f, vec3f(0.5, 0.8f, 0.2f));
-		xPosition += widthFont * len;
+		RenderText(line, xPos, y, scale_factor, vec3f(0.5, 0.8f, 0.2f));
+		xPosition += widthFont * len * scale_factor;
 
 
 		for (int i = 1; i < list.size(); i++)
 		{
 			wxUniChar c = list[i][0];
-			if (c == 'N')
+			if (c == 'N' || c == 'n')
 			{
 				//New Line
 				wxString line = list[i];
-				RenderText(line, x - ((widthFont * line.size()) / 2), y - heightFont * 2, 1.0f, vec3f(0.5, 0.8f, 0.2f));
+                line = line.SubString(1,line.size() - 1);
+				RenderText(line, x - ((widthFont * scale_factor * line.size()) / 2), y - heightFont * scale_factor * 2, scale_factor, vec3f(0.5, 0.8f, 0.2f));
 
 			}
 			else
 			{
 				wxString line = list[i];
-				RenderText(line, xPos + xPosition + widthFont, y - heightFont * 2, 1.0f, vec3f(0.5, 0.8f, 0.2f));
+                line = line.SubString(1,line.size() - 1);
+				RenderText(line, xPos + xPosition + widthFont * scale_factor, y - heightFont * scale_factor * 2, scale_factor, vec3f(0.5, 0.8f, 0.2f));
 			}
 		}
 	}
