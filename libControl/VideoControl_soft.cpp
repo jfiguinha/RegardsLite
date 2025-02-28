@@ -1366,12 +1366,13 @@ void CVideoControlSoft::OnPaint3D(wxGLCanvas* canvas, CRenderOpenGL* renderOpenG
 				{
 
 	#ifndef WIN32
-					double scale_factor = parentRender->GetContentScaleFactor();
+					double scale_factor = parentRender->GetContentScaleFactor() * ((float)videoEffectParameter.subtitleSize);
 	#else
-					double scale_factor = 1.0f;
+					double scale_factor = 1.0f* ((float)videoEffectParameter.subtitleSize);
 	#endif
 
-					renderOpenGL->PrintSubtitle(width / 2, height / 4, scale_factor, subtitleText);
+					renderOpenGL->PrintSubtitle(width / 2, height / 4, scale_factor, videoEffectParameter.subtitleRedColor
+                        , videoEffectParameter.subtitleGreenColor, videoEffectParameter.subtitleBlueColor, subtitleText);
 
 				}
 			

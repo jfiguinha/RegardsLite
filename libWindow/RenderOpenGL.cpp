@@ -216,11 +216,13 @@ void CRenderOpenGL::Print(int x, int y, double scale_factor, const char* text)
 	RenderText(text, x, height - (heightFont * 0.3 * scale_factor), 0.3f * scale_factor, vec3f(0.5, 0.8f, 0.2f));
 };
 
-void CRenderOpenGL::PrintSubtitle(int x, int y, double scale_factor, wxString text)
+void CRenderOpenGL::PrintSubtitle(int x, int y, double scale_factor, float red, float green, float blue, wxString text)
 {
     //RenderText(text, x, y, 1.0f, vec3f(0.5, 0.8f, 0.2f));
     
 	int xPos = 0;
+    
+    cout << "Scale Factor : " << to_string(scale_factor) << endl;
 
 	std::vector<wxString> list = CConvertUtility::split(text, '\\');
 	if (list.size() > 0)
@@ -233,7 +235,12 @@ void CRenderOpenGL::PrintSubtitle(int x, int y, double scale_factor, wxString te
 
 		//glScalef(scale_factor,scale_factor,scale_factor); 
 		int xPosition = 0;
-		RenderText(line, xPos, y, scale_factor, vec3f(0.5, 0.8f, 0.2f));
+        
+        float fRed = red / 255.0f;
+        float fGreen = green / 255.0f;
+        float fBlue = blue / 255.0f;
+        
+		RenderText(line, xPos, y, scale_factor, vec3f(fRed, fGreen, fBlue));
 		xPosition += widthFont * len * scale_factor;
 
 
@@ -245,14 +252,14 @@ void CRenderOpenGL::PrintSubtitle(int x, int y, double scale_factor, wxString te
 				//New Line
 				wxString line = list[i];
                 line = line.SubString(1,line.size() - 1);
-				RenderText(line, x - ((widthFont * scale_factor * line.size()) / 2), y - heightFont * scale_factor * 2, scale_factor, vec3f(0.5, 0.8f, 0.2f));
+				RenderText(line, x - ((widthFont * scale_factor * line.size()) / 2), y - heightFont * scale_factor, scale_factor, vec3f(fRed, fGreen, fBlue));
 
 			}
 			else
 			{
 				wxString line = list[i];
                 line = line.SubString(1,line.size() - 1);
-				RenderText(line, xPos + xPosition + widthFont * scale_factor, y - heightFont * scale_factor * 2, scale_factor, vec3f(0.5, 0.8f, 0.2f));
+				RenderText(line, xPos + xPosition + widthFont * scale_factor, y - heightFont * scale_factor, scale_factor, vec3f(fRed, fGreen, fBlue));
 			}
 		}
 	}
