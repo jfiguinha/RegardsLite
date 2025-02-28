@@ -98,54 +98,60 @@ public:
 		}
 	};
     
+	/*
     CVideoEffectParameter& operator=(const CVideoEffectParameter& x)
     {
-        effectEnable = x.effectEnable;
+		CVideoEffectParameter effect;
+
+		effect.effectEnable = x.effectEnable;
 		//Video Parameter
-		sharpness = x.sharpness;
+		effect.sharpness = x.sharpness;
 		//Sky Light
 		//Tone mapping
-		contrast = x.contrast;
-		brightness = x.brightness;
+		effect.contrast = x.contrast;
+		effect.brightness = x.brightness;
 		//exponent = 1.0f;
 
 		//Color Boost
-		color_boost[0] = x.color_boost[0];
-		color_boost[1] = x.color_boost[1];
-		color_boost[2] = x.color_boost[2];
-		color_boost[3] = x.color_boost[3];
+		effect.color_boost[0] = x.color_boost[0];
+		effect.color_boost[1] = x.color_boost[1];
+		effect.color_boost[2] = x.color_boost[2];
+		effect.color_boost[3] = x.color_boost[3];
 
-		SharpenEnable = x.SharpenEnable;
-		MedianEnable = x.MedianEnable;
-		ColorBoostEnable = x.ColorBoostEnable;
-		BicubicEnable = x.BicubicEnable;;
-		rotation = x.rotation;
-		showFPS = x.showFPS;
-		grayEnable = x.grayEnable;
-		vhsEnable = x.vhsEnable;
-		sepiaEnable = x.sepiaEnable;
-		enableSubtitle =x.enableSubtitle;
-		streamAudioUpdate = x.streamAudioUpdate;
-		streamVideoUpdate = x.streamVideoUpdate;
-		streamSubtitleUpdate = x.streamSubtitleUpdate;
+		effect.SharpenEnable = x.SharpenEnable;
+		effect.MedianEnable = x.MedianEnable;
+		effect.ColorBoostEnable = x.ColorBoostEnable;
+		effect.BicubicEnable = x.BicubicEnable;;
+		effect.rotation = x.rotation;
+		effect.showFPS = x.showFPS;
+		effect.grayEnable = x.grayEnable;
+		effect.vhsEnable = x.vhsEnable;
+		effect.sepiaEnable = x.sepiaEnable;
+		effect.enableSubtitle =x.enableSubtitle;
+		effect.streamAudioUpdate = x.streamAudioUpdate;
+		effect.streamVideoUpdate = x.streamVideoUpdate;
+		effect.streamSubtitleUpdate = x.streamSubtitleUpdate;
 		//enableOpenCL = 0;
-		denoiseEnable = x.denoiseEnable;
-		bandcEnable =x.bandcEnable;
+		effect.denoiseEnable = x.denoiseEnable;
+		effect.bandcEnable =x.bandcEnable;
 
-		uSigma = x.uSigma;
-		uThreshold =x.uThreshold;
-		uKSigma = x.uKSigma;
-		openglDenoise = x.openglDenoise;
+		effect.uSigma = x.uSigma;
+		effect.uThreshold =x.uThreshold;
+		effect.uKSigma = x.uKSigma;
+		effect.openglDenoise = x.openglDenoise;
 
-		denoisingLevel = x.denoisingLevel;
-		templateWindowSize = x.templateWindowSize;
-		searchWindowSize = x.searchWindowSize;
+		effect.denoisingLevel = x.denoisingLevel;
+		effect.templateWindowSize = x.templateWindowSize;
+		effect.searchWindowSize = x.searchWindowSize;
 
-		filmgrainenable = x.filmgrainenable;
-		filmcolorisation = x.filmcolorisation;
-		filmEnhance = x.filmEnhance;
-		ratioSelect = x.ratioSelect;
+		effect.filmgrainenable = x.filmgrainenable;
+		effect.filmcolorisation = x.filmcolorisation;
+		effect.filmEnhance = x.filmEnhance;
+		effect.ratioSelect = x.ratioSelect;
+
+		return effect;
     }
+	*/
 
 	~CVideoEffectParameter() override
 	{

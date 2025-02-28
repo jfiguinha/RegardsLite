@@ -239,7 +239,7 @@ protected:
 	CRenderVideoOpenGL* renderBitmapOpenGL;
 	CRenderOpenGL* renderOpenGL = nullptr;
 	wxWindow * window;
-	CVideoEffectParameter * videoEffectParameter;
+	CVideoEffectParameter videoEffectParameter;
     
     
     
