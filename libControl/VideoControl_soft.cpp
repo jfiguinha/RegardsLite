@@ -2092,7 +2092,7 @@ void CVideoControlSoft::RenderToTexture(IEffectVideo * openclEffect)
         openclEffect->InterpolationZoomBicubic(widthOutput, heightOutput, rc, flipH, flipV, angle, filterInterpolation,
                                                (int)GetZoomRatio() * 100);
 
-		if ((videoEffectParameter.autoConstrast || videoEffectParameter.filmEnhance || videoEffectParameter.sepiaEnable || videoEffectParameter.filmcolorisation) && videoEffectParameter.
+		if ((videoEffectParameter.autoConstrast || videoEffectParameter.filmEnhance || videoEffectParameter.filmcolorisation) && videoEffectParameter.
 			effectEnable)
 		{
 			openclEffect->ApplyOpenCVEffect(&videoEffectParameter);
@@ -2140,12 +2140,13 @@ bool CVideoControlSoft::ApplyOpenCVEffect(cv::Mat& image)
 		CFiltreEffetCPU::BrightnessAndContrastAuto(image, 1.0);
 	}
 
+	/*
 	if (videoEffectParameter.sepiaEnable)
 	{
 		frameStabilized = true;
 		CFiltreEffetCPU::Sepia(image);
 	}
-    
+    */
 	//pictureFrame->SetBitmap(image.data, pictureFrame->GetBitmapWidth(), pictureFrame->GetBitmapHeight());
 	return frameStabilized;
 }
@@ -2184,7 +2185,7 @@ void CVideoControlSoft::RenderFFmpegToTexture(cv::Mat& pictureFrame)
         cv::Mat bitmapOut = CFiltreEffetCPU::Interpolation(cvImage, widthOutput, heightOutput, rc, filterInterpolation,
                                                            flipH, flipV, angle, (int)GetZoomRatio() * 100);
 
-        if ((videoEffectParameter.stabilizeVideo || videoEffectParameter.autoConstrast || videoEffectParameter.sepiaEnable || videoEffectParameter.filmcolorisation || videoEffectParameter.filmEnhance) && videoEffectParameter.
+        if ((videoEffectParameter.stabilizeVideo || videoEffectParameter.autoConstrast || videoEffectParameter.filmcolorisation || videoEffectParameter.filmEnhance) && videoEffectParameter.
             effectEnable)
         {
             ApplyOpenCVEffect(bitmapOut);
