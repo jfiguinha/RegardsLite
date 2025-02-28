@@ -2,7 +2,7 @@
 #include "header.h"
 #include "VideoControl_soft.h"
 #include <wx/dcbuffer.h>
-
+#include <ViewerParamInit.h>
 #include "ffplaycore.h"
 #include "ffmpegToBitmap.h"
 #ifdef __APPLE__
@@ -26,19 +26,20 @@
 #include <VideoStabilization.h>
 #include <FiltreEffetCPU.h>
 #include <aspectratio.h>
-
+#include <ParamInit.h>
 #include <OpenCLEffectVideo.h>
 #ifdef USE_CUDA
 #include <CudaEffectVideo.h>
 #endif
 #include <VideoStabilization.h>
-
+#include <RegardsConfigParam.h>
 using namespace Regards::OpenCV;
 #ifdef USE_CUDA
 using namespace Regards::Cuda;
 #endif
 using namespace Regards::OpenCL;
 using namespace Regards::Sqlite;
+using namespace Regards::Viewer;
 //#include "LoadingResource.h"
 
 #define TIMER_FPS 0x10001
@@ -110,6 +111,14 @@ CVideoControlSoft::CVideoControlSoft(CWindowMain* windowMain, wxWindow* window, 
 
 	openclEffectYUV = nullptr;
 	hCursorHand = CResourceCursor::GetClosedHand();
+    
+    CRegardsConfigParam* config = CParamInit::getInstance();
+    if (config != nullptr)
+	{
+        videoEffectParameter = config->GetVideoEffectParameter();
+    }
+    else
+        videoEffectParameter = new CVideoEffectParameter();
     
     dst = av_frame_alloc();
     
@@ -258,7 +267,7 @@ bool CVideoControlSoft::IsPause()
 float CVideoControlSoft::GetMovieRatio()
 {
 	muVideoEffect.lock();
-	const float ratioSelect = videoEffectParameter.tabRatio[videoEffectParameter.ratioSelect];
+	const float ratioSelect = videoEffectParameter->tabRatio[videoEffectParameter->ratioSelect];
 	muVideoEffect.unlock();
 	return ratioSelect;
 }
@@ -485,8 +494,8 @@ vector<int> CVideoControlSoft::GetZoomValue()
 {
 	vector<int> listValue;
 	muVideoEffect.lock();
-	for (int i = 0; i < videoEffectParameter.tabZoom.size(); i++)
-		listValue.push_back(videoEffectParameter.tabZoom[i] * 100.0f);
+	for (int i = 0; i < videoEffectParameter->tabZoom.size(); i++)
+		listValue.push_back(videoEffectParameter->tabZoom[i] * 100.0f);
 	muVideoEffect.unlock();
 	return listValue;
 }
@@ -499,7 +508,7 @@ int CVideoControlSoft::GetZoomIndex()
 	}
 
 	muVideoEffect.lock();
-	const int zoomIndex = videoEffectParameter.zoomSelect;
+	const int zoomIndex = videoEffectParameter->zoomSelect;
 	muVideoEffect.unlock();
 	return zoomIndex;
 }
@@ -508,9 +517,9 @@ void CVideoControlSoft::ChangeVideoFormat()
 {
 	//int zoomSelect = 0;
 	muVideoEffect.lock();
-	videoEffectParameter.ratioSelect++;
-	if (videoEffectParameter.ratioSelect >= videoEffectParameter.tabRatio.size())
-		videoEffectParameter.ratioSelect = 0;
+	videoEffectParameter->ratioSelect++;
+	if (videoEffectParameter->ratioSelect >= videoEffectParameter->tabRatio.size())
+		videoEffectParameter->ratioSelect = 0;
 
 	muVideoEffect.unlock();
 
@@ -532,7 +541,7 @@ float CVideoControlSoft::GetZoomRatio()
 	else
 	{
 		muVideoEffect.lock();
-		zoom = videoEffectParameter.tabZoom[videoEffectParameter.zoomSelect];
+		zoom = videoEffectParameter->tabZoom[videoEffectParameter->zoomSelect];
 		muVideoEffect.unlock();
 	}
 	return zoom;
@@ -551,12 +560,12 @@ float CVideoControlSoft::CalculRatio(const int& pictureWidth, const int& picture
 	//Calcul Zoom Index
 	if (newRatio != 0.0)
 	{
-		for (int i = 0; i < videoEffectParameter.tabZoom.size(); i++)
+		for (int i = 0; i < videoEffectParameter->tabZoom.size(); i++)
 		{
-			//printf("Ratio %f \n", videoEffectParameter.tabZoom[i]);
-			if (newRatio < videoEffectParameter.tabZoom[i])
+			//printf("Ratio %f \n", videoEffectParameter->tabZoom[i]);
+			if (newRatio < videoEffectParameter->tabZoom[i])
 			{
-				//ratio = videoEffectParameter.tabZoom[i];
+				//ratio = videoEffectParameter->tabZoom[i];
 				zoomSelect = i;
 				break;
 			}
@@ -565,7 +574,7 @@ float CVideoControlSoft::CalculRatio(const int& pictureWidth, const int& picture
 
 	//printf("Ratio index %d \n", zoomSelect);
 
-	videoEffectParameter.zoomSelect = zoomSelect;
+	videoEffectParameter->zoomSelect = zoomSelect;
 
 	muVideoEffect.unlock();
 
@@ -642,7 +651,7 @@ void CVideoControlSoft::ZoomOn()
 	CalculCenterPicture();
 
 	muVideoEffect.lock();
-	videoEffectParameter.zoomSelect++;
+	videoEffectParameter->zoomSelect++;
 	muVideoEffect.unlock();
 
 	CalculPositionPicture(centerX, centerY);
@@ -655,7 +664,7 @@ void CVideoControlSoft::ZoomOut()
 	CalculCenterPicture();
 
 	muVideoEffect.lock();
-	videoEffectParameter.zoomSelect--;
+	videoEffectParameter->zoomSelect--;
 	muVideoEffect.unlock();
 
 	CalculPositionPicture(centerX, centerY);
@@ -801,7 +810,7 @@ void CVideoControlSoft::UpdateFiltre(CEffectParameter* effectParameter)
 	}
 
 	muVideoEffect.lock();
-	videoEffectParameter = *videoParameter;
+	*videoEffectParameter = *videoParameter;
 	muVideoEffect.unlock();
 
 	if (updateScroll)
@@ -838,7 +847,7 @@ void CVideoControlSoft::SetVideoPreviewEffect(CEffectParameter* effectParameter)
 {
 	auto videoParameter = static_cast<CVideoEffectParameter*>(effectParameter);
 	muVideoEffect.lock();
-	videoEffectParameter = *videoParameter;
+	*videoEffectParameter = *videoParameter;
 	muVideoEffect.unlock();
 }
 
@@ -846,7 +855,7 @@ CEffectParameter* CVideoControlSoft::GetParameter()
 {
 	auto videoParameter = new CVideoEffectParameter();
 	muVideoEffect.lock();
-	*videoParameter = videoEffectParameter;
+	*videoParameter = *videoEffectParameter;
 	muVideoEffect.unlock();
 	return videoParameter;
 }
@@ -1142,7 +1151,7 @@ int CVideoControlSoft::Play(const wxString& movie)
 
 
 			muVideoEffect.lock();
-			videoEffectParameter.ratioSelect = 0;
+			videoEffectParameter->ratioSelect = 0;
 			muVideoEffect.unlock();
 
 			AspectRatio aspectRatio = CMediaInfo::GetVideoAspectRatio(movie);
@@ -1150,13 +1159,13 @@ int CVideoControlSoft::Play(const wxString& movie)
 			{
 				float video_aspect_ratio = (float)aspectRatio.num / (float)aspectRatio.den;
 				printf("video_aspect_ratio %d %d \n", aspectRatio.num, aspectRatio.den);
-				for (int i = 0; i < videoEffectParameter.tabRatio.size(); i++)
+				for (int i = 0; i < videoEffectParameter->tabRatio.size(); i++)
 				{
-					printf("video_aspect_ratio %f \n", videoEffectParameter.tabRatio[i]);
-					if (video_aspect_ratio < videoEffectParameter.tabRatio[i])
+					printf("video_aspect_ratio %f \n", videoEffectParameter->tabRatio[i]);
+					if (video_aspect_ratio < videoEffectParameter->tabRatio[i])
 					{
 						muVideoEffect.lock();
-						videoEffectParameter.ratioSelect = i - 1;
+						videoEffectParameter->ratioSelect = i - 1;
 						muVideoEffect.unlock();
 						break;
 					}
@@ -1337,11 +1346,11 @@ void CVideoControlSoft::OnPaint3D(wxGLCanvas* canvas, CRenderOpenGL* renderOpenG
 		floatRect.right = 1.0f;
 		floatRect.top = 0;
 		floatRect.bottom = 1.0f;
-		renderBitmapOpenGL->RenderWithEffect(&videoEffectParameter, floatRect, videoPosition / 100,	inverted);
+		renderBitmapOpenGL->RenderWithEffect(videoEffectParameter, floatRect, videoPosition / 100,	inverted);
 		muVideoEffect.unlock();
 
 		muVideoEffect.lock();
-		if (videoEffectParameter.showFPS)
+		if (videoEffectParameter->showFPS)
 		{
         #ifndef WIN32
             double scale_factor = parentRender->GetContentScaleFactor();
@@ -1351,7 +1360,7 @@ void CVideoControlSoft::OnPaint3D(wxGLCanvas* canvas, CRenderOpenGL* renderOpenG
 			renderOpenGL->Print(0, 1, scale_factor, CConvertUtility::ConvertToUTF8(msgFrame));
 		}
 
-		if (videoEffectParameter.enableSubtitle)
+		if (videoEffectParameter->enableSubtitle)
 		{
 			muSubtitle.lock();
 
@@ -1366,13 +1375,13 @@ void CVideoControlSoft::OnPaint3D(wxGLCanvas* canvas, CRenderOpenGL* renderOpenG
 				{
 
 	#ifndef WIN32
-					double scale_factor = parentRender->GetContentScaleFactor() * ((float)videoEffectParameter.subtitleSize);
+					double scale_factor = parentRender->GetContentScaleFactor() * ((float)videoEffectParameter->subtitleSize);
 	#else
-					double scale_factor = 1.0f* ((float)videoEffectParameter.subtitleSize);
+					double scale_factor = 1.0f* ((float)videoEffectParameter->subtitleSize);
 	#endif
 
-					renderOpenGL->PrintSubtitle(width / 2, height / 4, scale_factor, videoEffectParameter.subtitleRedColor
-                        , videoEffectParameter.subtitleGreenColor, videoEffectParameter.subtitleBlueColor, subtitleText);
+					renderOpenGL->PrintSubtitle(width / 2, height / 4, scale_factor, videoEffectParameter->subtitleRedColor
+                        , videoEffectParameter->subtitleGreenColor, videoEffectParameter->subtitleBlueColor, subtitleText);
 
 				}
 			
@@ -1904,7 +1913,7 @@ void CVideoControlSoft::calculate_display_rect(wxRect* rect, int scr_xleft, int 
 	float zoom = GetZoomRatio();
 
 	muVideoEffect.lock();
-	aspect_ratio = videoEffectParameter.tabRatio[videoEffectParameter.ratioSelect];
+	aspect_ratio = videoEffectParameter->tabRatio[videoEffectParameter->ratioSelect];
 	muVideoEffect.unlock();
 
 	if (aspect_ratio == 1.0)
@@ -1934,8 +1943,8 @@ void CVideoControlSoft::SetZoomIndex(const int& pos)
 	shrinkVideo = false;
 	float zoomRatio = 1.0f;
 	muVideoEffect.lock();
-	zoomRatio = videoEffectParameter.tabZoom[pos];
-	videoEffectParameter.zoomSelect = pos;
+	zoomRatio = videoEffectParameter->tabZoom[pos];
+	videoEffectParameter->zoomSelect = pos;
 	muVideoEffect.unlock();
 
 	if (zoomRatio != 1.0f)
@@ -2064,19 +2073,19 @@ void CVideoControlSoft::RenderToTexture(IEffectVideo * openclEffect)
         if (regardsParam != nullptr)
             filterInterpolation = regardsParam->GetInterpolationType();
 
-        if (videoEffectParameter.stabilizeVideo)
+        if (videoEffectParameter->stabilizeVideo)
         {
             if (openCVStabilization == nullptr)
-                openCVStabilization = new Regards::OpenCV::COpenCVStabilization(videoEffectParameter.stabilizeImageBuffere, openclEffect->GetType());
-            openclEffect->ApplyStabilization(&videoEffectParameter, openCVStabilization);
+                openCVStabilization = new Regards::OpenCV::COpenCVStabilization(videoEffectParameter->stabilizeImageBuffere, openclEffect->GetType());
+            openclEffect->ApplyStabilization(videoEffectParameter, openCVStabilization);
         }
         openclEffect->InterpolationZoomBicubic(widthOutput, heightOutput, rc, flipH, flipV, angle, filterInterpolation,
                                                (int)GetZoomRatio() * 100);
 
-		if ((videoEffectParameter.autoConstrast || videoEffectParameter.filmEnhance || videoEffectParameter.filmcolorisation) && videoEffectParameter.
+		if ((videoEffectParameter->autoConstrast || videoEffectParameter->filmEnhance || videoEffectParameter->filmcolorisation) && videoEffectParameter->
 			effectEnable)
 		{
-			openclEffect->ApplyOpenCVEffect(&videoEffectParameter);
+			openclEffect->ApplyOpenCVEffect(videoEffectParameter);
 		}
 
         Regards::Picture::CPictureArray pictureArray = Regards::Picture::CPictureArray(openclEffect->GetMatrix(false)); 
@@ -2091,12 +2100,12 @@ bool CVideoControlSoft::ApplyOpenCVEffect(cv::Mat& image)
 {
 	bool frameStabilized = false;
 	Regards::Picture::CPictureArray pictureArray(image);
-	if (videoEffectParameter.stabilizeVideo)
+	if (videoEffectParameter->stabilizeVideo)
 	{
 		if (openCVStabilization == nullptr)
-			openCVStabilization = new Regards::OpenCV::COpenCVStabilization(videoEffectParameter.stabilizeImageBuffere, TYPE_CPU);
+			openCVStabilization = new Regards::OpenCV::COpenCVStabilization(videoEffectParameter->stabilizeImageBuffere, TYPE_CPU);
 
-		openCVStabilization->SetNbFrameBuffer(videoEffectParameter.stabilizeImageBuffere);
+		openCVStabilization->SetNbFrameBuffer(videoEffectParameter->stabilizeImageBuffere);
 
 		if (openCVStabilization->GetNbFrameBuffer() == 0)
 		{
@@ -2115,7 +2124,7 @@ bool CVideoControlSoft::ApplyOpenCVEffect(cv::Mat& image)
 		}
 	}
 
-	if (videoEffectParameter.autoConstrast)
+	if (videoEffectParameter->autoConstrast)
 	{
 		frameStabilized = true;
 		CFiltreEffetCPU::BrightnessAndContrastAuto(image, 1.0);
@@ -2160,7 +2169,7 @@ void CVideoControlSoft::RenderFFmpegToTexture(cv::Mat& pictureFrame)
         cv::Mat bitmapOut = CFiltreEffetCPU::Interpolation(cvImage, widthOutput, heightOutput, rc, filterInterpolation,
                                                            flipH, flipV, angle, (int)GetZoomRatio() * 100);
 
-        if ((videoEffectParameter.stabilizeVideo || videoEffectParameter.autoConstrast  || videoEffectParameter.filmcolorisation || videoEffectParameter.filmEnhance) && videoEffectParameter.
+        if ((videoEffectParameter->stabilizeVideo || videoEffectParameter->autoConstrast  || videoEffectParameter->filmcolorisation || videoEffectParameter->filmEnhance) && videoEffectParameter->
             effectEnable)
         {
             ApplyOpenCVEffect(bitmapOut);
@@ -2333,12 +2342,12 @@ void CVideoControlSoft::SetFrameData(AVFrame *dst)
 		isffmpegDecode = true;
 		int nWidth = dst->width;
 		int nHeight = dst->height;
-		if (videoEffectParameter.denoiseEnable && videoEffectParameter.effectEnable)
+		if (videoEffectParameter->denoiseEnable && videoEffectParameter->effectEnable)
 		{
 			if (hq3d == nullptr)
-				hq3d = new Chqdn3d(nWidth, nHeight, videoEffectParameter.denoisingLevel, videoEffectParameter.templateWindowSize, videoEffectParameter.searchWindowSize);
+				hq3d = new Chqdn3d(nWidth, nHeight, videoEffectParameter->denoisingLevel, videoEffectParameter->templateWindowSize, videoEffectParameter->searchWindowSize);
 			else
-				hq3d->UpdateParameter(nWidth, nHeight, videoEffectParameter.denoisingLevel, videoEffectParameter.templateWindowSize, videoEffectParameter.searchWindowSize);
+				hq3d->UpdateParameter(nWidth, nHeight, videoEffectParameter->denoisingLevel, videoEffectParameter->templateWindowSize, videoEffectParameter->searchWindowSize);
 			uint8_t* outData = hq3d->ApplyDenoise3D(dst->data[0], dst->linesize[0], nHeight);
 			memcpy(dst->data[0], outData, dst->linesize[0] * nHeight);
 		}
@@ -2352,12 +2361,12 @@ void CVideoControlSoft::SetFrameData(AVFrame *dst)
 		isffmpegDecode = false;
 		int nWidth = dst->width;
 		int nHeight = dst->height;
-		if (videoEffectParameter.denoiseEnable && videoEffectParameter.effectEnable)
+		if (videoEffectParameter->denoiseEnable && videoEffectParameter->effectEnable)
 		{
 			if (hq3d == nullptr)
-				hq3d = new Chqdn3d(nWidth, nHeight, videoEffectParameter.denoisingLevel, videoEffectParameter.templateWindowSize, videoEffectParameter.searchWindowSize);
+				hq3d = new Chqdn3d(nWidth, nHeight, videoEffectParameter->denoisingLevel, videoEffectParameter->templateWindowSize, videoEffectParameter->searchWindowSize);
 			else
-				hq3d->UpdateParameter(nWidth, nHeight, videoEffectParameter.denoisingLevel, videoEffectParameter.templateWindowSize, videoEffectParameter.searchWindowSize);
+				hq3d->UpdateParameter(nWidth, nHeight, videoEffectParameter->denoisingLevel, videoEffectParameter->templateWindowSize, videoEffectParameter->searchWindowSize);
 			uint8_t* outData = hq3d->ApplyDenoise3D(dst->data[0], dst->linesize[0], nHeight);
 			memcpy(dst->data[0], outData, dst->linesize[0] * nHeight);
 		}
@@ -2404,7 +2413,7 @@ void CVideoControlSoft::SetFrameData(AVFrame *dst)
 
 
 			//AVFrame* tmp_frame = dst;
-			openclEffectYUV->SetAVFrame(&videoEffectParameter, dst, _colorSpace, isLimited);
+			openclEffectYUV->SetAVFrame(videoEffectParameter, dst, _colorSpace, isLimited);
 
 		}
 
