@@ -46,6 +46,7 @@ CVideoFilter::CVideoFilter()
 	enableBandCEffect = CLibResource::LoadStringFromResource(L"LBLenableBandCEffect", 1); //L"Tone.Enable";
 	enableVHSEffect = CLibResource::LoadStringFromResource(L"LBLFILTERVHS", 1); //"Effect.Vhs";
 	enableGrayScale = CLibResource::LoadStringFromResource(L"LBLenableGrayScale", 1); //L"Effect.Gray Scale";
+	enableSepia = CLibResource::LoadStringFromResource(L"LBLenableSepia", 1); //L"Effect.Sepia";
 	enableBicubicInterpolation = CLibResource::LoadStringFromResource(L"LBLEFFECTBICUBICINTERPOLATION", 1);
 	//LBLEFFECTBICUBICINTERPOLATION
 	enableOpenCL = CLibResource::LoadStringFromResource(L"LBLEFFECTOPENCL", 1); //LBLEFFECTOPENCL
@@ -134,6 +135,10 @@ void CVideoFilter::Filter(CEffectParameter* effectParameter, const wxString& fil
 	                              &videoEffectParameter->filmgrainenable, 2, 2);
 	filtreInterface->AddTreeInfos(enableGrayScale, new CTreeElementValueInt(videoEffectParameter->grayEnable),
 	                              &videoEffectParameter->grayEnable, 2, 2);
+	filtreInterface->AddTreeInfos(enableSepia, new CTreeElementValueInt(videoEffectParameter->sepiaEnable),
+		&videoEffectParameter->sepiaEnable, 2, 2);
+	//filtreInterface->AddTreeInfos(enableBicubicInterpolation, new CTreeElementValueInt(videoEffectParameter->BicubicEnable),
+	//	&videoEffectParameter->BicubicEnable, 2, 2);
 	//filtreInterface->AddTreeInfos(enableColorisation, new CTreeElementValueInt(videoEffectParameter->filmcolorisation),
 	//	&videoEffectParameter->filmcolorisation, 2, 2);
 	//filtreInterface->AddTreeInfos(enableRestore, new CTreeElementValueInt(videoEffectParameter->filmEnhance),
@@ -313,11 +318,10 @@ void CVideoFilter::FilterChangeParam(CEffectParameter* effectParameter, CTreeEle
 	{
 		videoEffectParameter->BicubicEnable = value;
 	}
-	/*
-	else if (key == effectDenoisingSigmaK)
+	else if (key == enableSepia)
 	{
-		videoEffectParameter->uKSigma = value;
-	}*/
+		videoEffectParameter->sepiaEnable = value;
+	}
 	else if (key == effectSharpenLevel)
 	{
 		videoEffectParameter->sharpness = value / 10.0f;

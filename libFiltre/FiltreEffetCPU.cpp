@@ -263,6 +263,18 @@ int CFiltreEffetCPU::GetHeight()
 	return image.size().height;
 }
 
+void CFiltreEffetCPU::Sepia(cv::Mat& image)
+{
+	Mat kernel =
+		(cv::Mat_<float>(3, 3)
+			<<
+			0.272, 0.534, 0.131,
+			0.349, 0.686, 0.168,
+			0.393, 0.769, 0.189);
+
+	cv::transform(image, image, kernel);
+}
+
 // ReSharper disable once CppDoxygenUnresolvedReference
 // ReSharper disable once CppDoxygenUnresolvedReference
 /**

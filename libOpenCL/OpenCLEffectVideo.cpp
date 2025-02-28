@@ -134,6 +134,18 @@ void COpenCLEffectVideo::ApplyOpenCVEffect(CVideoEffectParameter* videoEffectPar
 		}
 	}
 
+	if (videoEffectParameter->sepiaEnable)
+	{
+		if (interpolatePicture)
+		{
+			openclFilter->ColorEffect("Sepia", paramOutput);
+		}
+		else
+		{
+			openclFilter->ColorEffect("Sepia", paramSrc);
+		}
+	}
+
 	if (videoEffectParameter->filmEnhance || videoEffectParameter->filmcolorisation)
 	{
 		cv::Mat img_up;

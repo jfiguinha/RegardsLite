@@ -75,6 +75,8 @@ public:
 	int BrightnessAndContrastAuto(float clipHistPercent) override;
 	int OilPaintingEffect(const int& size, const int& dynRatio) override;
 	int VignetteEffect(const double& radius = 1.0, const double& power = 0.8) override;
+
+	static void Sepia(cv::Mat& image);
 	static void BrightnessAndContrastAuto(cv::Mat& image, float clipHistPercent);
 	static void LoadAndRotate(const wxString& filePath, const int& rotate);
 	bool StabilizeVideo(Regards::OpenCV::COpenCVStabilization* stabilization) override;

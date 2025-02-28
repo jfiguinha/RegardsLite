@@ -36,6 +36,7 @@ namespace Regards::Filter
 		wxString enableSharpenEffect;
 		wxString enableColorEffect;
 		wxString enableGrayScale;
+		wxString enableSepia;
 		wxString enableBandCEffect;
 		wxString effectMedianLevel;
 		wxString effectSharpenLevel;
