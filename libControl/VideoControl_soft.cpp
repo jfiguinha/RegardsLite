@@ -1380,6 +1380,7 @@ void CVideoControlSoft::OnPaint3D(wxGLCanvas* canvas, CRenderOpenGL* renderOpenG
 				{
 					renderBitmapOpenGL->SetSubtitle(pictureSubtitle);
 					subtilteUpdate = false;
+					renderBitmapOpenGL->ShowSubtitle();
 				}
 				else if(typeSubtitle == 1)
 				{
@@ -1403,7 +1404,7 @@ void CVideoControlSoft::OnPaint3D(wxGLCanvas* canvas, CRenderOpenGL* renderOpenG
 
 			muSubtitle.unlock();
 
-			renderBitmapOpenGL->ShowSubtitle();
+			
 		}
 		muVideoEffect.unlock();
 	}

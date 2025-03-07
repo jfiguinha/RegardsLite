@@ -230,28 +230,32 @@ CCentralWindow::CCentralWindow(wxWindow* parent, wxWindowID id,
 
 void CCentralWindow::WindowManagerUpdate(wxCommandEvent& event)
 {
-	int showInfos;
-	int showThumbnail;
-	int showVideoThumbnail;
-	//Save Window Mode
-	CMainParam* config = CMainParamInit::getInstance();
-	if (config != nullptr)
+	if (!windowInit)
 	{
-		showVideoThumbnail = windowManager->GetPaneState(Pos::wxTOP);
-		showThumbnail = windowManager->GetPaneState(Pos::wxBOTTOM);
-		showInfos = windowManager->GetPaneState(Pos::wxRIGHT);
-
-		config->SetShowInfos(showInfos);
-		config->SetShowThumbnail(showThumbnail);
-		config->SetShowVideoThumbnail(showVideoThumbnail);
-
-		wxWindow* window = this->FindWindowById(FRAMEVIEWER_ID);
-		if (window != nullptr)
+		int showInfos;
+		int showThumbnail;
+		int showVideoThumbnail;
+		//Save Window Mode
+		CMainParam* config = CMainParamInit::getInstance();
+		if (config != nullptr)
 		{
-			wxCommandEvent evt(ID_WINDOWUPDATESHOW);
-			window->GetEventHandler()->AddPendingEvent(evt);
+			showVideoThumbnail = windowManager->GetPaneState(Pos::wxTOP);
+			showThumbnail = windowManager->GetPaneState(Pos::wxBOTTOM);
+			showInfos = windowManager->GetPaneState(Pos::wxRIGHT);
+
+			config->SetShowInfos(showInfos);
+			config->SetShowThumbnail(showThumbnail);
+			config->SetShowVideoThumbnail(showVideoThumbnail);
+
+			wxWindow* window = this->FindWindowById(FRAMEVIEWER_ID);
+			if (window != nullptr)
+			{
+				wxCommandEvent evt(ID_WINDOWUPDATESHOW);
+				window->GetEventHandler()->AddPendingEvent(evt);
+			}
 		}
 	}
+
 }
 
 void CCentralWindow::UpdateThumbnailIcone(wxCommandEvent& event)
@@ -1201,7 +1205,7 @@ void CCentralWindow::SetMode(wxCommandEvent& event)
 	bool showThumbnail = true;
 	bool showVideoThumbnail = true;
 	windowMode = event.GetInt();
-	bool windowInit = true;
+	
 
 	CMainParam* config = CMainParamInit::getInstance();
 
