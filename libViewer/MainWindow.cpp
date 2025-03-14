@@ -106,11 +106,18 @@ void CMainWindow::CheckFile(void* param)
 	{
 		for (int i = checkFile->numFile; i < checkFile->pictureSize; i++)
 		{
-			CPhotos photo = CThumbnailBuffer::GetVectorValue(i);
-			checkFile->mainWindow->PhotoProcess(&photo);
-			if (checkFile->mainWindow->endApplication)
+			try
+			{
+				CPhotos photo = CThumbnailBuffer::GetVectorValue(i);
+				checkFile->mainWindow->PhotoProcess(&photo);
+				if (checkFile->mainWindow->endApplication || checkFile->mainWindow->changeFolder)
+					break;
+				std::this_thread::sleep_for(50ms);
+			}
+			catch (...)
+			{
 				break;
-			std::this_thread::sleep_for(50ms);
+			}
 		}
 	}
 
@@ -134,7 +141,7 @@ void CMainWindow::OnEndCheckFile(wxCommandEvent& event)
 		isCheckingFile = false;
 		delete checkFile;
 	}
-
+	changeFolder = false;
 	processIdle = true;
 }
 
@@ -417,6 +424,17 @@ void CMainWindow::StartOpening()
 	else
 	{
 		UpdateFolderStatic();
+
+		//Verify the old data
+
+		int pictureSize = CThumbnailBuffer::GetVectorSize();
+		CThreadCheckFile* checkFile = new CThreadCheckFile();
+		checkFile->mainWindow = this;
+		checkFile->pictureSize = pictureSize;
+		checkFile->numFile = numElementTraitement;
+		checkFile->checkFile = new std::thread(CheckFile, checkFile);
+		isCheckingFile = true;
+		std::this_thread::sleep_for(100ms);
 	}
 
 	//refreshFolder = true;
@@ -1096,6 +1114,7 @@ void CMainWindow::ProcessIdle()
 	}
 	else if (numElementTraitement < pictureSize)
 	{
+		/*
 		if (!isCheckingFile)
 		{
 			CThreadCheckFile* checkFile = new CThreadCheckFile();
@@ -1106,7 +1125,7 @@ void CMainWindow::ProcessIdle()
 			isCheckingFile = true;
 			std::this_thread::sleep_for(100ms);
 		}
-
+		*/
 		//hasDoneOneThings = true;
 	}
 
@@ -1585,6 +1604,12 @@ void CMainWindow::RemoveFolder(const wxString& folder)
 
 void CMainWindow::OpenFile(const wxString& fileToOpen)
 {
+	if (isCheckingFile)
+	{
+		changeFolder = true;
+		std::this_thread::sleep_for(50ms);
+	}
+
 	bool find = false;
 	wxFileName filename(fileToOpen);
 	wxString folder = filename.GetPath();
@@ -1619,6 +1644,13 @@ void CMainWindow::OpenFile(const wxString& fileToOpen)
 ////////////////////////////////////////////////////////////////////////////////////////////////
 bool CMainWindow::OpenFolder(const wxString& path)
 {
+	if (isCheckingFile)
+	{
+		changeFolder = true;
+		std::this_thread::sleep_for(50ms);
+	}
+
+
 	if (wxDirExists(path))
 	{
 

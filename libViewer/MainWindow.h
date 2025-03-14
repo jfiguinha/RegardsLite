@@ -178,6 +178,7 @@ namespace Regards::Viewer
 		bool start;
 		bool criteriaSendMessage;
 		bool checkVersion;
+		bool changeFolder = false;
 
 		bool isThumbnailProcess = false;
 		CExportDiaporama* exportDiaporama = nullptr;
