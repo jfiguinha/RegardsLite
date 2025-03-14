@@ -119,6 +119,10 @@ namespace Regards::Viewer
 		void OnProcessThumbnail(wxCommandEvent& event);
 		void OnEndOpenExternalFile(wxCommandEvent& event);
 
+
+		void OnRemoveFSEntry(wxCommandEvent& event);
+		void OnAddFSEntry(wxCommandEvent& event);
+
 		void Resize() override;
 		void ExportVideo(const wxString& filename);
 		void ProcessIdle() override;

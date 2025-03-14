@@ -54,6 +54,9 @@ using namespace Regards::Sqlite;
 
 constexpr auto TIMER_EVENTFILEFS = 3;
 
+#define wxEVENT_ADDFSENTRY 0x01001
+#define wxEVENT_REMOVEFSENTRY 0x01002
+
 bool firstTime = true;
 
 class CFolderFiles
@@ -219,6 +222,10 @@ CMainWindow::CMainWindow(wxWindow* parent, wxWindowID id, IStatusBarInterface* s
 	Connect(wxEVENT_ICONETHUMBNAILGENERATION, wxCommandEventHandler(CMainWindow::OnProcessThumbnail));
 	Connect(wxEVENT_ENDOPENEXTERNALFILE, wxCommandEventHandler(CMainWindow::OnEndOpenExternalFile));
 
+	Connect(wxEVENT_ADDFSENTRY, wxCommandEventHandler(CMainWindow::OnAddFSEntry));
+	Connect(wxEVENT_REMOVEFSENTRY, wxCommandEventHandler(CMainWindow::OnRemoveFSEntry));
+
+
 	Connect(TIMER_EVENTFILEFS, wxEVT_TIMER, wxTimerEventHandler(CMainWindow::OnTimereventFileSysTimer), nullptr, this);
 	/*----------------------------------------------------------------------
 	 *
@@ -345,29 +352,60 @@ void CMainWindow::OnTimereventFileSysTimer(wxTimerEvent& event)
 }
 
 
+void CMainWindow::OnRemoveFSEntry(wxCommandEvent& event)
+{
+	wxString* dirPath = (wxString*)event.GetClientData();
+	if (dirPath != nullptr)
+	{
+		if (m_watcher == nullptr)
+			return;
+
+		if (wxDirExists(*dirPath) == false)
+			return;
+
+		const wxFileName dirname(*dirPath, "");
+		m_watcher->Remove(dirname);
+
+		delete dirPath;
+	}
+
+}
+
+void CMainWindow::OnAddFSEntry(wxCommandEvent& event)
+{
+	wxString* dirPath = (wxString*)event.GetClientData();
+	if (dirPath != nullptr)
+	{
+		if (m_watcher == nullptr)
+			return;
+
+		if (wxDirExists(*dirPath) == false)
+			return;
+
+		const wxFileName dirname(*dirPath, "");
+		m_watcher->AddTree(
+			dirname, wxFSW_EVENT_CREATE | wxFSW_EVENT_DELETE | wxFSW_EVENT_RENAME | wxFSW_EVENT_MODIFY);
+
+		delete dirPath;
+	}
+}
+
 bool CMainWindow::RemoveFSEntry(const wxString& dirPath)
 {
-	if (m_watcher == nullptr)
-		return false;
-
-	if (wxDirExists(dirPath) == false)
-		return false;
-
-	const wxFileName dirname(dirPath, "");
-	return m_watcher->Remove(dirname);
+	wxString* data = new wxString(dirPath);
+	auto localevent = new wxCommandEvent(wxEVENT_REMOVEFSENTRY);
+	localevent->SetClientData(data);
+	wxQueueEvent(this, localevent);
+	return true;
 }
 
 bool CMainWindow::AddFSEntry(const wxString& dirPath)
 {
-	if (m_watcher == nullptr)
-		return false;
-
-	if (wxDirExists(dirPath) == false)
-		return false;
-
-	const wxFileName dirname(dirPath, "");
-	return m_watcher->AddTree(
-		dirname, wxFSW_EVENT_CREATE | wxFSW_EVENT_DELETE | wxFSW_EVENT_RENAME | wxFSW_EVENT_MODIFY);
+	wxString* data = new wxString(dirPath);
+	auto localevent = new wxCommandEvent(wxEVENT_ADDFSENTRY);
+	localevent->SetClientData(data);
+	wxQueueEvent(this, localevent);
+	return true;
 }
 
 void CMainWindow::StartOpening()
