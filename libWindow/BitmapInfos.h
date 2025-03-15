@@ -23,6 +23,7 @@ namespace Regards
 			void UpdateScreenRatio() override;
 
 		private:
+			wxString GenerateDefaultTimeStamp();
 			void OnUpdateGpsInfos(wxCommandEvent& event);
 			void SetDateInfos(const wxString& dataInfos, char seperator);
 			void on_paint(wxPaintEvent& event);

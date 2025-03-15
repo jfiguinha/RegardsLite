@@ -10,11 +10,12 @@
 #include <FileGeolocation.h>
 #include <GpsEngine.h>
 #include <wx/filename.h>
+#include <MetadataExiv2.h>
 using namespace Regards::Window;
 using namespace Regards::Sqlite;
 using namespace Regards::Internet;
 using namespace std;
-
+using namespace Regards::exiv2;
 
 CBitmapInfos::CBitmapInfos(wxWindow* parent, wxWindowID id, const CThemeBitmapInfos& theme)
 	: CWindowMain("CBitmapInfos", parent, id)
@@ -77,22 +78,35 @@ void CBitmapInfos::SetFilename(const wxString& libelle)
 	}
 }
 
-
-void CBitmapInfos::UpdateData()
+wxString CBitmapInfos::GenerateDefaultTimeStamp()
 {
-	//printf("UpdateData \n");
-	gpsInfos = "";
 	wxFileName file = wxFileName(filename);
 	wxDateTime dt = file.GetModificationTime();
 
 	wxDateTime now = wxDateTime::Now();
 	wxString str = now.Format(wxT("%Y-%m-%d"), wxDateTime::CET);
 
-	dateInfos = "";
+	return str;
+}
+
+
+void CBitmapInfos::UpdateData()
+{
+	//printf("UpdateData \n");
+
+	CMetadataExiv2 metadata(filename);
+	if (metadata.HasExif())
+		dateInfos = metadata.GetCreationDate();
+
+	if (dateInfos == "")
+	{
+		wxString str = GenerateDefaultTimeStamp();
+		SetDateInfos(str, '-');
+	}
+	else
+		SetDateInfos(dateInfos, '.');
+
 	gpsInfos = "";
-
-	SetDateInfos(str, '-');
-
 	needToRefresh = true;
 }
 
