@@ -118,7 +118,8 @@ namespace Regards::Viewer
 		void OnRefreshThumbnail(wxCommandEvent& event);
 		void OnProcessThumbnail(wxCommandEvent& event);
 		void OnEndOpenExternalFile(wxCommandEvent& event);
-
+		void OnRemoveFileFromCheckIn(wxCommandEvent& event);
+		void OnCheckInUpdateStatus(wxCommandEvent& event);
 
 		void OnRemoveFSEntry(wxCommandEvent& event);
 		void OnAddFSEntry(wxCommandEvent& event);

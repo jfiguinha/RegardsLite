@@ -54,8 +54,13 @@ using namespace Regards::Sqlite;
 
 constexpr auto TIMER_EVENTFILEFS = 3;
 
-#define wxEVENT_ADDFSENTRY 0x01001
-#define wxEVENT_REMOVEFSENTRY 0x01002
+
+wxDEFINE_EVENT(wxEVENT_ADDFSENTRY, wxCommandEvent);
+wxDEFINE_EVENT(wxEVENT_REMOVEFSENTRY, wxCommandEvent);
+wxDEFINE_EVENT(wxEVENT_UPDATECHECKINSTATUS, wxCommandEvent);
+wxDEFINE_EVENT(wxEVENT_UPDATECHECKINFOLDER, wxCommandEvent);
+wxDEFINE_EVENT(wxVERSION_UPDATE_EVENT, wxCommandEvent);
+wxDEFINE_EVENT(wxEVENT_SETSCREEN, wxCommandEvent);
 
 bool firstTime = true;
 
@@ -104,21 +109,67 @@ void CMainWindow::CheckFile(void* param)
 	CThreadCheckFile* checkFile = (CThreadCheckFile*)param;
 	if (checkFile != nullptr)
 	{
-		for (int i = checkFile->numFile; i < checkFile->pictureSize; i++)
+		int numElementTraitement = 0;
+
+		PhotosVector* _pictures = new PhotosVector();
+		CSqlFindPhotos sqlFindPhotos;
+		sqlFindPhotos.SearchPhotosByCriteriaFolder(_pictures);
+
+		wxString nbElement = to_string(_pictures->size());
+		for (int i = 0; i < _pictures->size(); i++)
 		{
-			try
+			CPhotos photo = _pictures->at(i);
+
+			int nbProcesseur = 1;
+
+			if (wxFileName::FileExists(photo.GetPath()))
 			{
-				CPhotos photo = CThumbnailBuffer::GetVectorValue(i);
-				checkFile->mainWindow->PhotoProcess(&photo);
-				if (checkFile->mainWindow->endApplication || checkFile->mainWindow->changeFolder)
-					break;
-				std::this_thread::sleep_for(50ms);
+				//Test si thumbnail valide
+				CMainParam* config = CMainParamInit::getInstance();
+				if (config != nullptr)
+				{
+					if (config->GetCheckThumbnailValidity())
+					{
+						CSqlThumbnail sqlThumbnail;
+						CSqlThumbnailVideo sqlThumbnailVideo;
+						wxFileName file(photo.GetPath());
+						wxULongLong sizeFile = file.GetSize();
+						wxString md5file = sizeFile.ToString();
+
+						bool result = sqlThumbnail.TestThumbnail(photo.GetPath(), md5file);
+						if (!result)
+						{
+							//Remove thumbnail
+							sqlThumbnail.DeleteThumbnail(photo.GetPath());
+							sqlThumbnailVideo.DeleteThumbnail(photo.GetPath());
+						}
+
+						wxCommandEvent evt(wxEVENT_UPDATECHECKINFOLDER);
+						checkFile->mainWindow->GetEventHandler()->AddPendingEvent(evt);
+					}
+				}
 			}
-			catch (...)
+			else
 			{
+				//Remove file
+				CSQLRemoveData::DeletePhoto(photo.GetId());
+				wxCommandEvent evt(wxEVENT_UPDATECHECKINFOLDER);
+				checkFile->mainWindow->GetEventHandler()->AddPendingEvent(evt);
+			}
+
+			numElementTraitement++;
+
+			wxCommandEvent evt(wxEVENT_UPDATECHECKINSTATUS);
+			evt.SetInt(numElementTraitement);
+			evt.SetString(nbElement);
+			checkFile->mainWindow->GetEventHandler()->AddPendingEvent(evt);
+
+			if (checkFile->mainWindow->endApplication)
 				break;
-			}
+			std::this_thread::sleep_for(50ms);
 		}
+
+		delete _pictures;
 	}
 
 
@@ -126,6 +177,7 @@ void CMainWindow::CheckFile(void* param)
 	evt.SetClientData(checkFile);
 	checkFile->mainWindow->GetEventHandler()->AddPendingEvent(evt);
 }
+
 
 void CMainWindow::OnEndCheckFile(wxCommandEvent& event)
 {
@@ -149,10 +201,26 @@ CThreadVideoData::~CThreadVideoData()
 {
 }
 
-wxDEFINE_EVENT(wxVERSION_UPDATE_EVENT, wxCommandEvent);
-wxDEFINE_EVENT(wxEVENT_SETSCREEN, wxCommandEvent);
 
 extern wxImage defaultPicture;
+
+void CMainWindow::OnRemoveFileFromCheckIn(wxCommandEvent& event)
+{
+	UpdateFolderStatic();
+	processIdle = true;
+}
+
+void CMainWindow::OnCheckInUpdateStatus(wxCommandEvent& event)
+{
+	int numElementTraitement = event.GetInt();
+	wxString nbElement = event.GetString();
+	wxString label = CLibResource::LoadStringFromResource(L"LBLFILECHECKING", 1);
+	wxString message = label + to_string(numElementTraitement) + L"/" + nbElement;
+	if (statusBarViewer != nullptr)
+	{
+		statusBarViewer->SetText(3, message);
+	}
+}
 
 CMainWindow::CMainWindow(wxWindow* parent, wxWindowID id, IStatusBarInterface* statusbar, const bool& openFirstFile, const wxString& fileToOpen)
 	: CWindowMain("CMainWindow", parent, id)
@@ -231,7 +299,8 @@ CMainWindow::CMainWindow(wxWindow* parent, wxWindowID id, IStatusBarInterface* s
 
 	Connect(wxEVENT_ADDFSENTRY, wxCommandEventHandler(CMainWindow::OnAddFSEntry));
 	Connect(wxEVENT_REMOVEFSENTRY, wxCommandEventHandler(CMainWindow::OnRemoveFSEntry));
-
+	Connect(wxEVENT_UPDATECHECKINSTATUS, wxCommandEventHandler(CMainWindow::OnCheckInUpdateStatus));
+	Connect(wxEVENT_UPDATECHECKINFOLDER, wxCommandEventHandler(CMainWindow::OnRemoveFileFromCheckIn));
 
 	Connect(TIMER_EVENTFILEFS, wxEVT_TIMER, wxTimerEventHandler(CMainWindow::OnTimereventFileSysTimer), nullptr, this);
 	/*----------------------------------------------------------------------
