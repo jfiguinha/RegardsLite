@@ -24,7 +24,7 @@ namespace Regards
 
 		private:
 
-			void CBitmapInfos::OnStartGps(wxTimerEvent& event);
+			void OnStartGps(wxTimerEvent& event);
 			void UpdateGpsInfos(wxCommandEvent& event);
 			wxString GenerateDefaultTimeStamp();
 			static void GetGpsInfos(void * data);

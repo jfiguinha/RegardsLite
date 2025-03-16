@@ -8,6 +8,7 @@
 #include "PictureMetadataExiv_new.h"
 #include <DateValidation.hpp>
 #include <libexif/exif-data.h>
+#include <boost/lexical_cast.hpp>
 using namespace Regards::exiv2;
 
 
@@ -200,7 +201,7 @@ bool CPictureMetadataExiv::HasExif()
 {
 	return isExif;
 }
-
+#include <boost/lexical_cast.hpp>
 
 void CPictureMetadataExiv::GetMetadataBuffer(uint8_t*& data, unsigned int& size)
 {
@@ -378,8 +379,8 @@ wxString CPictureMetadataExiv::GetGpsfValue(const wxString& gpsValue)
 		for (auto it = latValue.begin(); it != latValue.end(); ++it)
 		{
 			vector<wxString> intValue = CConvertUtility::split(*it, '/');
-			int64 valeur = _atoi64(intValue.at(0));
-			int64 diviseur = _atoi64(intValue.at(1));
+            int64 valeur = boost::lexical_cast<int64>(intValue.at(0));
+            int64 diviseur = boost::lexical_cast<int64>(intValue.at(1));
 
 			double value = static_cast<double>(valeur) / static_cast<double>(diviseur);
 			if (i == 1)

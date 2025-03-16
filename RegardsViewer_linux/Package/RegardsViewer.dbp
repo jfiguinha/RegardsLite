@@ -1,7 +1,7 @@
-[DEBREATE-0.7.13]
+[DEBREATE-0.8-dev9]
 <<CTRL>>
 Package: RegardsLiteViewer
-Version: 2.0.0
+Version: 2.0.0.5
 Maintainer: Figuinha Jacques <appt.jf@outlook.fr>
 Section: graphics
 Source: https://github.com/jfiguinha/RegardsLite.git
@@ -17,12 +17,11 @@ Description: RegardsLiteViewer is a picture viewer and video player
  Support GPS informations from Photo and Apple Iphone Video.
  Hi Quality display interpolation.
  OpenGL Picture display and OpenCL post Effect.
-
 <</CTRL>>
 <<FILES>>
 1
-/home/figuinha/developpement/git/RegardsLite/RegardsViewer_linux/Package/RegardsLiteViewer -> RegardsLiteViewer -> /opt
 /home/figuinha/developpement/git/RegardsLite/RegardsViewer_linux/Package/debian/RegardsLiteViewer/usr/bin/RegardsLiteViewer* -> RegardsLiteViewer -> /usr/bin
+/home/figuinha/developpement/git/RegardsLite/RegardsViewer_linux/Package/RegardsLiteViewer -> RegardsLiteViewer -> /opt
 <</FILES>>
 <<SCRIPTS>>
 <<PREINST>>
@@ -46,9 +45,9 @@ Description: RegardsLiteViewer is a picture viewer and video player
 Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: Figuinha 
 Upstream-Contact: Figuinha Jacques <appt.jf@outlook.fr>
-Source: http://jfiguinha.pagesperso-orange.fr/
+Source: https://regardsviewerlite.tiiny.site/
 
-Copyright: 2015-2024 Figuinha Jacques <appt.jf@outlook.fr>
+Copyright: 2015-2025 Figuinha Jacques <appt.jf@outlook.fr>
 License: GPL-2+
 
 This program is free software; you can redistribute it and/or modify
@@ -80,12 +79,6 @@ Type=Application
 Terminal=false
 StartupNotify=true
 Encoding=UTF-8
-Categories=2DGraphics;Graphics;
 MimeType=image/bmp;image/gif;image/jpeg;image/jpg;image/pjpeg;image/png;image/svg;image/tiff;image/x-bmp;image/x-gray;image/x-icb;image/x-ico;image/x-png;image/x-portable-anymap;image/x-portable-bitmap;image/x-portable-graymap;image/x-portable-pixmap;image/x-xbitmap;image/x-xpixmap;image/x-pcx;image/x-targa;image/x-tga;image/heic;video/mp4;application/mpeg4-iod;application/mpeg4-muxcodetable;application/mxf;application/ogg;application/ram;application/sdp;application/streamingmedia;application/vnd.apple.mpegurl;application/vnd.ms-asf;application/vnd.rn-realmedia;application/vnd.rn-realmedia-vbr;application/x-extension-m4a;application/x-extension-mp4;application/x-flac;application/x-flash-video;application/x-matroska;application/x-ogg;application/x-streamingmedia;video/3gp;video/3gpp;video/3gpp2;video/divx;video/dv;video/fli;video/flv;video/mp2t;video/mp4;video/mp4v-es;video/mpeg;video/mpeg-system;video/msvideo;video/ogg;video/quicktime;video/vnd.mpegurl;video/vnd.rn-realvideo;video/webm;video/x-avi;video/x-flc;video/x-fli;video/x-flv;video/x-m4v;video/x-matroska;video/x-mpeg;video/x-mpeg-system;video/x-mpeg2;video/x-ms-asf;video/x-ms-wm;video/x-ms-wmv;video/x-ms-wmx;video/x-msvideo;video/x-nsv;video/x-ogm+ogg;video/x-theora;video/x-theora+ogg;image/pdf;image/pnm;image/bmp;image/bpg;image/pcx;image/jpg;image/tif;image/gif;image/png;image/tga;image/jp2;image/jpc;image/ppm;image/mng;image/webp;image/iff;image/xpm;image/jxr;image/exr;image/j2k;image/pfm;image/heic;image/avif
+Categories=2DGraphics;Graphics;
 <</MENU>>
-<<BUILD>>
-1
-1
-1
-strip
-<</BUILD>>
