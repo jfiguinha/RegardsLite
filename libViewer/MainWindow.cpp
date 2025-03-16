@@ -1221,12 +1221,11 @@ void CMainWindow::ProcessThumbnail()
 	if (CRegardsConfigParam* config = CParamInit::getInstance(); config != nullptr)
 		nbProcesseur = config->GetThumbnailProcess();
 
-	if (nbProcess >= nbProcesseur)
-		return;
-
-
 	for (int i = 0; i < photoList.size(); i++)
 	{
+		if (nbProcess >= nbProcesseur)
+			return;
+
 		wxString path = photoList[i];
 
 		auto event = new wxCommandEvent(wxEVENT_UPDATEMESSAGE);
@@ -1247,9 +1246,6 @@ void CMainWindow::ProcessThumbnail()
 
 
 		i--;
-
-		if (nbProcess == nbProcesseur)
-			break;
 
 		std::this_thread::sleep_for(std::chrono::milliseconds(50));
 	}
@@ -1364,6 +1360,13 @@ void CMainWindow::OnProcessThumbnail(wxCommandEvent& event)
 
 void CMainWindow::ProcessThumbnail(wxString filename, int type, long longWindow)
 {
+	int nbProcesseur = 1;
+	if (CRegardsConfigParam* config = CParamInit::getInstance(); config != nullptr)
+		nbProcesseur = config->GetThumbnailProcess() + 1;
+
+	if (nbProcess >= nbProcesseur)
+		return;
+
 	if (filename != "")
 	{
 		nbProcess++;

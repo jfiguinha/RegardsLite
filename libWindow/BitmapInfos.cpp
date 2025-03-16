@@ -60,8 +60,8 @@ void CBitmapInfos::GetGpsInfos(void* data)
 			wxString notGeo = CLibResource::LoadStringFromResource("LBLNOTGEO", 1);
 			CFileGeolocation fileGeolocalisation(urlServer);
 			fileGeolocalisation.SetFile(infosGps->filename, notGeo);
-			fileGeolocalisation.Geolocalize();
-			infosGps->gpsInfos = fileGeolocalisation.GetGpsInformation();
+			infosGps->gpsInfos = fileGeolocalisation.Geolocalize();
+			//infosGps->gpsInfos = fileGeolocalisation.GetGpsInformation();
 		}
 	}
 
@@ -233,7 +233,9 @@ void CBitmapInfos::DrawInformations(wxDC* dc)
 	{
 		wchar_t seperator = '.';
 		vector<wxString> listGeo = CConvertUtility::split(gpsInfos, seperator);
-		message = dateInfos + L"," + listGeo.at(listGeo.size() - 1);
+		message = dateInfos;
+		for (int i = listGeo.size() - 1;i >= 0 ; i--)
+			message += L"," + listGeo.at(i);
 	}
 	else
 	{
