@@ -23,8 +23,11 @@ namespace Regards
 			void UpdateScreenRatio() override;
 
 		private:
+
+			void CBitmapInfos::OnStartGps(wxTimerEvent& event);
+			void UpdateGpsInfos(wxCommandEvent& event);
 			wxString GenerateDefaultTimeStamp();
-			void OnUpdateGpsInfos(wxCommandEvent& event);
+			static void GetGpsInfos(void * data);
 			void SetDateInfos(const wxString& dataInfos, char seperator);
 			void on_paint(wxPaintEvent& event);
 			int Dayofweek(int d, int m, int y);
@@ -33,7 +36,9 @@ namespace Regards
 			wxString gpsInfos;
 			wxString dateInfos;
 			bool gpsInfosUpdate;
+			std::thread* threadGps = nullptr;
 			CThemeBitmapInfos bitmapInfosTheme;
+			wxTimer * gpsTimer;
 		};
 	}
 }

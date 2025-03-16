@@ -113,8 +113,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,0,0,7
- PRODUCTVERSION 2,0,0,7
+ FILEVERSION 2,0,0,8
+ PRODUCTVERSION 2,0,0,8
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -131,12 +131,12 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "Figuinha"
             VALUE "FileDescription", "RegardsLite Viewer 2"
-            VALUE "FileVersion", "2.0.0.7"
+            VALUE "FileVersion", "2.0.0.8"
             VALUE "InternalName", "RegardsLite.exe"
             VALUE "LegalCopyright", "Copyright (C) 2025"
             VALUE "OriginalFilename", "RegardsLite.exe"
             VALUE "ProductName", "RegardsLite Viewer 2"
-            VALUE "ProductVersion", "2.0.0.7"
+            VALUE "ProductVersion", "2.0.0.8"
         END
     END
     BLOCK "VarFileInfo"

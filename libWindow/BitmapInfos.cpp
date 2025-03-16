@@ -17,19 +17,31 @@ using namespace Regards::Internet;
 using namespace std;
 using namespace Regards::exiv2;
 
+#define GPS_TIME 1000
+
+
+struct InfosGps
+{
+	CWindowMain* window;
+	wxString filename;
+	wxString gpsInfos;
+};
+
+wxDEFINE_EVENT(wxEVENT_GPSINFOS, wxCommandEvent);
+
 CBitmapInfos::CBitmapInfos(wxWindow* parent, wxWindowID id, const CThemeBitmapInfos& theme)
 	: CWindowMain("CBitmapInfos", parent, id)
 {
-	CListOfWindow* fileGeolocalisation = CGpsEngine::getInstance();
 	gpsInfosUpdate = false;
 	bitmapInfosTheme = theme;
-	fileGeolocalisation->AddWindow(this);
-	//gpsTimer = new wxTimer(this, wxTIMER_GPSINFOS);
 	Connect(wxEVT_PAINT, wxPaintEventHandler(CBitmapInfos::on_paint));
-	Connect(wxEVENT_UPDATEGPSINFOS, wxCommandEventHandler(CBitmapInfos::OnUpdateGpsInfos));
+
+	gpsTimer = new wxTimer(this, wxTIMER_EXIT);
+	Connect(wxTIMER_EXIT, wxEVT_TIMER, wxTimerEventHandler(CBitmapInfos::OnStartGps), nullptr, this);
+	Connect(wxEVENT_GPSINFOS, wxCommandEventHandler(CBitmapInfos::UpdateGpsInfos));
 }
 
-void CBitmapInfos::OnUpdateGpsInfos(wxCommandEvent& event)
+void CBitmapInfos::GetGpsInfos(void* data)
 {
 	wxString urlServer = "";
 	//Géolocalisation
@@ -39,30 +51,58 @@ void CBitmapInfos::OnUpdateGpsInfos(wxCommandEvent& event)
 		urlServer = param->GetUrlServer();
 	}
 
-	auto filename = static_cast<wxString*>(event.GetClientData());
-	int typeData = event.GetInt();
-	if (filename != nullptr)
+	InfosGps * infosGps = static_cast<InfosGps*>(data);
+
+	if (infosGps != nullptr)
 	{
-		if (*filename == this->filename)
+		if (wxFileName::FileExists(infosGps->filename))
 		{
 			wxString notGeo = CLibResource::LoadStringFromResource("LBLNOTGEO", 1);
 			CFileGeolocation fileGeolocalisation(urlServer);
-			fileGeolocalisation.SetFile(*filename, notGeo);
-			if (typeData == 1)
-			{
-				//printf("CBitmapInfos OnTimerGPSUpdate \n");
-				gpsInfos = fileGeolocalisation.GetGpsInformation();
-			}
-			else if (typeData == 2)
-			{
-				dateInfos = fileGeolocalisation.GetDateTimeInfos();
-				SetDateInfos(dateInfos, '.');
-			}
-			delete filename;
+			fileGeolocalisation.SetFile(infosGps->filename, notGeo);
+			fileGeolocalisation.Geolocalize();
+			infosGps->gpsInfos = fileGeolocalisation.GetGpsInformation();
 		}
 	}
 
-	needToRefresh = true;
+	wxCommandEvent event(wxEVENT_GPSINFOS);
+	event.SetClientData(infosGps);
+	wxPostEvent(infosGps->window, event);
+
+}
+
+void CBitmapInfos::UpdateGpsInfos(wxCommandEvent& event)
+{
+	InfosGps* infosGps = (InfosGps *)event.GetClientData();
+	threadGps->join();
+	delete threadGps;
+	threadGps = nullptr;
+
+	if (infosGps->filename == filename)
+	{
+		gpsInfos = infosGps->gpsInfos;
+		
+
+		if(gpsInfos == "")
+			gpsTimer->StartOnce(GPS_TIME);
+		else
+			needToRefresh = true;
+	}
+
+	delete infosGps;
+}
+
+void CBitmapInfos::OnStartGps(wxTimerEvent& event)
+{
+	if (threadGps == nullptr)
+	{
+		InfosGps* infos = new InfosGps();
+		infos->window = this;
+		infos->filename = filename;
+		threadGps = new thread(GetGpsInfos, infos);
+	}
+	else
+		gpsTimer->StartOnce(GPS_TIME);
 }
 
 void CBitmapInfos::SetFilename(const wxString& libelle)
@@ -95,7 +135,15 @@ void CBitmapInfos::UpdateData()
 	//printf("UpdateData \n");
 
 	CMetadataExiv2 metadata(filename);
-	if (metadata.HasExif())
+
+	bool hasGps;
+	bool hasDataTime;
+	wxString latitudeGps;
+	wxString longitudeGps;
+	wxString dateTimeInfos;
+	metadata.ReadPicture(hasGps, hasDataTime, dateTimeInfos, latitudeGps, longitudeGps);
+
+	if (hasDataTime)
 		dateInfos = metadata.GetCreationDate();
 
 	if (dateInfos == "")
@@ -105,6 +153,13 @@ void CBitmapInfos::UpdateData()
 	}
 	else
 		SetDateInfos(dateInfos, '.');
+
+
+
+	if (hasGps)
+	{
+		gpsTimer->StartOnce(100);
+	}
 
 	gpsInfos = "";
 	needToRefresh = true;
