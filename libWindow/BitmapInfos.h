@@ -21,9 +21,10 @@ namespace Regards
 			int GetHeight() override;
 			void Redraw();
 			void UpdateScreenRatio() override;
-
+			bool GetProcessEnd() override;
 		private:
 
+			
 			void OnStartGps(wxTimerEvent& event);
 			void UpdateGpsInfos(wxCommandEvent& event);
 			wxString GenerateDefaultTimeStamp();
