@@ -17,6 +17,8 @@
 #include <ConvertUtility.h>
 #include <opencv2/xphoto/inpainting.hpp>
 #include "opencv2/fuzzy.hpp"
+#include <avir.h>
+#include <avir_float4_sse.h>
 using namespace Regards::OpenCV;
 using namespace Regards::OpenGL;
 using namespace cv;
@@ -1108,6 +1110,32 @@ Mat CFiltreEffetCPU::Interpolation(const Mat& inputData, const int& widthOut, co
 		the nearest neighbor method in PIL, scikit-image or Matlab.
 		INTER_NEAREST_EXACT = 6,
 		*/
+		if (method == 7)
+		{
+			cv::Mat inBuf;
+			//cvImage.copyTo(inBuf);
+			cvtColor(cvImage, inBuf, cv::COLOR_BGR2BGRA);
+			cv::Mat OutBuf = cv::Mat(Size(widthOut, heightOut), CV_8UC4, Scalar(0, 0, 0));
+
+			avir::CImageResizer< avir::fpclass_float4 > ImageResizer(8);
+			avir::CImageResizerVars Vars;
+			Vars.UseSRGBGamma = true;
+			ImageResizer.resizeImage((uint8_t*)inBuf.data, inBuf.cols, inBuf.rows, inBuf.step, (uint8_t*)OutBuf.data, widthOut, heightOut, 4, 0, &Vars);
+
+			cvtColor(OutBuf, cvImage, cv::COLOR_BGRA2BGR);
+		}
+		else
+		{
+			if (ratio != 100)
+			{
+				resize(cvImage, cvImage, Size(widthOut, heightOut), method);
+			}
+
+			if (cvImage.cols != widthOut || cvImage.rows != heightOut)
+				resize(cvImage, cvImage, Size(widthOut, heightOut), INTER_NEAREST_EXACT);
+		}
+
+		/*
 		if (ratio != 100)
 		{
 			resize(cvImage, cvImage, Size(widthOut, heightOut), method);
@@ -1115,7 +1143,7 @@ Mat CFiltreEffetCPU::Interpolation(const Mat& inputData, const int& widthOut, co
 
 		if (cvImage.cols != widthOut || cvImage.rows != heightOut)
 			resize(cvImage, cvImage, Size(widthOut, heightOut), INTER_NEAREST_EXACT);
-
+		*/
 		//Apply Transformation
 
 		if (flipH)

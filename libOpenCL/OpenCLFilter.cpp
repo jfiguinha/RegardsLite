@@ -9,7 +9,8 @@
 #include <RegardsConfigParam.h>
 #include <opencv2/core/ocl.hpp>
 #include <LibResource.h>
-
+#include <avir.h>
+#include <avir_float4_sse.h>
 using namespace Regards::OpenCL;
 using namespace cv;
 
@@ -1521,160 +1522,190 @@ UMat COpenCLFilter::ExecuteOpenCLCode(const wxString& programName, const wxStrin
 UMat COpenCLFilter::Interpolation(const int& widthOut, const int& heightOut, const wxRect& rc, const int& method,
                                   UMat& inputData, int flipH, int flipV, int angle, int ratio)
 {
-	
-	
-
-
-#ifndef OPENCV_METHOD
-
-	return Interpolation(widthOut, heightOut, rc, method, inputData, inputData.cols, inputData.rows, flipH, flipV, angle);
-
-#else
-
-	UMat cvImage;
-
-	try
+	if (method > 7)
 	{
-		float ratioX = static_cast<float>(inputData.cols) / rc.width;
-		float ratioY = static_cast<float>(inputData.rows) / rc.height;
-		if (angle == 90 || angle == 270)
-		{
-			ratioX = static_cast<float>(inputData.cols) / static_cast<float>(rc.height);
-			ratioY = static_cast<float>(inputData.rows) / static_cast<float>(rc.width);
-		}
-
-		Rect rectGlobal;
-		Rect rect_begin = CalculRect(inputData.cols, inputData.rows, widthOut, heightOut, flipH, flipV, angle, ratioX,
-		                             ratioY, 0, 0, rc.x, rc.y);
-		Rect rect_end = CalculRect(inputData.cols, inputData.rows, widthOut, heightOut, flipH, flipV, angle, ratioX,
-		                           ratioY, widthOut, heightOut, rc.x, rc.y);
-		rectGlobal.x = rect_begin.x;
-		rectGlobal.y = rect_begin.y;
-		rectGlobal.width = rect_end.x;
-		rectGlobal.height = rect_end.y;
-		if (rectGlobal.x > rectGlobal.width)
-		{
-			int x_end = rectGlobal.x;
-			int x = rectGlobal.width;
-			rectGlobal.x = x;
-			rectGlobal.width = x_end - x;
-		}
-		else
-		{
-			rectGlobal.width -= rectGlobal.x;
-		}
-
-		if (rectGlobal.y > rectGlobal.height)
-		{
-			int y_end = rectGlobal.y;
-			int y = rectGlobal.height;
-			rectGlobal.y = y;
-			rectGlobal.height = y_end - y;
-		}
-		else
-		{
-			rectGlobal.height -= rectGlobal.y;
-		}
-
-		if ((rectGlobal.height + rectGlobal.y) > inputData.rows)
-		{
-			rectGlobal.height = inputData.rows - rectGlobal.y;
-		}
-		if ((rectGlobal.width + rectGlobal.x) > inputData.cols)
-		{
-			rectGlobal.width = inputData.cols - rectGlobal.x;
-		}
-
-		//cv::UMat crop;
-		inputData(rectGlobal).copyTo(cvImage);
-		//Mat global;
-		//cvImage.copyTo(global);
-		//crop.copyTo(cvImage);
-		//cvImage = cvImage(rectGlobal);
-
-		if (angle == 270)
-		{
-			if (flipV && flipH)
-				cv::rotate(cvImage, cvImage, ROTATE_90_CLOCKWISE);
-			else if (flipV || flipH)
-				cv::rotate(cvImage, cvImage, ROTATE_90_COUNTERCLOCKWISE);
-			else
-				cv::rotate(cvImage, cvImage, ROTATE_90_CLOCKWISE);
-		}
-		else if (angle == 90)
-		{
-			if (flipV && flipH)
-				cv::rotate(cvImage, cvImage, ROTATE_90_COUNTERCLOCKWISE);
-			else if (flipV || flipH)
-				cv::rotate(cvImage, cvImage, ROTATE_90_CLOCKWISE);
-			else
-				cv::rotate(cvImage, cvImage, ROTATE_90_COUNTERCLOCKWISE);
-		}
-		else if (angle == 180)
-		{
-			cv::rotate(cvImage, cvImage, ROTATE_180);
-		}
-
-
 		/*
-		nearest neighbor interpolation
-		INTER_NEAREST = 0,
-		bilinear interpolation
-		INTER_LINEAR = 1,
-		bicubic interpolation
-		INTER_CUBIC = 2,
-		resampling using pixel area relation. It may be a preferred method for image decimation, as
-		it gives moire'-free results. But when the image is zoomed, it is similar to the INTER_NEAREST
-		method.
-		INTER_AREA = 3,
-		Lanczos interpolation over 8x8 neighborhood
-		INTER_LANCZOS4 = 4,
-		Bit exact bilinear interpolation
-		INTER_LINEAR_EXACT = 5,
-		Bit exact nearest neighbor interpolation. This will produce same results as
-		the nearest neighbor method in PIL, scikit-image or Matlab.
-		INTER_NEAREST_EXACT = 6,
+		BboxFilter 1
+		HermiteFilter 2
+		HanningFilter 3
+		CatromFilter 4
+		MitchellFilter 5
+		TriangleFilter 6
+		QuadraticFilter 7
+		BlackmanFilter 8
+		HammingFilter 9
 		*/
-		CRegardsConfigParam* regardsParam = CParamInit::getInstance();
-        if (cvImage.cols != widthOut || cvImage.rows != heightOut)
-		{
-			resize(cvImage, cvImage, Size(widthOut, heightOut), method);
-		}
 
+		int localMethod = method - 7;
 
-		if (cvImage.cols != widthOut || cvImage.rows != heightOut)
-			resize(cvImage, cvImage, Size(widthOut, heightOut), method);
-
-		//Apply Transformation
-
-		if (flipH)
-		{
-			if (angle == 90 || angle == 270)
-				flip(cvImage, cvImage, 0);
-			else
-				flip(cvImage, cvImage, 1);
-		}
-		if (flipV)
-		{
-			if (angle == 90 || angle == 270)
-				flip(cvImage, cvImage, 1);
-			else
-				flip(cvImage, cvImage, 0);
-		}
-		//
+		return Interpolation(widthOut, heightOut, rc, localMethod, inputData, inputData.cols, inputData.rows, flipH, flipV, angle);
 	}
-	catch (Exception& e)
+	else
 	{
-		const char* err_msg = e.what();
-		std::cout << "COpenCLFilter::Interpolation exception caught: " << err_msg << std::endl;
-		std::cout << "wrong file format, please input the name of an IMAGE file" << std::endl;
-        std::cout << "width : " << widthOut << "height : " <<  heightOut << std::endl;
-        cv::Mat image(widthOut, heightOut, CV_8UC3, cv::Scalar(0, 0, 0));
-        image.copyTo(cvImage);
+		UMat cvImage;
+
+		try
+		{
+			float ratioX = static_cast<float>(inputData.cols) / rc.width;
+			float ratioY = static_cast<float>(inputData.rows) / rc.height;
+			if (angle == 90 || angle == 270)
+			{
+				ratioX = static_cast<float>(inputData.cols) / static_cast<float>(rc.height);
+				ratioY = static_cast<float>(inputData.rows) / static_cast<float>(rc.width);
+			}
+
+			Rect rectGlobal;
+			Rect rect_begin = CalculRect(inputData.cols, inputData.rows, widthOut, heightOut, flipH, flipV, angle, ratioX,
+										 ratioY, 0, 0, rc.x, rc.y);
+			Rect rect_end = CalculRect(inputData.cols, inputData.rows, widthOut, heightOut, flipH, flipV, angle, ratioX,
+									   ratioY, widthOut, heightOut, rc.x, rc.y);
+			rectGlobal.x = rect_begin.x;
+			rectGlobal.y = rect_begin.y;
+			rectGlobal.width = rect_end.x;
+			rectGlobal.height = rect_end.y;
+			if (rectGlobal.x > rectGlobal.width)
+			{
+				int x_end = rectGlobal.x;
+				int x = rectGlobal.width;
+				rectGlobal.x = x;
+				rectGlobal.width = x_end - x;
+			}
+			else
+			{
+				rectGlobal.width -= rectGlobal.x;
+			}
+
+			if (rectGlobal.y > rectGlobal.height)
+			{
+				int y_end = rectGlobal.y;
+				int y = rectGlobal.height;
+				rectGlobal.y = y;
+				rectGlobal.height = y_end - y;
+			}
+			else
+			{
+				rectGlobal.height -= rectGlobal.y;
+			}
+
+			if ((rectGlobal.height + rectGlobal.y) > inputData.rows)
+			{
+				rectGlobal.height = inputData.rows - rectGlobal.y;
+			}
+			if ((rectGlobal.width + rectGlobal.x) > inputData.cols)
+			{
+				rectGlobal.width = inputData.cols - rectGlobal.x;
+			}
+
+			//cv::UMat crop;
+			inputData(rectGlobal).copyTo(cvImage);
+			//Mat global;
+			//cvImage.copyTo(global);
+			//crop.copyTo(cvImage);
+			//cvImage = cvImage(rectGlobal);
+
+			if (angle == 270)
+			{
+				if (flipV && flipH)
+					cv::rotate(cvImage, cvImage, ROTATE_90_CLOCKWISE);
+				else if (flipV || flipH)
+					cv::rotate(cvImage, cvImage, ROTATE_90_COUNTERCLOCKWISE);
+				else
+					cv::rotate(cvImage, cvImage, ROTATE_90_CLOCKWISE);
+			}
+			else if (angle == 90)
+			{
+				if (flipV && flipH)
+					cv::rotate(cvImage, cvImage, ROTATE_90_COUNTERCLOCKWISE);
+				else if (flipV || flipH)
+					cv::rotate(cvImage, cvImage, ROTATE_90_CLOCKWISE);
+				else
+					cv::rotate(cvImage, cvImage, ROTATE_90_COUNTERCLOCKWISE);
+			}
+			else if (angle == 180)
+			{
+				cv::rotate(cvImage, cvImage, ROTATE_180);
+			}
+
+
+			/*
+			nearest neighbor interpolation
+			INTER_NEAREST = 0,
+			bilinear interpolation
+			INTER_LINEAR = 1,
+			bicubic interpolation
+			INTER_CUBIC = 2,
+			resampling using pixel area relation. It may be a preferred method for image decimation, as
+			it gives moire'-free results. But when the image is zoomed, it is similar to the INTER_NEAREST
+			method.
+			INTER_AREA = 3,
+			Lanczos interpolation over 8x8 neighborhood
+			INTER_LANCZOS4 = 4,
+			Bit exact bilinear interpolation
+			INTER_LINEAR_EXACT = 5,
+			Bit exact nearest neighbor interpolation. This will produce same results as
+			the nearest neighbor method in PIL, scikit-image or Matlab.
+			INTER_NEAREST_EXACT = 6,
+			*/
+
+
+			if (method == 7)
+			{
+				cv::Mat inBuf;
+				//cvImage.copyTo(inBuf);
+				cvtColor(cvImage, inBuf, cv::COLOR_BGR2BGRA);
+				cv::Mat OutBuf = cv::Mat(Size(widthOut, heightOut), CV_8UC4, Scalar(0, 0, 0));
+
+				avir::CImageResizer< avir::fpclass_float4 > ImageResizer(8);
+				avir::CImageResizerVars Vars;
+				Vars.UseSRGBGamma = true;
+				ImageResizer.resizeImage((uint8_t*)inBuf.data, inBuf.cols, inBuf.rows, inBuf.step, (uint8_t*)OutBuf.data, widthOut, heightOut, 4, 0, &Vars);
+
+				cvtColor(OutBuf, cvImage, cv::COLOR_BGRA2BGR);
+			}
+			else
+			{
+				CRegardsConfigParam* regardsParam = CParamInit::getInstance();
+				if (cvImage.cols != widthOut || cvImage.rows != heightOut)
+				{
+					resize(cvImage, cvImage, Size(widthOut, heightOut), method);
+				}
+
+
+				if (cvImage.cols != widthOut || cvImage.rows != heightOut)
+					resize(cvImage, cvImage, Size(widthOut, heightOut), method);
+			}
+			//OutBuf.copyTo(cvImage);
+			/*
+
+			*/
+			//Apply Transformation
+
+			if (flipH)
+			{
+				if (angle == 90 || angle == 270)
+					flip(cvImage, cvImage, 0);
+				else
+					flip(cvImage, cvImage, 1);
+			}
+			if (flipV)
+			{
+				if (angle == 90 || angle == 270)
+					flip(cvImage, cvImage, 1);
+				else
+					flip(cvImage, cvImage, 0);
+			}
+			//
+		}
+		catch (Exception& e)
+		{
+			const char* err_msg = e.what();
+			std::cout << "COpenCLFilter::Interpolation exception caught: " << err_msg << std::endl;
+			std::cout << "wrong file format, please input the name of an IMAGE file" << std::endl;
+			std::cout << "width : " << widthOut << "height : " <<  heightOut << std::endl;
+			cv::Mat image(widthOut, heightOut, CV_8UC3, cv::Scalar(0, 0, 0));
+			image.copyTo(cvImage);
+		}
+
+		return cvImage;
 	}
-
-	return cvImage;
-#endif
-
-	
 }
