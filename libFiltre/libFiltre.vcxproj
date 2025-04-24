@@ -564,6 +564,7 @@
     <ClInclude Include="bm3dEffectParameter.h" />
     <ClInclude Include="BrightAndContrastEffectParameter.h" />
     <ClInclude Include="BrightAndContrastFilter.h" />
+    <ClInclude Include="Pass2Scale.h" />
     <ClInclude Include="CartoonEffectParameter.h" />
     <ClInclude Include="CartoonFilter.h" />
     <ClInclude Include="circle.h" />
@@ -624,6 +625,7 @@
     <ClInclude Include="RedEyeParameter.h" />
     <ClInclude Include="RgbEffectParameter.h" />
     <ClInclude Include="RotateFreeFilter.h" />
+    <ClInclude Include="scalingfilter.h" />
     <ClInclude Include="Selection.h" />
     <ClInclude Include="SharpenMaskingFilter.h" />
     <ClInclude Include="SharpenMaskingParameter.h" />
@@ -655,6 +657,7 @@
     <ClCompile Include="bilateralFilter.cpp" />
     <ClCompile Include="BlurFilter.cpp" />
     <ClCompile Include="BrightAndContrastFilter.cpp" />
+    <ClCompile Include="Pass2Scale.cpp" />
     <ClCompile Include="CartoonFilter.cpp" />
     <ClCompile Include="circle.cpp" />
     <ClCompile Include="CloudsFilter.cpp" />

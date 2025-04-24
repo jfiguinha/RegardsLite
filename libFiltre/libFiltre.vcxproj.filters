@@ -64,6 +64,9 @@
     <Filter Include="header">
       <UniqueIdentifier>{90fb664c-5e73-44b6-a226-8d53135becfe}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Main\ScaleCPU">
+      <UniqueIdentifier>{9ed2b34d-359b-4297-b8d0-617beabf8e35}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <Text Include="ReadMe.txt" />
@@ -330,6 +333,12 @@
     <ClInclude Include="InpaintFilterParam.h">
       <Filter>window\Drawing</Filter>
     </ClInclude>
+    <ClInclude Include="Pass2Scale.h">
+      <Filter>Main\ScaleCPU</Filter>
+    </ClInclude>
+    <ClInclude Include="scalingfilter.h">
+      <Filter>Main\ScaleCPU</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="circle.cpp">
@@ -487,6 +496,9 @@
     </ClCompile>
     <ClCompile Include="InpaintFIlter.cpp">
       <Filter>window\Drawing</Filter>
+    </ClCompile>
+    <ClCompile Include="Pass2Scale.cpp">
+      <Filter>Main\ScaleCPU</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

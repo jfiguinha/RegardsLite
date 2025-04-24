@@ -19,11 +19,25 @@
 #include "opencv2/fuzzy.hpp"
 #include <avir.h>
 #include <avir_float4_sse.h>
+#include "scalingfilter.h"
 using namespace Regards::OpenCV;
 using namespace Regards::OpenGL;
 using namespace cv;
 extern float value[256];
 using namespace Regards::FiltreEffet;
+
+
+#define BOXFILTER 1001
+#define HERMITEFILTER 1002
+#define HANNINGFILTER 1003
+#define CATROMFILTER 1004
+#define MITCHELLFILTER 1005
+#define TRIANGLEFILTER 1006
+#define QUADRATICFILTER 1007
+#define BLACKMANFILTER 1008
+#define HAMMINGFILTER 1009
+#define GAUSSIANFILTER 1010
+#define BILINEARFILTER 1011
 
 
 class CFiltreEffetCPUImpl
@@ -1121,6 +1135,121 @@ Mat CFiltreEffetCPU::Interpolation(const Mat& inputData, const int& widthOut, co
 			avir::CImageResizerVars Vars;
 			Vars.UseSRGBGamma = true;
 			ImageResizer.resizeImage((uint8_t*)inBuf.data, inBuf.cols, inBuf.rows, inBuf.step, (uint8_t*)OutBuf.data, widthOut, heightOut, 4, 0, &Vars);
+
+			cvtColor(OutBuf, cvImage, cv::COLOR_BGRA2BGR);
+		}
+		else if (method > 7)
+		{
+			int local_method = method - 7 + 1000;
+			CPass2Scale* m_LocalFilter = nullptr;
+
+			cv::Mat inBuf;
+			cvtColor(cvImage, inBuf, cv::COLOR_BGR2BGRA);
+			cv::Mat OutBuf = cv::Mat(Size(widthOut, heightOut), CV_8UC4, Scalar(0, 0, 0));
+
+			COLORREF* m_OriginalBitmapBits = (COLORREF*)inBuf.data;
+			int iLocalWidth = inBuf.cols;
+			int iLocalHeight =inBuf.rows;
+			COLORREF* m_ScaledBitmapBits = (COLORREF*)OutBuf.data;
+			int width = widthOut;
+			int height = heightOut;
+
+			switch (local_method)
+			{
+			case BOXFILTER:
+			{
+				m_LocalFilter = new CBoxFilter();
+				m_LocalFilter->Scale(m_OriginalBitmapBits, iLocalWidth, iLocalHeight,
+					m_ScaledBitmapBits, width, height);
+			}
+			break;
+
+			case BILINEARFILTER:
+			{
+				m_LocalFilter = new CBilinearFilter();
+				m_ScaledBitmapBits = m_LocalFilter->AllocAndScale(m_OriginalBitmapBits, iLocalWidth, iLocalHeight, width, height);
+			}
+			break;
+
+			case GAUSSIANFILTER:
+			{
+				m_LocalFilter = new CGaussianFilter();
+				m_LocalFilter->Scale(m_OriginalBitmapBits, iLocalWidth, iLocalHeight,
+					m_ScaledBitmapBits, width, height);
+			}
+			break;
+
+			case HAMMINGFILTER:
+			{
+				m_LocalFilter = new CHammingFilter();
+				m_LocalFilter->Scale(m_OriginalBitmapBits, iLocalWidth, iLocalHeight,
+					m_ScaledBitmapBits, width, height);
+			}
+			break;
+
+			case BLACKMANFILTER:
+			{
+				m_LocalFilter = new CBlackmanFilter();
+				m_LocalFilter->Scale(m_OriginalBitmapBits, iLocalWidth, iLocalHeight,
+					m_ScaledBitmapBits, width, height);
+			}
+			break;
+
+			case QUADRATICFILTER:
+			{
+				m_LocalFilter = new CQuadraticFilter();
+				m_LocalFilter->Scale(m_OriginalBitmapBits, iLocalWidth, iLocalHeight,
+					m_ScaledBitmapBits, width, height);
+			}
+			break;
+
+			case MITCHELLFILTER:
+			{
+				m_LocalFilter = new CMitchellFilter();
+				m_LocalFilter->Scale(m_OriginalBitmapBits, iLocalWidth, iLocalHeight,
+					m_ScaledBitmapBits, width, height);
+			}
+			break;
+
+			case TRIANGLEFILTER:
+			{
+				m_LocalFilter = new CTriangleFilter();
+				m_LocalFilter->Scale(m_OriginalBitmapBits, iLocalWidth, iLocalHeight,
+					m_ScaledBitmapBits, width, height);
+			}
+			break;
+
+			case HERMITEFILTER:
+			{
+				m_LocalFilter = new CHermiteFilter();
+				m_LocalFilter->Scale(m_OriginalBitmapBits, iLocalWidth, iLocalHeight,
+					m_ScaledBitmapBits, width, height);
+			}
+			break;
+
+			case HANNINGFILTER:
+			{
+				m_LocalFilter = new CHanningFilter();
+				m_LocalFilter->Scale(m_OriginalBitmapBits, iLocalWidth, iLocalHeight,
+					m_ScaledBitmapBits, width, height);
+			}
+			break;
+
+			case CATROMFILTER:
+			{
+				m_LocalFilter = new CCatromFilter();
+				m_LocalFilter->Scale(m_OriginalBitmapBits, iLocalWidth, iLocalHeight,
+					m_ScaledBitmapBits, width, height);
+			}
+			break;
+
+			}
+
+			if (m_LocalFilter != nullptr)
+			{
+				delete m_LocalFilter;
+				m_LocalFilter = nullptr;
+			}
 
 			cvtColor(OutBuf, cvImage, cv::COLOR_BGRA2BGR);
 		}
