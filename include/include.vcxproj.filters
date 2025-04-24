@@ -13,6 +13,9 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="avir">
+      <UniqueIdentifier>{2702bdc2-f7be-4757-90e5-06d1c50bba23}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="config_id.h">
@@ -47,6 +50,18 @@
     </ClInclude>
     <ClInclude Include="window_id.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="avir.h">
+      <Filter>avir</Filter>
+    </ClInclude>
+    <ClInclude Include="avir_dil.h">
+      <Filter>avir</Filter>
+    </ClInclude>
+    <ClInclude Include="avir_float4_sse.h">
+      <Filter>avir</Filter>
+    </ClInclude>
+    <ClInclude Include="avir_float8_avx.h">
+      <Filter>avir</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
