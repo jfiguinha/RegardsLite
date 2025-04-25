@@ -1328,31 +1328,64 @@ void CThumbnail::PaintNow()
 
 void CThumbnail::Render(wxDC& dc)
 {
-
 	int width = GetWindowWidth();
 	int height = GetWindowHeight();
 
 	if (width <= 0 || height <= 0)
 		return;
 
-	if (threadDataProcess == false)
+	if (!threadDataProcess)
 	{
-		
-		wxRect rc = GetWindowRect();
-		//UpdateScroll();
-		FillRect(&dc, rc, themeThumbnail.colorBack);
-		if (!animationStart)
-		{
-			m_waitingAnimation->Show();
-			m_waitingAnimation->Start();
-			animationStart = true;
-			timerAnimation->Start(100, TIMER_TIME_REFRESH);
-		}
-
-		m_waitingAnimation->SetSize(wxSize(width, height));
-		m_waitingAnimation->SetBackgroundColour(themeThumbnail.colorBack);
+		RenderBackground(dc);
+		StartWaitingAnimation(width, height);
 		return;
 	}
+
+	StopWaitingAnimation();
+
+	if (numSelectPhotoId != -1 && !isMovingScroll && moveOnPaint)
+		CenterSelectedIcon();
+
+	TestMaxX();
+	TestMaxY();
+
+	render = true;
+
+	RenderBackground(dc);
+	RenderIcons(dc);
+
+	render = false;
+	oldPosLargeur = posLargeur;
+	oldPosHauteur = posHauteur;
+
+	NotifyParentOnPositionChange();
+
+	if (mouseClickBlock && mouseClickMove && enableDragAndDrop)
+		RenderDragAndDrop(dc);
+}
+
+void CThumbnail::RenderBackground(wxDC& dc)
+{
+	wxRect rc = GetWindowRect();
+	FillRect(&dc, rc, themeThumbnail.colorBack);
+}
+
+void CThumbnail::StartWaitingAnimation(int width, int height)
+{
+	if (!animationStart)
+	{
+		m_waitingAnimation->Show();
+		m_waitingAnimation->Start();
+		animationStart = true;
+		timerAnimation->Start(100, TIMER_TIME_REFRESH);
+	}
+
+	m_waitingAnimation->SetSize(wxSize(width, height));
+	m_waitingAnimation->SetBackgroundColour(themeThumbnail.colorBack);
+}
+
+void CThumbnail::StopWaitingAnimation()
+{
 	if (animationStart)
 	{
 		timerAnimation->Stop();
@@ -1360,35 +1393,29 @@ void CThumbnail::Render(wxDC& dc)
 		m_waitingAnimation->Hide();
 		animationStart = false;
 	}
+}
 
-	if (numSelectPhotoId != -1 && !isMovingScroll && moveOnPaint)
+void CThumbnail::CenterSelectedIcon()
+{
+	CIcone* numSelect = GetIconeById(numSelectPhotoId);
+	if (numSelect != nullptr)
 	{
-		CIcone *  numSelect = GetIconeById(numSelectPhotoId);
-		if (numSelect != nullptr)
-		{
-			wxRect rect = numSelect->GetPos();
-			int yPos = max((rect.y - this->GetWindowHeight() / 2), 0);
-			int xPos = max((rect.x - this->GetWindowWidth() / 2), 0);
-			posLargeur = xPos;
-			posHauteur = yPos;
-		}
+		wxRect rect = numSelect->GetPos();
+		int yPos = std::max((rect.y - this->GetWindowHeight() / 2), 0);
+		int xPos = std::max((rect.x - this->GetWindowWidth() / 2), 0);
+		posLargeur = xPos;
+		posHauteur = yPos;
 	}
+}
 
-	TestMaxX();
-	TestMaxY();
 
-	render = true;
-	
-	wxRect rc = GetWindowRect();
-	FillRect(&dc, rc, themeThumbnail.colorBack);
-
+void CThumbnail::RenderIcons(wxDC& dc)
+{
 	RenderIcone(&dc);
+}
 
-	render = false;
-	oldPosLargeur = posLargeur;
-	oldPosHauteur = posHauteur;
-
-
+void CThumbnail::NotifyParentOnPositionChange()
+{
 	if (this->GetParent() != nullptr && moveOnPaint)
 	{
 		auto size = new wxSize();
@@ -1398,47 +1425,39 @@ void CThumbnail::Render(wxDC& dc)
 		evt.SetClientData(size);
 		this->GetParent()->GetEventHandler()->AddPendingEvent(evt);
 	}
+}
 
+void CThumbnail::RenderDragAndDrop(wxDC& dc)
+{
+	dc.DrawBitmap(bitmapIconDrag, xPosDrag - (bitmapIconDrag.GetWidth() / 2),
+		yPosDrag - (bitmapIconDrag.GetHeight() / 2));
 
-	if (mouseClickBlock && mouseClickMove && enableDragAndDrop)
+	if (nbElementChecked > 1)
 	{
-		dc.DrawBitmap(bitmapIconDrag, xPosDrag - (bitmapIconDrag.GetWidth() / 2),
-		              yPosDrag - (bitmapIconDrag.GetHeight() / 2));
+		wxString libelle = std::to_string(nbElementChecked);
 
-		if (nbElementChecked > 1)
+		if (!libelle.IsEmpty())
 		{
-			wxString libelle = L"";
+			CThemeIcone themeIcone;
+			CThemeFont themeFont = themeIcone.font;
+			themeFont.SetFontSize(18);
+			wxSize size = GetSizeTexte(&dc, libelle, themeFont);
+			int localx = xPosDrag - (bitmapIconDrag.GetWidth() / 2);
+			int localy = xPosDrag - (bitmapIconDrag.GetHeight() / 2);
 
-			libelle = to_string(nbElementChecked);
+			int xPos = xPosDrag - size.x / 2;
+			int yPos = yPosDrag - size.y / 2;
 
-			if (libelle != L"")
-			{
-				CThemeIcone themeIcone;
-				CThemeFont themeFont = themeIcone.font;
-				themeFont.SetFontSize(18);
-				wxSize size = GetSizeTexte(&dc, libelle, themeFont);
-				int localx = xPosDrag - (bitmapIconDrag.GetWidth() / 2);
-				int localy = yPosDrag - (bitmapIconDrag.GetHeight() / 2);
+			dc.SetBrush(wxBrush(themeIcone.colorSelectTop));
+			dc.DrawRoundedRectangle(localx + bitmapIconDrag.GetWidth() / 4, localy + bitmapIconDrag.GetHeight() / 4,
+				bitmapIconDrag.GetWidth() / 2, bitmapIconDrag.GetHeight() / 2, -0.25);
+			dc.SetBrush(wxNullBrush);
 
-				int xPos = xPosDrag - size.x / 2;
-				int yPos = yPosDrag - size.y / 2;
-
-				dc.SetBrush(wxBrush(themeIcone.colorSelectTop));
-				dc.DrawRoundedRectangle(localx + bitmapIconDrag.GetWidth() / 4, localy + bitmapIconDrag.GetHeight() / 4,
-				                        bitmapIconDrag.GetWidth() / 2, bitmapIconDrag.GetHeight() / 2, -0.25);
-				dc.SetBrush(wxNullBrush);
-
-				dc.SetBrush(wxBrush(*wxWHITE));
-				DrawTexte(&dc, libelle, xPos, yPos, themeFont);
-				dc.SetBrush(wxNullBrush);
-			}
+			dc.SetBrush(wxBrush(*wxWHITE));
+			DrawTexte(&dc, libelle, xPos, yPos, themeFont);
+			dc.SetBrush(wxNullBrush);
 		}
 	}
-
-	if (firstRefresh)
-		if (!timerAnimation->IsRunning())
-			timerAnimation->Start(500, true);
-	firstRefresh = false;
 }
 
 void CThumbnail::Resize()

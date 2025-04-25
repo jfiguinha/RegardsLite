@@ -77,6 +77,14 @@ namespace Regards::Window
 		
 	protected:
 
+		void RenderBackground(wxDC& dc);
+		void StartWaitingAnimation(int width, int height);
+		void StopWaitingAnimation();
+		void CenterSelectedIcon();
+		void RenderIcons(wxDC& dc);
+		void NotifyParentOnPositionChange();
+		void RenderDragAndDrop(wxDC& dc);
+
 		void GenerateCleanupListFile(std::vector<CIcone*> & pIconeListToClean);
 		//void ProcessIdle() {} override;
 		void PaintNow();

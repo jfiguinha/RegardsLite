@@ -46,59 +46,53 @@ CPictureArray::CPictureArray(cv::UMat& m)
 
 int CPictureArray::getWidth()
 {
-	if (kind == cv::_InputArray::KindFlag::CUDA_GPU_MAT)
-	{
-		return gpuMat.size().width;
-	}
-	else if (kind == cv::_InputArray::KindFlag::MAT)
-	{
-		return mat.size().width;
-	}
-	return umat.size().width;
+	return getSize().width;
 }
 
 int CPictureArray::getHeight()
 {
-	if (kind == cv::_InputArray::KindFlag::CUDA_GPU_MAT)
+	return getSize().height;
+}
+
+cv::Size CPictureArray::getSize()
+{
+	switch (kind)
 	{
-		return gpuMat.size().height;
+	case cv::_InputArray::KindFlag::CUDA_GPU_MAT:
+		return gpuMat.size();
+	case cv::_InputArray::KindFlag::MAT:
+		return mat.size();
+	case cv::_InputArray::KindFlag::UMAT:
+		return umat.size();
+	default:
+		throw std::runtime_error("Unsupported kind in CPictureArray::getSize");
 	}
-	else if (kind == cv::_InputArray::KindFlag::MAT)
-	{
-		return mat.size().height;
-	}
-	return umat.size().height;
 }
 
 void CPictureArray::CopyFrom(cv::ogl::Texture2D* tex)
 {
-	if (kind == cv::_InputArray::KindFlag::CUDA_GPU_MAT)
+	try
 	{
-        bool isOk = true;
-        try
-        {
-            tex->copyFrom(gpuMat, true);
-        }
-        catch (cv::Exception& e)
-        {
-            const char* err_msg = e.what();
-            std::cout << "exception caught: " << err_msg << std::endl;
-            std::cout << "wrong file format, please input the name of an IMAGE file" << std::endl;
-            isOk = false;
-        }
-        
-        if(!isOk)
-        {
-            tex->copyFrom(getMat(), true);
-        }
+		switch (kind)
+		{
+		case cv::_InputArray::KindFlag::CUDA_GPU_MAT:
+			tex->copyFrom(gpuMat, true);
+			break;
+		case cv::_InputArray::KindFlag::MAT:
+			tex->copyFrom(mat, true);
+			break;
+		case cv::_InputArray::KindFlag::UMAT:
+			tex->copyFrom(umat, true);
+			break;
+		default:
+			throw std::runtime_error("Unsupported kind in CPictureArray::CopyFrom");
+		}
 	}
-	else if (kind == cv::_InputArray::KindFlag::MAT)
+	catch (const cv::Exception& e)
 	{
-		tex->copyFrom(mat, true);
-	}
-	else
-	{
-		tex->copyFrom(umat, true);
+		std::cerr << "OpenCV exception in CPictureArray::CopyFrom: " << e.what() << std::endl;
+		std::cerr << "Falling back to cv::Mat." << std::endl;
+		tex->copyFrom(getMat(), true);
 	}
 }
 

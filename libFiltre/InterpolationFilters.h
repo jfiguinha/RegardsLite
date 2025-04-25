@@ -184,15 +184,15 @@ public:
                 return 0.0; 
             }
 
-			#define B   (1.0/3.0)
-			#define C   (1.0/3.0)
-			#define P0  ((  6.0- 2.0*B       )/6.0)
-			#define P2  ((-18.0+12.0*B+ 6.0*C)/6.0)
-			#define P3  (( 12.0- 9.0*B- 6.0*C)/6.0)
-			#define Q0  ((       8.0*B+24.0*C)/6.0)
-			#define Q1  ((     -12.0*B-48.0*C)/6.0)
-			#define Q2  ((       6.0*B+30.0*C)/6.0)
-			#define Q3  ((     - 1.0*B- 6.0*C)/6.0)
+			constexpr double B = 1.0 / 3.0;
+			constexpr double C = 1.0 / 3.0;
+			constexpr double P0 = (6.0 - 2.0 * B) / 6.0;
+			constexpr double P2 = (-18.0 + 12.0 * B + 6.0 * C) / 6.0;
+			constexpr double P3 = (12.0 - 9.0 * B - 6.0 * C) / 6.0;
+			constexpr double Q0 = (8.0 * B + 24.0 * C) / 6.0;
+			constexpr double Q1 = (-12.0 * B - 48.0 * C) / 6.0;
+			constexpr double Q2 = (6.0 * B + 30.0 * C) / 6.0;
+			constexpr double Q3 = (-1.0 * B - 6.0 * C) / 6.0;
 
 			  if (x < -2.0)
 				return(0.0);

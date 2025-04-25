@@ -26,7 +26,7 @@ protected:
 
 	virtual inline double Filter(const double &x);
 			
-	virtual inline void Bicubic(const cv::Mat& in, uchar*& data, const float& x, const float& y, float* tabF1, float* tabF);
+	virtual inline void Bicubic(const cv::Mat& in, uchar*& data, const int& x, const int& y, float* tabF1, float* tabF);
 
 	void CalculWeight(const int32_t &width, const int32_t &height, const float &ratioY, const float &ratioX, const float &posTop, const float &posLeft);
 

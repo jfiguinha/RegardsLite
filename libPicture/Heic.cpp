@@ -24,161 +24,162 @@ CHeic::~CHeic()
 
 static const char kMetadataTypeExif[] = "Exif";
 
-void GetHandleMetadata(heif_image_handle * handle, uint8_t * & buffer, unsigned int& size)
+void GetHandleMetadata(heif_image_handle* handle, uint8_t*& buffer, unsigned int& size)
 {
-    
-    heif_item_id metadata_id;
-    int count = heif_image_handle_get_list_of_metadata_block_IDs(handle, kMetadataTypeExif,
-                                                               &metadata_id, 1);
+	heif_item_id metadata_id;
+	int count = heif_image_handle_get_list_of_metadata_block_IDs(handle, kMetadataTypeExif, &metadata_id, 1);
 
-    for (int i = 0; i < count; i++) 
-    {
-        size_t datasize = heif_image_handle_get_metadata_size(handle, metadata_id);
+	if (count <= 0) {
+		printf("No metadata found.\n");
+		return;
+	}
 
-        if(size > 0)
-        {
-            heif_error error = heif_image_handle_get_metadata(handle, metadata_id, buffer);
-            if (error.code != heif_error_Ok) {
-              continue;
-            }
-        }
-        
-        
-        size = datasize;
-        if(size > 0)
-            break;
-    }
-    
-    printf("size : %d local_data : %u \n",size, buffer);
+	for (int i = 0; i < count; i++) {
+		size_t datasize = heif_image_handle_get_metadata_size(handle, metadata_id);
 
-}
-
-vector<cv::Mat> CHeic::GetAllPicture(const char * filename, int& delay)
-{
-    vector<cv::Mat> listPicture;
-    
-    heif_context* ctx = heif_context_alloc();
-    heif_context_read_from_file(ctx, filename, nullptr);
-   
-    int numImages = heif_context_get_number_of_top_level_images(ctx);
-    std::vector<heif_item_id> IDs(numImages);
-    heif_context_get_list_of_top_level_image_IDs(ctx, IDs.data(), numImages);
-
-    for (int i = 0; i < numImages; i++) {
-        struct heif_image_handle* handle;
-        struct heif_error err = heif_context_get_image_handle(ctx, IDs[i], &handle);
-        if (err.code) {
-          std::cerr << err.message << "\n";
-          break;
-        }
-        int width = heif_image_handle_get_width(handle);
-        int height = heif_image_handle_get_height(handle);
-
-        cv::Mat picture = cv::Mat(height, width, CV_8UC3);
-        
-		// decode the image and convert colorspace to RGB, saved as 24bit interleaved
-		heif_image* img;
-		heif_decode_image(handle, &img, heif_colorspace_RGB, heif_chroma_interleaved_RGB, nullptr);
-
-        int stride = 0;
-        const uint8_t * data = heif_image_get_plane_readonly(img, heif_channel_interleaved, &stride);
-        memcpy(picture.data, data, stride * height);
-
-        heif_image_release(img);
-        
-
-        cv::cvtColor(picture, picture, cv::COLOR_RGB2BGRA);
-        
-        
-        listPicture.push_back(picture);
-
-
-        heif_image_handle_release(handle);
- 
-    }
-    
-    heif_context_free(ctx);
-    
-    return listPicture;
-    
-}
-
-/*
-#define HEIC 26
-#define AVIF 35
-*/
-
-void CHeic::SavePicture(const char * filenameOut, const int& format, cv::Mat& source, uint8_t*& data_exif, unsigned int& size,
-                        const int& compression, const bool& hasExif)
-{
-
-	struct heif_error err{};
-	if (!source.empty())
-	{
-		heif_context* ctx = heif_context_alloc();
-		if (ctx)
-		{
-			// get the default encoder
-			heif_encoder* encoder;
-			if(format == 26)
-				heif_context_get_encoder_for_format(ctx, heif_compression_HEVC, &encoder);
-			else if(format == 35)
-				heif_context_get_encoder_for_format(ctx, heif_compression_AV1, &encoder);
-			else
-				heif_context_get_encoder_for_format(ctx, heif_compression_undefined, &encoder);
-
-
-			// set the encoder parameters
-			heif_encoder_set_lossy_quality(encoder, compression);
-
-
-			// encode the image
-			heif_image* image; // code to fill in the image omitted in this example
-
-			err = heif_image_create(source.size().width, source.size().height,
-			                        heif_colorspace_RGB,
-			                        heif_chroma_interleaved_RGBA,
-			                        &image);
-
-
-			heif_image_add_plane(image, heif_channel_interleaved, source.size().width, source.size().height,
-			                     32);
-
-			cvtColor(source, source, cv::COLOR_BGRA2RGBA);
-			int stride;
-			uint8_t* p = heif_image_get_plane(image, heif_channel_interleaved, &stride);
-			uint8_t* data = source.data;
-			//source->HorzFlipBuf();
-			for (uint32_t y = 0; y < source.size().height; y++)
-			{
-				int position = source.size().width * 4 * y;
-				memcpy(p + y * stride, data + position, source.size().width * 4);
+		if (datasize > 0) {
+			heif_error error = heif_image_handle_get_metadata(handle, metadata_id, buffer);
+			if (error.code == heif_error_Ok) {
+				size = static_cast<unsigned int>(datasize);
+				printf("size : %u local_data : %p \n", size, buffer);
+				return;
 			}
-
-			heif_context_encode_image(ctx, image, encoder, nullptr, nullptr);
-
-			if (encoder != nullptr)
-				heif_encoder_release(encoder);
-			if (image != nullptr)
-				heif_image_release(image);
-
-			heif_image_handle* image_handle;
-			heif_context_get_primary_image_handle(ctx, &image_handle);
-			if (hasExif)
-			{
-				heif_context_add_exif_metadata(ctx, image_handle, data_exif, size);
-			}
-			heif_image_handle_release(image_handle);
-
-			heif_context_write_to_file(ctx, filenameOut);
-
-			heif_context_free(ctx);
 		}
 	}
 
+	printf("Failed to retrieve metadata.\n");
+}
+vector<cv::Mat> CHeic::GetAllPicture(const char* filename, int& delay)
+{
+	vector<cv::Mat> listPicture;
+	heif_context* ctx = heif_context_alloc();
+	if (!ctx) {
+		std::cerr << "Failed to allocate HEIF context.\n";
+		return listPicture;
+	}
+
+	heif_error err = heif_context_read_from_file(ctx, filename, nullptr);
+	if (err.code != heif_error_Ok) {
+		std::cerr << "Error reading HEIF file: " << err.message << "\n";
+		heif_context_free(ctx);
+		return listPicture;
+	}
+
+	int numImages = heif_context_get_number_of_top_level_images(ctx);
+	if (numImages <= 0) {
+		std::cerr << "No images found in the file.\n";
+		heif_context_free(ctx);
+		return listPicture;
+	}
+
+	std::vector<heif_item_id> IDs(numImages);
+	heif_context_get_list_of_top_level_image_IDs(ctx, IDs.data(), numImages);
+
+	for (const auto& id : IDs) {
+		heif_image_handle* handle = nullptr;
+		err = heif_context_get_image_handle(ctx, id, &handle);
+		if (err.code != heif_error_Ok) {
+			std::cerr << "Error getting image handle: " << err.message << "\n";
+			continue;
+		}
+
+		heif_image* img = nullptr;
+		err = heif_decode_image(handle, &img, heif_colorspace_RGB, heif_chroma_interleaved_RGB, nullptr);
+		if (err.code != heif_error_Ok) {
+			std::cerr << "Error decoding image: " << err.message << "\n";
+			heif_image_handle_release(handle);
+			continue;
+		}
+
+		int width = heif_image_handle_get_width(handle);
+		int height = heif_image_handle_get_height(handle);
+		int stride = 0;
+		const uint8_t* data = heif_image_get_plane_readonly(img, heif_channel_interleaved, &stride);
+
+		if (data) {
+			cv::Mat picture(height, width, CV_8UC3);
+			memcpy(picture.data, data, stride * height);
+			cv::cvtColor(picture, picture, cv::COLOR_RGB2BGRA);
+			listPicture.push_back(std::move(picture));
+		}
+
+		heif_image_release(img);
+		heif_image_handle_release(handle);
+	}
+
+	heif_context_free(ctx);
+	return listPicture;
 }
 
+void CHeic::SavePicture(const char* filenameOut, const int& format, cv::Mat& source, uint8_t*& data_exif, unsigned int& size,
+	const int& compression, const bool& hasExif)
+{
+	if (source.empty()) {
+		std::cerr << "Source image is empty.\n";
+		return;
+	}
 
+	heif_context* ctx = heif_context_alloc();
+	if (!ctx) {
+		std::cerr << "Failed to allocate HEIF context.\n";
+		return;
+	}
+
+	heif_encoder* encoder = nullptr;
+	heif_error err;
+	if (format == 26) {
+		err = heif_context_get_encoder_for_format(ctx, heif_compression_HEVC, &encoder);
+	}
+	else if (format == 35) {
+		err = heif_context_get_encoder_for_format(ctx, heif_compression_AV1, &encoder);
+	}
+	else {
+		err = heif_context_get_encoder_for_format(ctx, heif_compression_undefined, &encoder);
+	}
+
+	if (err.code != heif_error_Ok || !encoder) {
+		std::cerr << "Failed to get encoder: " << err.message << "\n";
+		heif_context_free(ctx);
+		return;
+	}
+
+	heif_encoder_set_lossy_quality(encoder, compression);
+
+	heif_image* image = nullptr;
+	err = heif_image_create(source.cols, source.rows, heif_colorspace_RGB, heif_chroma_interleaved_RGBA, &image);
+	if (err.code != heif_error_Ok || !image) {
+		std::cerr << "Failed to create HEIF image: " << err.message << "\n";
+		heif_encoder_release(encoder);
+		heif_context_free(ctx);
+		return;
+	}
+
+	heif_image_add_plane(image, heif_channel_interleaved, source.cols, source.rows, 32);
+
+	cv::Mat converted;
+	cv::cvtColor(source, converted, cv::COLOR_BGRA2RGBA);
+	int stride;
+	uint8_t* p = heif_image_get_plane(image, heif_channel_interleaved, &stride);
+	memcpy(p, converted.data, converted.total() * converted.elemSize());
+
+	err = heif_context_encode_image(ctx, image, encoder, nullptr, nullptr);
+	if (err.code != heif_error_Ok) {
+		std::cerr << "Failed to encode image: " << err.message << "\n";
+	}
+
+	if (hasExif) {
+		heif_image_handle* image_handle = nullptr;
+		heif_context_get_primary_image_handle(ctx, &image_handle);
+		heif_context_add_exif_metadata(ctx, image_handle, data_exif, size);
+		heif_image_handle_release(image_handle);
+	}
+
+	heif_context_write_to_file(ctx, filenameOut);
+
+	heif_image_release(image);
+	heif_encoder_release(encoder);
+	heif_context_free(ctx);
+}
 
 cv::Mat CHeic::GetPicture(const char * filename, int& delay, const int& numPicture)
 {

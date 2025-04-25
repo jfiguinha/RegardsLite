@@ -378,55 +378,49 @@ void CThumbnailVideo::UpdateVideoThumbnail(const wxString& videoFile)
 
 
 }
-
-void CThumbnailVideo::LoadVideoThumbnail(void * param)
+void CThumbnailVideo::LoadVideoThumbnail(void* param)
 {
-	CLibPicture libPicture;
-	auto threadLoadingBitmap = static_cast<CThreadLoadingBitmap*>(param);
-	if (threadLoadingBitmap == nullptr)
+	if (!param)
 		return;
 
+	auto threadLoadingBitmap = static_cast<CThreadLoadingBitmap*>(param);
+	if (!threadLoadingBitmap)
+		return;
 
+	CLibPicture libPicture;
 	vector<CImageVideoThumbnail*> listVideo = libPicture.LoadAllVideoThumbnail(threadLoadingBitmap->filename, true, true);
 
-	if (listVideo.size() > 0)
+	if (!listVideo.empty())
 	{
 		CSqlThumbnailVideo sqlThumbnailVideo;
 
-		//int selectPicture = listVideo.size() / 2;
-		for (int i = 0; i < listVideo.size(); i++)
+		for (size_t i = 0; i < listVideo.size(); ++i)
 		{
 			CImageVideoThumbnail* bitmap = listVideo[i];
-			wxString filename = threadLoadingBitmap->filename; // bitmap->image->GetFilename();
+			if (!bitmap || bitmap->image.empty())
+				continue;
 
-			if (!bitmap->image.empty())
-			{
-				wxString localName = sqlThumbnailVideo.InsertThumbnail(filename, bitmap->image.size().width,
-					bitmap->image.size().height, i, bitmap->rotation, bitmap->percent,
-					bitmap->timePosition);
+			wxString localName = sqlThumbnailVideo.InsertThumbnail(
+				threadLoadingBitmap->filename,
+				bitmap->image.size().width,
+				bitmap->image.size().height,
+				static_cast<int>(i),
+				bitmap->rotation,
+				bitmap->percent,
+				bitmap->timePosition
+			);
 
-				cv::imwrite(CConvertUtility::ConvertToStdString(localName), bitmap->image);
-				//bitmap->image.SaveFile(localName, wxBITMAP_TYPE_JPEG);
-			}
-
+			cv::imwrite(CConvertUtility::ConvertToStdString(localName), bitmap->image);
 
 			if (i == 0)
 				threadLoadingBitmap->bitmapIcone = bitmap->image;
-
 		}
+
 		threadLoadingBitmap->isAnimationOrVideo = true;
 	}
-	else //Not support video
+	else
 	{
 		threadLoadingBitmap->bitmapIcone = CLibPicture::mat_from_wx(defaultPicture);
-		wxString filename = threadLoadingBitmap->filename;
-
-		//wxBitmap bitmap = wxBitmap(defaultPicture);
-
-
-		CSqlThumbnailVideo sqlThumbnailVideo;
-		wxString localName = sqlThumbnailVideo.InsertThumbnail(filename, defaultPicture.GetWidth(), defaultPicture.GetHeight(), 0, 0, 0, 0);
-		defaultPicture.SaveFile(localName, wxBITMAP_TYPE_JPEG);
 	}
 
 	for (CImageVideoThumbnail* bitmap : listVideo)
@@ -437,7 +431,6 @@ void CThumbnailVideo::LoadVideoThumbnail(void * param)
 	auto event = new wxCommandEvent(wxEVENT_ICONEUPDATE);
 	event->SetClientData(threadLoadingBitmap);
 	wxQueueEvent(threadLoadingBitmap->window, event);
-
 }
 
 void CThumbnailVideo::UpdateVideoThumbnail()

@@ -4,90 +4,66 @@ using namespace Regards::Viewer;
 
 int CImageList::GetNbElement()
 {
-	muList.lock();
-	int nbElement = photolist.size();
-	muList.unlock();
-	return nbElement;
+    std::lock_guard<std::mutex> lock(muList);
+    return photolist.size();
 }
 
 CImageList::~CImageList()
 {
-	photolist.clear();
+    std::lock_guard<std::mutex> lock(muList);
+    photolist.clear();
 }
 
 PhotosVector* CImageList::GetPointer()
 {
-	return &photolist;
+    return &photolist;
 }
 
 PhotosVector CImageList::GetCopy()
 {
-	muList.lock();
-	PhotosVector listCopy;
-	if (photolist.size() > 0)
-	{
-		listCopy.reserve(photolist.size());
-		copy(photolist.begin(), photolist.end(), back_inserter(listCopy));
-	}
-	muList.unlock();
-	return listCopy;
+    std::lock_guard<std::mutex> lock(muList);
+    return photolist; // Copie implicite du vecteur
 }
 
 void CImageList::Lock()
 {
-	muList.lock();
+    muList.lock();
 }
 
 void CImageList::Unlock()
 {
-	muList.unlock();
+    muList.unlock();
 }
 
 void CImageList::SetImageList(const PhotosVector& pictures)
 {
-	muList.lock();
-	if (pictures.size() > 0)
-	{
-		photolist.clear();
-		photolist.reserve(pictures.size());
-		copy(pictures.begin(), pictures.end(), back_inserter(photolist));
-	}
-	else
-	{
-		photolist.clear();
-	}
-	muList.unlock();
+    std::lock_guard<std::mutex> lock(muList);
+    photolist = pictures; // Copie directe du vecteur
 }
 
 CPhotos CImageList::GetElement(const int& numElement, bool& isValid)
 {
-	CPhotos photo;
-	isValid = false;
-	muList.lock();
-	if (numElement < photolist.size())
-	{
-		photo = photolist.at(numElement);
-		isValid = true;
-	}
-	muList.unlock();
-	return photo;
+    std::lock_guard<std::mutex> lock(muList);
+    if (numElement >= 0 && numElement < photolist.size())
+    {
+        isValid = true;
+        return photolist[numElement];
+    }
+    isValid = false;
+    return CPhotos(); // Retourne un objet par défaut
 }
 
 wxString CImageList::GetFilePath(const int& numElement, bool& isValid)
 {
-	CPhotos photo;
-	wxString path = "";
-	isValid = false;
-	muList.lock();
-	if (numElement < photolist.size())
-	{
-		photo = photolist.at(numElement);
-		path = photo.GetPath();
-		if (wxFileExists(path))
-			isValid = true;
-	}
-	muList.unlock();
-	return path;
+    std::lock_guard<std::mutex> lock(muList);
+    if (numElement >= 0 && numElement < photolist.size())
+    {
+        wxString path = photolist[numElement].GetPath();
+        isValid = wxFileExists(path);
+        return path;
+    }
+    isValid = false;
+    return ""; // Retourne une chaîne vide
 }
 
 int CImageList::FindFileIndex(const wxString& filename)

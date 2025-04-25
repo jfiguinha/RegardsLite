@@ -2,25 +2,43 @@
 #include "InterpolationBicubic.h"
 
 
-CInterpolationBicubic::CInterpolationBicubic(const double & dWidth)
+CInterpolationBicubic::CInterpolationBicubic(const double& dWidth)
+	: wX(nullptr), wY(nullptr), m_dWidth(dWidth)
 {
-	wX = nullptr;
-	wY = nullptr;
-	m_dWidth = dWidth;
 }
 
 
 CInterpolationBicubic::~CInterpolationBicubic()
 {
+	// Libérer la mémoire existante pour éviter les fuites
 	if (wX != nullptr)
+	{
 		delete[] wX;
+		wX = nullptr;
+	}
 
 	if (wY != nullptr)
+	{
 		delete[] wY;
+		wY = nullptr;
+	}
 }
 
 void CInterpolationBicubic::CalculWeight(const int32_t &width, const int32_t &height, const float &ratioY, const float &ratioX, const float &posTop, const float &posLeft)
 {
+	// Libérer la mémoire existante pour éviter les fuites
+	if (wX != nullptr)
+	{
+		delete[] wX;
+		wX = nullptr;
+	}
+
+	if (wY != nullptr)
+	{
+		delete[] wY;
+		wY = nullptr;
+	}
+
 	wX = new weightX[width];
 	wY = new weightX[height];
 
@@ -50,118 +68,102 @@ void CInterpolationBicubic::CalculWeight(const int32_t &width, const int32_t &he
 
 void CInterpolationBicubic::Execute(const cv::Mat & in, cv::Mat & out)
 {
-
-	if(in.rows > 0 && in.cols > 0 && out.rows > 0 && out.cols > 0)
+	// Vérification des dimensions des matrices
+	if (in.empty() || out.empty() || in.rows <= 0 || in.cols <= 0 || out.rows <= 0 || out.cols <= 0)
 	{
+		throw std::invalid_argument("Les matrices d'entrée ou de sortie sont invalides.");
+	}
 
-		float ratioX = (float)in.cols / (float)out.cols;
-		float ratioY = (float)in.rows / (float)out.rows;
+	float ratioX = static_cast<float>(in.cols) / static_cast<float>(out.cols);
+	float ratioY = static_cast<float>(in.rows) / static_cast<float>(out.rows);
 
-		CalculWeight(out.cols, out.rows, ratioY, ratioX, 0.0f, 0.0f);
+	// Calcul des poids pour l'interpolation
+	CalculWeight(out.cols, out.rows, ratioY, ratioX, 0.0f, 0.0f);
 
-		//Pre calcul posY
-		float* posTabY = new float[out.rows];
+	// Allocation des tableaux pour les positions
+	std::unique_ptr<int[]> posTabY(new int[out.rows]);
+	std::unique_ptr<int[]> posTabX(new int[out.cols]);
 
-		for (auto y = 0; y < out.rows; y++)
-			posTabY[y] = (float)y * ratioY;
+	// Pré-calcul des positions Y
+	for (int y = 0; y < out.rows; y++)
+	{
+		posTabY[y] = static_cast<int>(y * ratioY);
+	}
 
-		float* posTabX = new float[out.cols];
-		for (auto x = 0; x < out.cols; x++)
-			posTabX[x] = (float)x * ratioX;
+	// Pré-calcul des positions X
+	for (int x = 0; x < out.cols; x++)
+	{
+		posTabX[x] = static_cast<int>(x * ratioX);
+	}
 
-	#pragma omp parallel for
-		for (auto y = 0; y < out.rows; y++)
+	// Interpolation bicubique
+#pragma omp parallel for
+	for (int y = 0; y < out.rows; y++)
+	{
+		for (int x = 0; x < out.cols; x++)
 		{
-	#pragma omp parallel for
-			for (auto x = 0; x < out.cols; x++)
+			int i = x * 3 + (y * out.step);
+			uchar* data = out.data + i;
+
+			// Vérification des limites des positions
+			if (posTabX[x] >= 0 && posTabX[x] < in.cols && posTabY[y] >= 0 && posTabY[y] < in.rows)
 			{
-				//float posY = (float)y * ratioY;
-				//float posX = (float)x * ratioX;
-				int i = (x << 2) + (y * (out.cols << 2));
-				uchar* data = out.data + i;
 				Bicubic(in, data, posTabX[x], posTabY[y], wY[y].tabF, wX[x].tabF);
 			}
+			else
+			{
+				// Valeurs par défaut en cas de position invalide
+				data[0] = data[1] = data[2] = 0;
+				data[3] = 255; // Alpha par défaut (opaque)
+			}
 		}
-
-		delete[] posTabY;
-		delete[] posTabX;
 	}
 
 }
 
-void CInterpolationBicubic::Bicubic(const cv::Mat& in, uchar * & data, const float& x, const float& y, float* tabF1, float* tabF)
+void CInterpolationBicubic::Bicubic(const cv::Mat& in, uchar * & data, const int& x, const int& y, float* tabF1, float* tabF)
 {
-	s_rgb out{ 0,0,0,0 };
-	float nDenom = 0.0;
-	int valueA = (int)x;
-	int valueB = (int)y;
 
-	float r = 0.0, g = 0.0, b = 0.0, a = 0.0;
+	float nDenom = 0.0f;
+	float r = 0.0f, g = 0.0f, b = 0.0f;
 
-	int debutN = -1;
-	int finN = 2;
-	//Calcul démarrage du y;
-	if (valueB == 0)
-	{
-		debutN = 0;
-	}
+	// Définir les limites pour les boucles
+	int debutN = (y == 0) ? 0 : -1;
+	int finN = (y >= in.rows - 2) ? (in.rows - y - 1) : 2;
 
-	if (valueB == in.rows - 2)
-	{
-		finN = 1;
-	}
+	int debutM = (x == 0) ? 0 : -1;
+	int finM = (x >= in.cols - 2) ? (in.cols - x - 1) : 2;
 
-	if (valueB == in.rows - 1)
-	{
-		finN = 0;
-	}
+	int posX = x + debutM;
+	int posY = y + debutN;
 
-	int debutM = -1;
-	int finM = 2;
-	//Calcul démarrage du y;
-	if (valueA == 0)
-	{
-		debutM = 0;
-	}
+	for (int n = debutN; n <= finN; n++) {
+		for (int m = debutM; m <= finM; m++) {
+			int position = (posX + m) * 3 + (posY + n) * in.step;
 
-	if (valueA == in.cols - 2)
-	{
-		finM = 1;
-	}
+			// Vérifier que la position est valide
+			if (position < 0 || position >= in.total() * in.elemSize()) {
+				continue;
+			}
 
-	if (valueA == in.cols - 1)
-	{
-		finM = 0;
-	}
-
-	int posX = valueA + debutM;
-	if (valueA == 1)
-		posX = valueA;
-
-	int posY = valueB + debutN;
-	if (valueB == 1)
-		posY = valueB;
-
-
-	for (auto n = debutN; n <= finN; n++)
-	{
-		for (auto m = debutM; m <= finM; m++)
-		{
-			int position = (posX + m) * 4 + (posY + n) * in.cols * 4;
 			float f = tabF1[n + 1] * tabF[m + 1];
 			nDenom += f;
 			r += in.data[position] * f;
-			g += in.data[position+1] * f;
-			b += in.data[position+2] * f;
-			a += 0;
+			g += in.data[position + 1] * f;
+			b += in.data[position + 2] * f;
 		}
 	}
-	data[0] = uint8_t(r / nDenom);
-	data[1] = uint8_t(g / nDenom);
-	data[2] = uint8_t(b / nDenom);
-	data[3] = uint8_t(a / nDenom);
 
-	//memcpy(data, &out, sizeof(s_rgb));
+	// Éviter la division par zéro
+	if (nDenom > 0.0f) {
+		data[0] = clamp(static_cast<int>(r / nDenom), 0, 255);
+		data[1] = clamp(static_cast<int>(g / nDenom), 0, 255);
+		data[2] = clamp(static_cast<int>(b / nDenom), 0, 255);
+	}
+	else {
+		data[0] = data[1] = data[2] = 0; // Valeurs par défaut en cas d'erreur
+	}
+	data[3] = 255; // Alpha par défaut (opaque)
 
 }
 

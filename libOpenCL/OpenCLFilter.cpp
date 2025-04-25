@@ -1389,323 +1389,198 @@ void COpenCLFilter::Rotate(const wxString& functionName, const int& widthOut, co
 }
 
 Rect COpenCLFilter::CalculRect(int widthIn, int heightIn, int widthOut, int heightOut, int flipH, int flipV, int angle,
-                               float ratioX, float ratioY, int x, int y, float left, float top)
+	float ratioX, float ratioY, int x, int y, float left, float top)
 {
-	Rect rect;
+	// Calcul initial des positions
 	float posX = static_cast<float>(x) * ratioX + left * ratioX;
 	float posY = static_cast<float>(y) * ratioY + top * ratioY;
 
-	if (angle == 270)
+	// Gestion des rotations
+	switch (angle)
 	{
-		int srcx = posY;
-		int srcy = posX;
-
-		posX = srcx;
-		posY = srcy;
-
-		posY = heightIn - posY - 1;
-		//
-	}
-	else if (angle == 180)
-	{
+	case 90:
+		std::swap(posX, posY);
+		posX = widthIn - posX - 1;
+		break;
+	case 180:
 		posX = widthIn - posX - 1;
 		posY = heightIn - posY - 1;
+		break;
+	case 270:
+		std::swap(posX, posY);
+		posY = heightIn - posY - 1;
+		break;
 	}
-	else if (angle == 90)
+
+	// Gestion des flips
+	if (flipH == 1)
 	{
-		int srcx = posY;
-		int srcy = posX;
-
-		posX = srcx;
-		posY = srcy;
-
 		posX = widthIn - posX - 1;
 	}
-
-	if (angle == 90 || angle == 270)
+	if (flipV == 1)
 	{
-		if (flipV == 1)
-		{
-			posX = widthIn - posX - 1;
-		}
-
-		if (flipH == 1)
-		{
-			posY = heightIn - posY - 1;
-		}
-	}
-	else
-	{
-		if (flipH == 1)
-		{
-			posX = widthIn - posX - 1;
-		}
-
-		if (flipV == 1)
-		{
-			posY = heightIn - posY - 1;
-		}
+		posY = heightIn - posY - 1;
 	}
 
-	rect.x = abs(posX);
-	rect.y = abs(posY);
-	return rect;
+	// Création du rectangle avec des coordonnées absolues
+	return Rect(abs(posX), abs(posY), 0, 0);
 }
 
 void COpenCLFilter::ExecuteOpenCLCode(const wxString& programName, const wxString& functionName,
-                                      vector<COpenCLParameter*>& vecParam, const int& width, const int& height,
-                                      cl_mem& outBuffer)
+	vector<COpenCLParameter*>& vecParam, const int& width, const int& height,
+	cl_mem& outBuffer)
 {
-	
-	wxString kernelSource = CLibResource::GetOpenCLUcharProgram(programName);
-	ocl::ProgramSource programSource(kernelSource);
-	ocl::Context context = clExecCtx.getContext();//ocl::Context::getDefault(false);
-
-	// Compile the kernel code
-	String errmsg;
-	String buildopt = ""; // cv::format("-D dstT=%s", cv::ocl::typeToStr(paramSrc.depth()));
-	ocl::Program program = context.getProg(programSource, buildopt, errmsg);
-
-	ocl::Kernel kernel(functionName, program);
-
-	//cl_mem clBuffer = (cl_mem)paramSrc.handle(cv::ACCESS_WRITE);
-
-	cl_int err = clSetKernelArg(static_cast<cl_kernel>(kernel.ptr()), 0, sizeof(cl_mem), &outBuffer);
-	if (err > 0)
-		throw "OpenCL Kernel Error";
-
-	int numArg = 1;
-	for (auto it = vecParam.begin(); it != vecParam.end(); ++it)
+	try
 	{
-		COpenCLParameter* parameter = *it;
-		parameter->Add(static_cast<cl_kernel>(kernel.ptr()), numArg++);
+		// Récupération du code source du kernel
+		wxString kernelSource = CLibResource::GetOpenCLUcharProgram(programName);
+		ocl::ProgramSource programSource(kernelSource);
+		ocl::Context context = clExecCtx.getContext();
+
+		// Compilation du kernel
+		String errmsg;
+		String buildopt = ""; // Options de compilation (vide par défaut)
+		ocl::Program program = context.getProg(programSource, buildopt, errmsg);
+
+		ocl::Kernel kernel(functionName, program);
+
+		// Définition du premier argument (outBuffer)
+		cl_int err = clSetKernelArg(static_cast<cl_kernel>(kernel.ptr()), 0, sizeof(cl_mem), &outBuffer);
+		if (err != CL_SUCCESS)
+		{
+			throw std::runtime_error("Failed to set kernel argument for outBuffer.");
+		}
+
+		// Ajout des autres arguments
+		int numArg = 1;
+		for (COpenCLParameter* parameter : vecParam)
+		{
+			parameter->Add(static_cast<cl_kernel>(kernel.ptr()), numArg++);
+		}
+
+		// Configuration et exécution du kernel
+		size_t global_work_size[2] = { static_cast<size_t>(width), static_cast<size_t>(height) };
+		bool success = kernel.run(2, global_work_size, nullptr, true);
+		if (!success)
+		{
+			throw std::runtime_error("Failed to execute OpenCL kernel.");
+		}
 	}
-
-	size_t global_work_size[2] = {static_cast<size_t>(width), static_cast<size_t>(height)};
-	//size_t localThreads[2] = { 16, 16 };
-	bool success = kernel.run(2, global_work_size, nullptr, true);
-	if (!success)
+	catch (const std::exception& e)
 	{
-		cout << "Failed running the kernel..." << endl;
-		if (err > 0)
-			throw "OpenCL Kernel run";
+		std::cerr << "OpenCL Kernel Execution Error: " << e.what() << std::endl;
 		return;
 	}
 
-	for (auto it = vecParam.begin(); it != vecParam.end(); ++it)
+	// Libération des ressources des paramètres
+	for (COpenCLParameter* parameter : vecParam)
 	{
-		COpenCLParameter* parameter = *it;
 		if (!parameter->GetNoDelete())
+		{
 			parameter->Release();
+		}
 	}
 }
 
 UMat COpenCLFilter::ExecuteOpenCLCode(const wxString& programName, const wxString& functionName,
-                                      vector<COpenCLParameter*>& vecParam, const int& width, const int& height)
+	vector<COpenCLParameter*>& vecParam, const int& width, const int& height)
 {
-	
-	UMat paramSrc;
+	// Crée un UMat avec le type CV_8UC4
+	UMat paramSrc(height, width, CV_8UC4);
 
-
-	int depth = CV_8U;
-	int type = CV_MAKE_TYPE(depth, 4);
-	paramSrc.create(height, width, type);
-
+	// Récupère le buffer OpenCL associé
 	auto clBuffer = static_cast<cl_mem>(paramSrc.handle(ACCESS_WRITE));
 
+	// Exécute le code OpenCL
 	ExecuteOpenCLCode(programName, functionName, vecParam, width, height, clBuffer);
 
 	return paramSrc;
 }
 
-
 UMat COpenCLFilter::Interpolation(const int& widthOut, const int& heightOut, const wxRect& rc, const int& method,
-                                  UMat& inputData, int flipH, int flipV, int angle, int ratio)
+	UMat& inputData, int flipH, int flipV, int angle, int ratio)
 {
 	if (method > 7)
 	{
-		/*
-		BboxFilter 1
-		HermiteFilter 2
-		HanningFilter 3
-		CatromFilter 4
-		MitchellFilter 5
-		TriangleFilter 6
-		QuadraticFilter 7
-		BlackmanFilter 8
-		HammingFilter 9
-		*/
-
+		// Appelle une autre version d'Interpolation pour les méthodes avancées
 		int localMethod = method - 7;
-
 		return Interpolation(widthOut, heightOut, rc, localMethod, inputData, inputData.cols, inputData.rows, flipH, flipV, angle);
 	}
-	else
+
+	UMat cvImage;
+
+	try
 	{
-		UMat cvImage;
-
-		try
+		// Calcul des ratios
+		float ratioX = static_cast<float>(inputData.cols) / rc.width;
+		float ratioY = static_cast<float>(inputData.rows) / rc.height;
+		if (angle == 90 || angle == 270)
 		{
-			float ratioX = static_cast<float>(inputData.cols) / rc.width;
-			float ratioY = static_cast<float>(inputData.rows) / rc.height;
-			if (angle == 90 || angle == 270)
-			{
-				ratioX = static_cast<float>(inputData.cols) / static_cast<float>(rc.height);
-				ratioY = static_cast<float>(inputData.rows) / static_cast<float>(rc.width);
-			}
-
-			Rect rectGlobal;
-			Rect rect_begin = CalculRect(inputData.cols, inputData.rows, widthOut, heightOut, flipH, flipV, angle, ratioX,
-										 ratioY, 0, 0, rc.x, rc.y);
-			Rect rect_end = CalculRect(inputData.cols, inputData.rows, widthOut, heightOut, flipH, flipV, angle, ratioX,
-									   ratioY, widthOut, heightOut, rc.x, rc.y);
-			rectGlobal.x = rect_begin.x;
-			rectGlobal.y = rect_begin.y;
-			rectGlobal.width = rect_end.x;
-			rectGlobal.height = rect_end.y;
-			if (rectGlobal.x > rectGlobal.width)
-			{
-				int x_end = rectGlobal.x;
-				int x = rectGlobal.width;
-				rectGlobal.x = x;
-				rectGlobal.width = x_end - x;
-			}
-			else
-			{
-				rectGlobal.width -= rectGlobal.x;
-			}
-
-			if (rectGlobal.y > rectGlobal.height)
-			{
-				int y_end = rectGlobal.y;
-				int y = rectGlobal.height;
-				rectGlobal.y = y;
-				rectGlobal.height = y_end - y;
-			}
-			else
-			{
-				rectGlobal.height -= rectGlobal.y;
-			}
-
-			if ((rectGlobal.height + rectGlobal.y) > inputData.rows)
-			{
-				rectGlobal.height = inputData.rows - rectGlobal.y;
-			}
-			if ((rectGlobal.width + rectGlobal.x) > inputData.cols)
-			{
-				rectGlobal.width = inputData.cols - rectGlobal.x;
-			}
-
-			//cv::UMat crop;
-			inputData(rectGlobal).copyTo(cvImage);
-			//Mat global;
-			//cvImage.copyTo(global);
-			//crop.copyTo(cvImage);
-			//cvImage = cvImage(rectGlobal);
-
-			if (angle == 270)
-			{
-				if (flipV && flipH)
-					cv::rotate(cvImage, cvImage, ROTATE_90_CLOCKWISE);
-				else if (flipV || flipH)
-					cv::rotate(cvImage, cvImage, ROTATE_90_COUNTERCLOCKWISE);
-				else
-					cv::rotate(cvImage, cvImage, ROTATE_90_CLOCKWISE);
-			}
-			else if (angle == 90)
-			{
-				if (flipV && flipH)
-					cv::rotate(cvImage, cvImage, ROTATE_90_COUNTERCLOCKWISE);
-				else if (flipV || flipH)
-					cv::rotate(cvImage, cvImage, ROTATE_90_CLOCKWISE);
-				else
-					cv::rotate(cvImage, cvImage, ROTATE_90_COUNTERCLOCKWISE);
-			}
-			else if (angle == 180)
-			{
-				cv::rotate(cvImage, cvImage, ROTATE_180);
-			}
-
-
-			/*
-			nearest neighbor interpolation
-			INTER_NEAREST = 0,
-			bilinear interpolation
-			INTER_LINEAR = 1,
-			bicubic interpolation
-			INTER_CUBIC = 2,
-			resampling using pixel area relation. It may be a preferred method for image decimation, as
-			it gives moire'-free results. But when the image is zoomed, it is similar to the INTER_NEAREST
-			method.
-			INTER_AREA = 3,
-			Lanczos interpolation over 8x8 neighborhood
-			INTER_LANCZOS4 = 4,
-			Bit exact bilinear interpolation
-			INTER_LINEAR_EXACT = 5,
-			Bit exact nearest neighbor interpolation. This will produce same results as
-			the nearest neighbor method in PIL, scikit-image or Matlab.
-			INTER_NEAREST_EXACT = 6,
-			*/
-
-
-			if (method == 7)
-			{
-				cv::Mat inBuf;
-				//cvImage.copyTo(inBuf);
-				cvtColor(cvImage, inBuf, cv::COLOR_BGR2BGRA);
-				cv::Mat OutBuf = cv::Mat(Size(widthOut, heightOut), CV_8UC4, Scalar(0, 0, 0));
-
-				avir::CImageResizer< avir::fpclass_float4 > ImageResizer(8);
-				avir::CImageResizerVars Vars;
-				Vars.UseSRGBGamma = true;
-				ImageResizer.resizeImage((uint8_t*)inBuf.data, inBuf.cols, inBuf.rows, inBuf.step, (uint8_t*)OutBuf.data, widthOut, heightOut, 4, 0, &Vars);
-
-				cvtColor(OutBuf, cvImage, cv::COLOR_BGRA2BGR);
-			}
-			else
-			{
-				CRegardsConfigParam* regardsParam = CParamInit::getInstance();
-				if (cvImage.cols != widthOut || cvImage.rows != heightOut)
-				{
-					resize(cvImage, cvImage, Size(widthOut, heightOut), method);
-				}
-
-
-				if (cvImage.cols != widthOut || cvImage.rows != heightOut)
-					resize(cvImage, cvImage, Size(widthOut, heightOut), method);
-			}
-			//OutBuf.copyTo(cvImage);
-			/*
-
-			*/
-			//Apply Transformation
-
-			if (flipH)
-			{
-				if (angle == 90 || angle == 270)
-					flip(cvImage, cvImage, 0);
-				else
-					flip(cvImage, cvImage, 1);
-			}
-			if (flipV)
-			{
-				if (angle == 90 || angle == 270)
-					flip(cvImage, cvImage, 1);
-				else
-					flip(cvImage, cvImage, 0);
-			}
-			//
-		}
-		catch (Exception& e)
-		{
-			const char* err_msg = e.what();
-			std::cout << "COpenCLFilter::Interpolation exception caught: " << err_msg << std::endl;
-			std::cout << "wrong file format, please input the name of an IMAGE file" << std::endl;
-			std::cout << "width : " << widthOut << "height : " <<  heightOut << std::endl;
-			cv::Mat image(widthOut, heightOut, CV_8UC3, cv::Scalar(0, 0, 0));
-			image.copyTo(cvImage);
+			std::swap(ratioX, ratioY);
 		}
 
-		return cvImage;
+		// Calcul des rectangles
+		Rect rect_begin = CalculRect(inputData.cols, inputData.rows, widthOut, heightOut, flipH, flipV, angle, ratioX, ratioY, 0, 0, rc.x, rc.y);
+		Rect rect_end = CalculRect(inputData.cols, inputData.rows, widthOut, heightOut, flipH, flipV, angle, ratioX, ratioY, widthOut, heightOut, rc.x, rc.y);
+
+		Rect rectGlobal(
+			std::min(rect_begin.x, rect_end.x),
+			std::min(rect_begin.y, rect_end.y),
+			std::abs(rect_end.x - rect_begin.x),
+			std::abs(rect_end.y - rect_begin.y)
+		);
+
+		// Ajustement des dimensions pour éviter les débordements
+		rectGlobal.width = std::min(rectGlobal.width, inputData.cols - rectGlobal.x);
+		rectGlobal.height = std::min(rectGlobal.height, inputData.rows - rectGlobal.y);
+
+		// Extraction de la région d'intérêt
+		inputData(rectGlobal).copyTo(cvImage);
+
+		// Rotation selon l'angle
+		if (angle == 90 || angle == 270 || angle == 180)
+		{
+			int rotationFlag = (angle == 90) ? ROTATE_90_COUNTERCLOCKWISE :
+				(angle == 270) ? ROTATE_90_CLOCKWISE : ROTATE_180;
+			cv::rotate(cvImage, cvImage, rotationFlag);
+		}
+
+		// Application des méthodes d'interpolation
+		if (method == 7)
+		{
+			cv::Mat inBuf, outBuf(Size(widthOut, heightOut), CV_8UC4, Scalar(0, 0, 0));
+			cvtColor(cvImage, inBuf, cv::COLOR_BGR2BGRA);
+
+			avir::CImageResizer<avir::fpclass_float4> ImageResizer(8);
+			avir::CImageResizerVars Vars;
+			Vars.UseSRGBGamma = true;
+			ImageResizer.resizeImage(
+				reinterpret_cast<uint8_t*>(inBuf.data), inBuf.cols, inBuf.rows, inBuf.step,
+				reinterpret_cast<uint8_t*>(outBuf.data), widthOut, heightOut, 4, 0, &Vars
+			);
+
+			cvtColor(outBuf, cvImage, cv::COLOR_BGRA2BGR);
+		}
+		else
+		{
+			if (cvImage.cols != widthOut || cvImage.rows != heightOut)
+			{
+				resize(cvImage, cvImage, Size(widthOut, heightOut), method);
+			}
+		}
+
+		// Application des transformations de flip
+		if (flipH) flip(cvImage, cvImage, (angle == 90 || angle == 270) ? 0 : 1);
+		if (flipV) flip(cvImage, cvImage, (angle == 90 || angle == 270) ? 1 : 0);
 	}
+	catch (Exception& e)
+	{
+		std::cerr << "COpenCLFilter::Interpolation exception caught: " << e.what() << std::endl;
+		std::cerr << "Invalid file format. Please input the name of an IMAGE file." << std::endl;
+
+		// Retourne une image vide en cas d'erreur
+		cvImage = UMat(heightOut, widthOut, CV_8UC3, Scalar(0, 0, 0));
+	}
+
+	return cvImage;
 }
