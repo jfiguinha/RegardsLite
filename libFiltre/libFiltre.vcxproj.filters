@@ -333,10 +333,10 @@
     <ClInclude Include="InpaintFilterParam.h">
       <Filter>window\Drawing</Filter>
     </ClInclude>
-    <ClInclude Include="Pass2Scale.h">
+    <ClInclude Include="InterpolationBicubic.h">
       <Filter>Main\ScaleCPU</Filter>
     </ClInclude>
-    <ClInclude Include="scalingfilter.h">
+    <ClInclude Include="InterpolationFilters.h">
       <Filter>Main\ScaleCPU</Filter>
     </ClInclude>
   </ItemGroup>
@@ -497,7 +497,7 @@
     <ClCompile Include="InpaintFIlter.cpp">
       <Filter>window\Drawing</Filter>
     </ClCompile>
-    <ClCompile Include="Pass2Scale.cpp">
+    <ClCompile Include="InterpolationBicubic.cpp">
       <Filter>Main\ScaleCPU</Filter>
     </ClCompile>
   </ItemGroup>
