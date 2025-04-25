@@ -53,7 +53,7 @@
 
 #include <cstring>
 #include <cmath>
-
+#include <tbb/parallel_reduce.h>
 #if __cplusplus >= 201103L
 
 	#include <cstdint>
@@ -309,136 +309,41 @@ inline T convertLin2SRGB( const T s )
 	return(( (T) 1 + a ) * pow24i_sRGB( s ) - a );
 }
 
-/**
- * @brief Converts (via typecast) specified array of type `T1` values of
- * length `l` into array of type `T2` values.
- *
- * If `T1` is the same as `T2`, copy operation is performed. When copying data
- * at overlapping address spaces, `op` should be lower than `ip`.
- *
- * @param ip Input buffer.
- * @param[out] op Output buffer.
- * @param l The number of elements to copy.
- * @param ipinc Input buffer pointer increment.
- * @param opinc Output buffer pointer increment.
- */
-
+// Optimisation de copyArray
 template< typename T1, typename T2 >
-inline void copyArray( const T1* ip, T2* op, int l,
-	const int ipinc = 1, const int opinc = 1 )
-{
-	while( l > 0 )
-	{
-		*op = (T2) *ip;
-		op += opinc;
-		ip += ipinc;
-		l--;
-	}
+inline void copyArray(const T1* ip, T2* op, int l,
+                      const int ipinc = 1, const int opinc = 1) {
+    tbb::parallel_for(tbb::blocked_range<int>(0, l), [&](const tbb::blocked_range<int>& range) {
+        for (int i = range.begin(); i < range.end(); ++i) {
+            op[i * opinc] = static_cast<T2>(ip[i * ipinc]);
+        }
+    });
 }
 
-/**
- * @brief Adds values located in array `ip`, to array `op`.
- *
- * @param ip Input buffer.
- * @param[out] op Output buffer.
- * @param l The number of elements to add.
- * @param ipinc Input buffer pointer increment.
- * @param opinc Output buffer pointer increment.
- */
-
+// Optimisation de addArray
 template< typename T1, typename T2 >
-inline void addArray( const T1* ip, T2* op, int l,
-	const int ipinc = 1, const int opinc = 1 )
-{
-	while( l > 0 )
-	{
-		*op += *ip;
-		op += opinc;
-		ip += ipinc;
-		l--;
-	}
+inline void addArray(const T1* ip, T2* op, int l,
+                     const int ipinc = 1, const int opinc = 1) {
+    tbb::parallel_for(tbb::blocked_range<int>(0, l), [&](const tbb::blocked_range<int>& range) {
+        for (int i = range.begin(); i < range.end(); ++i) {
+            op[i * opinc] += ip[i * ipinc];
+        }
+    });
 }
 
-/**
- * @brief Replicates a set of adjacent elements several times in a row.
- *
- * This operation is usually used to replicate pixels at the start or end of
- * image's scanline.
- *
- * @param ip Source array.
- * @param ipl Source array length (usually `1..4`, but can be any number).
- * @param[out] op Destination buffer.
- * @param l Number of times the source array should be replicated (the
- * destination buffer should be able to hold `ipl * l` number of elements).
- * @param opinc Destination buffer position increment after replicating the
- * source array. This value should be equal to at least `ipl`.
- */
-
+// Optimisation de replicateArray
 template< typename T1, typename T2 >
-inline void replicateArray( const T1* const ip, const int ipl, T2* op, int l,
-	const int opinc )
-{
-	if( ipl == 1 )
-	{
-		while( l > 0 )
-		{
-			op[ 0 ] = (T2) ip[ 0 ];
-			op += opinc;
-			l--;
-		}
-	}
-	else
-	if( ipl == 4 )
-	{
-		while( l > 0 )
-		{
-			op[ 0 ] = (T2) ip[ 0 ];
-			op[ 1 ] = (T2) ip[ 1 ];
-			op[ 2 ] = (T2) ip[ 2 ];
-			op[ 3 ] = (T2) ip[ 3 ];
-			op += opinc;
-			l--;
-		}
-	}
-	else
-	if( ipl == 3 )
-	{
-		while( l > 0 )
-		{
-			op[ 0 ] = (T2) ip[ 0 ];
-			op[ 1 ] = (T2) ip[ 1 ];
-			op[ 2 ] = (T2) ip[ 2 ];
-			op += opinc;
-			l--;
-		}
-	}
-	else
-	if( ipl == 2 )
-	{
-		while( l > 0 )
-		{
-			op[ 0 ] = (T2) ip[ 0 ];
-			op[ 1 ] = (T2) ip[ 1 ];
-			op += opinc;
-			l--;
-		}
-	}
-	else
-	{
-		while( l > 0 )
-		{
-			int i;
-
-			for( i = 0; i < ipl; i++ )
-			{
-				op[ i ] = (T2) ip[ i ];
-			}
-
-			op += opinc;
-			l--;
-		}
-	}
+inline void replicateArray(const T1* const ip, const int ipl, T2* op, int l,
+                           const int opinc) {
+    tbb::parallel_for(tbb::blocked_range<int>(0, l), [&](const tbb::blocked_range<int>& range) {
+        for (int i = range.begin(); i < range.end(); ++i) {
+            for (int j = 0; j < ipl; ++j) {
+                op[i * opinc + j] = static_cast<T2>(ip[j]);
+            }
+        }
+    });
 }
+
 
 /**
  * @brief Calculates frequency response of the specified FIR filter at the
@@ -458,49 +363,74 @@ inline void replicateArray( const T1* const ip, const int ipl, T2* op, int l,
  */
 
 template< typename T >
-inline void calcFIRFilterResponse( const T* flt, int fltlen,
-	const double th, double& re0, double& im0, const int fltlat = 0 )
+inline void calcFIRFilterResponse(const T* flt, int fltlen,
+	const double th, double& re0, double& im0, const int fltlat = 0)
 {
-	const double sincr = 2.0 * cos( th );
-	double cvalue1;
-	double svalue1;
+	const double sincr = 2.0 * cos(th);
+	double cvalue1, svalue1;
 
-	if( fltlat == 0 )
+	if (fltlat == 0)
 	{
 		cvalue1 = 1.0;
 		svalue1 = 0.0;
 	}
 	else
 	{
-		cvalue1 = cos( -fltlat * th );
-		svalue1 = sin( -fltlat * th );
+		cvalue1 = cos(-fltlat * th);
+		svalue1 = sin(-fltlat * th);
 	}
 
-	double cvalue2 = cos( -( fltlat + 1 ) * th );
-	double svalue2 = sin( -( fltlat + 1 ) * th );
+	double cvalue2 = cos(-(fltlat + 1) * th);
+	double svalue2 = sin(-(fltlat + 1) * th);
 
-	double re = 0.0;
-	double im = 0.0;
+	// Utilisation de TBB pour paralléliser la réduction
+	auto result = tbb::parallel_reduce(
+		tbb::blocked_range<int>(0, fltlen),
+		std::make_pair(0.0, 0.0), // Initialisation des accumulateurs (re, im)
+		[&](const tbb::blocked_range<int>& range, std::pair<double, double> local_sum) {
+			double local_cvalue1 = cvalue1;
+			double local_svalue1 = svalue1;
+			double local_cvalue2 = cvalue2;
+			double local_svalue2 = svalue2;
 
-	while( fltlen > 0 )
-	{
-		re += cvalue1 * (double) flt[ 0 ];
-		im += svalue1 * (double) flt[ 0 ];
-		flt++;
-		fltlen--;
+			// Avance les oscillateurs jusqu'à la position de départ
+			for (int i = 0; i < range.begin(); ++i)
+			{
+				double tmp = local_cvalue1;
+				local_cvalue1 = sincr * local_cvalue1 - local_cvalue2;
+				local_cvalue2 = tmp;
 
-		double tmp = cvalue1;
-		cvalue1 = sincr * cvalue1 - cvalue2;
-		cvalue2 = tmp;
+				tmp = local_svalue1;
+				local_svalue1 = sincr * local_svalue1 - local_svalue2;
+				local_svalue2 = tmp;
+			}
 
-		tmp = svalue1;
-		svalue1 = sincr * svalue1 - svalue2;
-		svalue2 = tmp;
-	}
+			// Calcul des contributions locales
+			for (int i = range.begin(); i < range.end(); ++i)
+			{
+				local_sum.first += local_cvalue1 * (double)flt[i];
+				local_sum.second += local_svalue1 * (double)flt[i];
 
-	re0 = re;
-	im0 = im;
+				double tmp = local_cvalue1;
+				local_cvalue1 = sincr * local_cvalue1 - local_cvalue2;
+				local_cvalue2 = tmp;
+
+				tmp = local_svalue1;
+				local_svalue1 = sincr * local_svalue1 - local_svalue2;
+				local_svalue2 = tmp;
+			}
+
+			return local_sum;
+		},
+		[](std::pair<double, double> a, std::pair<double, double> b) {
+			return std::make_pair(a.first + b.first, a.second + b.second);
+		}
+	);
+
+	re0 = result.first;
+	im0 = result.second;
 }
+
 
 /**
  * @brief Normalizes FIR filter so that its frequency response at DC is equal
@@ -514,30 +444,33 @@ inline void calcFIRFilterResponse( const T* flt, int fltlen,
  */
 
 template< typename T >
-inline void normalizeFIRFilter( T* const p, const int l, const double DCGain,
-	const int pstep = 1 )
+inline void normalizeFIRFilter(T* const p, const int l, const double DCGain, const int pstep = 1)
 {
-	double s = 0.0;
-	T* pp = p;
-	int i = l;
+	// Étape 1 : Calcul de la somme des coefficients en parallèle
+	double s = tbb::parallel_reduce(
+		tbb::blocked_range<int>(0, l),
+		0.0,
+		[&](const tbb::blocked_range<int>& range, double local_sum) {
+			for (int i = range.begin(); i < range.end(); ++i) {
+				local_sum += p[i * pstep];
+			}
+			return local_sum;
+		},
+		std::plus<double>() // Réduction des résultats partiels
+	);
 
-	while( i > 0 )
-	{
-		s += *pp;
-		pp += pstep;
-		i--;
-	}
-
+	// Étape 2 : Calcul du facteur de normalisation
 	s = DCGain / s;
-	pp = p;
-	i = l;
 
-	while( i > 0 )
-	{
-		*pp = (T) ( *pp * s );
-		pp += pstep;
-		i--;
-	}
+	// Étape 3 : Application du facteur de normalisation en parallèle
+	tbb::parallel_for(
+		tbb::blocked_range<int>(0, l),
+		[&](const tbb::blocked_range<int>& range) {
+			for (int i = range.begin(); i < range.end(); ++i) {
+				p[i * pstep] = static_cast<T>(p[i * pstep] * s);
+			}
+		}
+	);
 }
 
 /**
@@ -3246,491 +3179,50 @@ public:
 	 * @param Dst Destination scanline buffer.
 	 */
 
-	void doUpsample( const fptype* const Src, fptype* const Dst ) const
+	void doUpsample(const fptype* const Src, fptype* const Dst) const
 	{
-		const int ElCount = Vars -> ElCount;
-		fptype* op0 = &Dst[ -OutPrefix * ElCount ];
-		memset( op0, 0, (size_t) ( OutPrefix + OutLen + OutSuffix ) *
-			(size_t) ElCount * sizeof( fptype ));
+		const int ElCount = Vars->ElCount;
+		fptype* op0 = &Dst[-OutPrefix * ElCount];
+		memset(op0, 0, (size_t)(OutPrefix + OutLen + OutSuffix) * (size_t)ElCount * sizeof(fptype));
 
 		const fptype* ip = Src;
 		const int opstep = ElCount * ResampleFactor;
-		int l;
 
-		if( FltOrig.getCapacity() > 0 )
+		if (FltOrig.getCapacity() > 0)
 		{
-			// Do not perform filtering, only upsample.
+			// Pas de filtrage, uniquement un suréchantillonnage.
+			op0 += (OutPrefix % ResampleFactor) * ElCount;
 
-			op0 += ( OutPrefix % ResampleFactor ) * ElCount;
-			l = OutPrefix / ResampleFactor;
+			tbb::parallel_for(0, OutLen, [&](int idx) {
+				fptype* local_op0 = op0 + idx * opstep;
+				const fptype* local_ip = ip + (idx / ResampleFactor) * ElCount;
 
-			if( ElCount == 1 )
-			{
-				while( l > 0 )
+				for (int c = 0; c < ElCount; ++c)
 				{
-					op0[ 0 ] = ip[ 0 ];
-					op0 += opstep;
-					l--;
+					local_op0[c] = local_ip[c];
 				}
-
-				l = InLen - 1;
-
-				while( l > 0 )
-				{
-					op0[ 0 ] = ip[ 0 ];
-					op0 += opstep;
-					ip += ElCount;
-					l--;
-				}
-
-				l = OutSuffix / ResampleFactor;
-
-				while( l >= 0 )
-				{
-					op0[ 0 ] = ip[ 0 ];
-					op0 += opstep;
-					l--;
-				}
-			}
-			else
-			if( ElCount == 4 )
-			{
-				while( l > 0 )
-				{
-					op0[ 0 ] = ip[ 0 ];
-					op0[ 1 ] = ip[ 1 ];
-					op0[ 2 ] = ip[ 2 ];
-					op0[ 3 ] = ip[ 3 ];
-					op0 += opstep;
-					l--;
-				}
-
-				l = InLen - 1;
-
-				while( l > 0 )
-				{
-					op0[ 0 ] = ip[ 0 ];
-					op0[ 1 ] = ip[ 1 ];
-					op0[ 2 ] = ip[ 2 ];
-					op0[ 3 ] = ip[ 3 ];
-					op0 += opstep;
-					ip += ElCount;
-					l--;
-				}
-
-				l = OutSuffix / ResampleFactor;
-
-				while( l >= 0 )
-				{
-					op0[ 0 ] = ip[ 0 ];
-					op0[ 1 ] = ip[ 1 ];
-					op0[ 2 ] = ip[ 2 ];
-					op0[ 3 ] = ip[ 3 ];
-					op0 += opstep;
-					l--;
-				}
-			}
-			else
-			if( ElCount == 3 )
-			{
-				while( l > 0 )
-				{
-					op0[ 0 ] = ip[ 0 ];
-					op0[ 1 ] = ip[ 1 ];
-					op0[ 2 ] = ip[ 2 ];
-					op0 += opstep;
-					l--;
-				}
-
-				l = InLen - 1;
-
-				while( l > 0 )
-				{
-					op0[ 0 ] = ip[ 0 ];
-					op0[ 1 ] = ip[ 1 ];
-					op0[ 2 ] = ip[ 2 ];
-					op0 += opstep;
-					ip += ElCount;
-					l--;
-				}
-
-				l = OutSuffix / ResampleFactor;
-
-				while( l >= 0 )
-				{
-					op0[ 0 ] = ip[ 0 ];
-					op0[ 1 ] = ip[ 1 ];
-					op0[ 2 ] = ip[ 2 ];
-					op0 += opstep;
-					l--;
-				}
-			}
-			else
-			if( ElCount == 2 )
-			{
-				while( l > 0 )
-				{
-					op0[ 0 ] = ip[ 0 ];
-					op0[ 1 ] = ip[ 1 ];
-					op0 += opstep;
-					l--;
-				}
-
-				l = InLen - 1;
-
-				while( l > 0 )
-				{
-					op0[ 0 ] = ip[ 0 ];
-					op0[ 1 ] = ip[ 1 ];
-					op0 += opstep;
-					ip += ElCount;
-					l--;
-				}
-
-				l = OutSuffix / ResampleFactor;
-
-				while( l >= 0 )
-				{
-					op0[ 0 ] = ip[ 0 ];
-					op0[ 1 ] = ip[ 1 ];
-					op0 += opstep;
-					l--;
-				}
-			}
+				});
 
 			return;
 		}
 
 		const fptype* const f = Flt;
 		const int flen = Flt.getCapacity();
-		fptype* op;
-		int i;
 
-		if( ElCount == 1 )
-		{
-			l = InPrefix;
+		tbb::parallel_for(0, OutLen, [&](int idx) {
+			fptype* local_op0 = op0 + idx * opstep;
+			const fptype* local_ip = ip + (idx / ResampleFactor) * ElCount;
 
-			while( l > 0 )
+			for (int c = 0; c < ElCount; ++c)
 			{
-				op = op0;
-
-				for( i = 0; i < flen; i++ )
+				fptype sum = 0;
+				for (int i = 0; i < flen; ++i)
 				{
-					op[ i ] += f[ i ] * ip[ 0 ];
+					sum += f[i] * local_ip[c];
 				}
-
-				op0 += opstep;
-				l--;
+				local_op0[c] = sum;
 			}
-
-			l = InLen - 1;
-
-			while( l > 0 )
-			{
-				op = op0;
-
-				for( i = 0; i < flen; i++ )
-				{
-					op[ i ] += f[ i ] * ip[ 0 ];
-				}
-
-				ip += ElCount;
-				op0 += opstep;
-				l--;
-			}
-
-			l = InSuffix;
-
-			while( l >= 0 )
-			{
-				op = op0;
-
-				for( i = 0; i < flen; i++ )
-				{
-					op[ i ] += f[ i ] * ip[ 0 ];
-				}
-
-				op0 += opstep;
-				l--;
-			}
-		}
-		else
-		if( ElCount == 4 )
-		{
-			l = InPrefix;
-
-			while( l > 0 )
-			{
-				op = op0;
-
-				for( i = 0; i < flen; i++ )
-				{
-					op[ 0 ] += f[ i ] * ip[ 0 ];
-					op[ 1 ] += f[ i ] * ip[ 1 ];
-					op[ 2 ] += f[ i ] * ip[ 2 ];
-					op[ 3 ] += f[ i ] * ip[ 3 ];
-					op += 4;
-				}
-
-				op0 += opstep;
-				l--;
-			}
-
-			l = InLen - 1;
-
-			while( l > 0 )
-			{
-				op = op0;
-
-				for( i = 0; i < flen; i++ )
-				{
-					op[ 0 ] += f[ i ] * ip[ 0 ];
-					op[ 1 ] += f[ i ] * ip[ 1 ];
-					op[ 2 ] += f[ i ] * ip[ 2 ];
-					op[ 3 ] += f[ i ] * ip[ 3 ];
-					op += 4;
-				}
-
-				ip += ElCount;
-				op0 += opstep;
-				l--;
-			}
-
-			l = InSuffix;
-
-			while( l >= 0 )
-			{
-				op = op0;
-
-				for( i = 0; i < flen; i++ )
-				{
-					op[ 0 ] += f[ i ] * ip[ 0 ];
-					op[ 1 ] += f[ i ] * ip[ 1 ];
-					op[ 2 ] += f[ i ] * ip[ 2 ];
-					op[ 3 ] += f[ i ] * ip[ 3 ];
-					op += 4;
-				}
-
-				op0 += opstep;
-				l--;
-			}
-		}
-		else
-		if( ElCount == 3 )
-		{
-			l = InPrefix;
-
-			while( l > 0 )
-			{
-				op = op0;
-
-				for( i = 0; i < flen; i++ )
-				{
-					op[ 0 ] += f[ i ] * ip[ 0 ];
-					op[ 1 ] += f[ i ] * ip[ 1 ];
-					op[ 2 ] += f[ i ] * ip[ 2 ];
-					op += 3;
-				}
-
-				op0 += opstep;
-				l--;
-			}
-
-			l = InLen - 1;
-
-			while( l > 0 )
-			{
-				op = op0;
-
-				for( i = 0; i < flen; i++ )
-				{
-					op[ 0 ] += f[ i ] * ip[ 0 ];
-					op[ 1 ] += f[ i ] * ip[ 1 ];
-					op[ 2 ] += f[ i ] * ip[ 2 ];
-					op += 3;
-				}
-
-				ip += ElCount;
-				op0 += opstep;
-				l--;
-			}
-
-			l = InSuffix;
-
-			while( l >= 0 )
-			{
-				op = op0;
-
-				for( i = 0; i < flen; i++ )
-				{
-					op[ 0 ] += f[ i ] * ip[ 0 ];
-					op[ 1 ] += f[ i ] * ip[ 1 ];
-					op[ 2 ] += f[ i ] * ip[ 2 ];
-					op += 3;
-				}
-
-				op0 += opstep;
-				l--;
-			}
-		}
-		else
-		if( ElCount == 2 )
-		{
-			l = InPrefix;
-
-			while( l > 0 )
-			{
-				op = op0;
-
-				for( i = 0; i < flen; i++ )
-				{
-					op[ 0 ] += f[ i ] * ip[ 0 ];
-					op[ 1 ] += f[ i ] * ip[ 1 ];
-					op += 2;
-				}
-
-				op0 += opstep;
-				l--;
-			}
-
-			l = InLen - 1;
-
-			while( l > 0 )
-			{
-				op = op0;
-
-				for( i = 0; i < flen; i++ )
-				{
-					op[ 0 ] += f[ i ] * ip[ 0 ];
-					op[ 1 ] += f[ i ] * ip[ 1 ];
-					op += 2;
-				}
-
-				ip += ElCount;
-				op0 += opstep;
-				l--;
-			}
-
-			l = InSuffix;
-
-			while( l >= 0 )
-			{
-				op = op0;
-
-				for( i = 0; i < flen; i++ )
-				{
-					op[ 0 ] += f[ i ] * ip[ 0 ];
-					op[ 1 ] += f[ i ] * ip[ 1 ];
-					op += 2;
-				}
-
-				op0 += opstep;
-				l--;
-			}
-		}
-
-		op = op0;
-		const fptype* dc = SuffixDC;
-		l = SuffixDC.getCapacity();
-
-		if( ElCount == 1 )
-		{
-			for( i = 0; i < l; i++ )
-			{
-				op[ i ] += ip[ 0 ] * dc[ i ];
-			}
-		}
-		else
-		if( ElCount == 4 )
-		{
-			while( l > 0 )
-			{
-				op[ 0 ] += ip[ 0 ] * dc[ 0 ];
-				op[ 1 ] += ip[ 1 ] * dc[ 0 ];
-				op[ 2 ] += ip[ 2 ] * dc[ 0 ];
-				op[ 3 ] += ip[ 3 ] * dc[ 0 ];
-				dc++;
-				op += 4;
-				l--;
-			}
-		}
-		else
-		if( ElCount == 3 )
-		{
-			while( l > 0 )
-			{
-				op[ 0 ] += ip[ 0 ] * dc[ 0 ];
-				op[ 1 ] += ip[ 1 ] * dc[ 0 ];
-				op[ 2 ] += ip[ 2 ] * dc[ 0 ];
-				dc++;
-				op += 3;
-				l--;
-			}
-		}
-		else
-		if( ElCount == 2 )
-		{
-			while( l > 0 )
-			{
-				op[ 0 ] += ip[ 0 ] * dc[ 0 ];
-				op[ 1 ] += ip[ 1 ] * dc[ 0 ];
-				dc++;
-				op += 2;
-				l--;
-			}
-		}
-
-		ip = Src;
-		op = Dst - InPrefix * opstep;
-		dc = PrefixDC;
-		l = PrefixDC.getCapacity();
-
-		if( ElCount == 1 )
-		{
-			for( i = 0; i < l; i++ )
-			{
-				op[ i ] += ip[ 0 ] * dc[ i ];
-			}
-		}
-		else
-		if( ElCount == 4 )
-		{
-			while( l > 0 )
-			{
-				op[ 0 ] += ip[ 0 ] * dc[ 0 ];
-				op[ 1 ] += ip[ 1 ] * dc[ 0 ];
-				op[ 2 ] += ip[ 2 ] * dc[ 0 ];
-				op[ 3 ] += ip[ 3 ] * dc[ 0 ];
-				dc++;
-				op += 4;
-				l--;
-			}
-		}
-		else
-		if( ElCount == 3 )
-		{
-			while( l > 0 )
-			{
-				op[ 0 ] += ip[ 0 ] * dc[ 0 ];
-				op[ 1 ] += ip[ 1 ] * dc[ 0 ];
-				op[ 2 ] += ip[ 2 ] * dc[ 0 ];
-				dc++;
-				op += 3;
-				l--;
-			}
-		}
-		else
-		if( ElCount == 2 )
-		{
-			while( l > 0 )
-			{
-				op[ 0 ] += ip[ 0 ] * dc[ 0 ];
-				op[ 1 ] += ip[ 1 ] * dc[ 0 ];
-				dc++;
-				op += 2;
-				l--;
-			}
-		}
+			});
 	}
 
 	/**
@@ -3744,125 +3236,97 @@ public:
 	 * @param DstIncr Destination scanline buffer increment, used for
 	 * horizontal or vertical scanline stepping.
 	 */
-
-	void doFilter( const fptype* const Src, fptype* Dst,
-		const int DstIncr ) const
+	void doFilter(const fptype* const Src, fptype* Dst, const int DstIncr) const
 	{
-		const int ElCount = Vars -> ElCount;
-		const fptype* const f = &Flt[ FltLatency ];
+		const int ElCount = Vars->ElCount;
+		const fptype* const f = &Flt[FltLatency];
 		const int flen = FltLatency + 1;
 		const int ipstep = ElCount * ResampleFactor;
 		const fptype* ip = Src - EdgePixelCount * ipstep;
-		const fptype* ip1;
-		const fptype* ip2;
-		int l = OutLen;
-		int i;
 
-		if( ElCount == 1 )
-		{
-			while( l > 0 )
+		tbb::parallel_for(0, OutLen, [&](int idx) {
+			const fptype* local_ip = ip + idx * ipstep;
+			fptype* local_dst = Dst + idx * DstIncr;
+
+			if (ElCount == 1)
 			{
-				fptype s = f[ 0 ] * ip[ 0 ];
-				ip1 = ip;
-				ip2 = ip;
+				fptype s = f[0] * local_ip[0];
+				const fptype* ip1 = local_ip;
+				const fptype* ip2 = local_ip;
 
-				for( i = 1; i < flen; i++ )
+				for (int i = 1; i < flen; i++)
 				{
 					ip1++;
 					ip2--;
-					s += f[ i ] * ( ip1[ 0 ] + ip2[ 0 ]);
+					s += f[i] * (ip1[0] + ip2[0]);
 				}
 
-				Dst[ 0 ] = s;
-				Dst += DstIncr;
-				ip += ipstep;
-				l--;
+				local_dst[0] = s;
 			}
-		}
-		else
-		if( ElCount == 4 )
-		{
-			while( l > 0 )
+			else if (ElCount == 4)
 			{
-				fptype s1 = f[ 0 ] * ip[ 0 ];
-				fptype s2 = f[ 0 ] * ip[ 1 ];
-				fptype s3 = f[ 0 ] * ip[ 2 ];
-				fptype s4 = f[ 0 ] * ip[ 3 ];
-				ip1 = ip;
-				ip2 = ip;
+				fptype s1 = f[0] * local_ip[0];
+				fptype s2 = f[0] * local_ip[1];
+				fptype s3 = f[0] * local_ip[2];
+				fptype s4 = f[0] * local_ip[3];
+				const fptype* ip1 = local_ip;
+				const fptype* ip2 = local_ip;
 
-				for( i = 1; i < flen; i++ )
+				for (int i = 1; i < flen; i++)
 				{
 					ip1 += 4;
 					ip2 -= 4;
-					s1 += f[ i ] * ( ip1[ 0 ] + ip2[ 0 ]);
-					s2 += f[ i ] * ( ip1[ 1 ] + ip2[ 1 ]);
-					s3 += f[ i ] * ( ip1[ 2 ] + ip2[ 2 ]);
-					s4 += f[ i ] * ( ip1[ 3 ] + ip2[ 3 ]);
+					s1 += f[i] * (ip1[0] + ip2[0]);
+					s2 += f[i] * (ip1[1] + ip2[1]);
+					s3 += f[i] * (ip1[2] + ip2[2]);
+					s4 += f[i] * (ip1[3] + ip2[3]);
 				}
 
-				Dst[ 0 ] = s1;
-				Dst[ 1 ] = s2;
-				Dst[ 2 ] = s3;
-				Dst[ 3 ] = s4;
-				Dst += DstIncr;
-				ip += ipstep;
-				l--;
+				local_dst[0] = s1;
+				local_dst[1] = s2;
+				local_dst[2] = s3;
+				local_dst[3] = s4;
 			}
-		}
-		else
-		if( ElCount == 3 )
-		{
-			while( l > 0 )
+			else if (ElCount == 3)
 			{
-				fptype s1 = f[ 0 ] * ip[ 0 ];
-				fptype s2 = f[ 0 ] * ip[ 1 ];
-				fptype s3 = f[ 0 ] * ip[ 2 ];
-				ip1 = ip;
-				ip2 = ip;
+				fptype s1 = f[0] * local_ip[0];
+				fptype s2 = f[0] * local_ip[1];
+				fptype s3 = f[0] * local_ip[2];
+				const fptype* ip1 = local_ip;
+				const fptype* ip2 = local_ip;
 
-				for( i = 1; i < flen; i++ )
+				for (int i = 1; i < flen; i++)
 				{
 					ip1 += 3;
 					ip2 -= 3;
-					s1 += f[ i ] * ( ip1[ 0 ] + ip2[ 0 ]);
-					s2 += f[ i ] * ( ip1[ 1 ] + ip2[ 1 ]);
-					s3 += f[ i ] * ( ip1[ 2 ] + ip2[ 2 ]);
+					s1 += f[i] * (ip1[0] + ip2[0]);
+					s2 += f[i] * (ip1[1] + ip2[1]);
+					s3 += f[i] * (ip1[2] + ip2[2]);
 				}
 
-				Dst[ 0 ] = s1;
-				Dst[ 1 ] = s2;
-				Dst[ 2 ] = s3;
-				Dst += DstIncr;
-				ip += ipstep;
-				l--;
+				local_dst[0] = s1;
+				local_dst[1] = s2;
+				local_dst[2] = s3;
 			}
-		}
-		else
-		if( ElCount == 2 )
-		{
-			while( l > 0 )
+			else if (ElCount == 2)
 			{
-				fptype s1 = f[ 0 ] * ip[ 0 ];
-				fptype s2 = f[ 0 ] * ip[ 1 ];
-				ip1 = ip;
-				ip2 = ip;
+				fptype s1 = f[0] * local_ip[0];
+				fptype s2 = f[0] * local_ip[1];
+				const fptype* ip1 = local_ip;
+				const fptype* ip2 = local_ip;
 
-				for( i = 1; i < flen; i++ )
+				for (int i = 1; i < flen; i++)
 				{
 					ip1 += 2;
 					ip2 -= 2;
-					s1 += f[ i ] * ( ip1[ 0 ] + ip2[ 0 ]);
-					s2 += f[ i ] * ( ip1[ 1 ] + ip2[ 1 ]);
+					s1 += f[i] * (ip1[0] + ip2[0]);
+					s2 += f[i] * (ip1[1] + ip2[1]);
 				}
 
-				Dst[ 0 ] = s1;
-				Dst[ 1 ] = s2;
-				Dst += DstIncr;
-				ip += ipstep;
-				l--;
+				local_dst[0] = s1;
+				local_dst[1] = s2;
 			}
-		}
+			});
 	}
 
 	/**
@@ -3881,222 +3345,37 @@ public:
 	 * horizontal or vertical scanline stepping.
 	 */
 
-	void doResize( const fptype* SrcLine, fptype* DstLine,
-		const int DstLineIncr, fptype* const ) const
-	{
-		const int IntFltLen = FltBank -> getFilterLen();
-		const int ElCount = Vars -> ElCount;
-		const typename CImageResizerFilterStep< fptype, fptypeatom > ::
-			CResizePos* rpos = &(*RPosBuf)[ 0 ];
+	void doResize(const fptype* SrcLine, fptype* DstLine,
+		const int DstLineIncr, fptype* const) const {
+		const int IntFltLen = FltBank->getFilterLen();
+		const int ElCount = Vars->ElCount;
+		const typename CImageResizerFilterStep<fptype, fptypeatom>::CResizePos* rpos = &(*RPosBuf)[0];
+		const typename CImageResizerFilterStep<fptype, fptypeatom>::CResizePos* const rpose = rpos + OutLen;
 
-		const typename CImageResizerFilterStep< fptype, fptypeatom > ::
-			CResizePos* const rpose = rpos + OutLen;
+		tbb::parallel_for(tbb::blocked_range<int>(0, OutLen), [&](const tbb::blocked_range<int>& range) {
+			for (int idx = range.begin(); idx < range.end(); ++idx) {
+				const auto& rpos_local = rpos[idx];
+				const fptype x = (fptype)rpos_local.x;
+				const fptype* const ftp = rpos_local.ftp;
+				const fptype* const ftp2 = ftp + IntFltLen;
+				const fptype* Src = SrcLine + rpos_local.SrcOffs;
 
-#define AVIR_RESIZE_PART1 \
-			while( rpos < rpose ) \
-			{ \
-				const fptype x = (fptype) rpos -> x; \
-				const fptype* const ftp = rpos -> ftp; \
-				const fptype* const ftp2 = ftp + IntFltLen; \
-				const fptype* Src = SrcLine + rpos -> SrcOffs; \
-				int i;
+				fptype sums[4] = { 0 }; // Support for up to 4 channels (RGBA)
 
-#define AVIR_RESIZE_PART1nx \
-			while( rpos < rpose ) \
-			{ \
-				const fptype* const ftp = rpos -> ftp; \
-				const fptype* Src = SrcLine + rpos -> SrcOffs; \
-				int i;
-
-#define AVIR_RESIZE_PART2 \
-				DstLine += DstLineIncr; \
-				rpos++; \
-			}
-
-		if( FltBank -> getOrder() == 1 )
-		{
-			if( ElCount == 1 )
-			{
-				AVIR_RESIZE_PART1
-
-				fptype sum0 = 0;
-
-				for( i = 0; i < IntFltLen; i++ )
-				{
-					sum0 += ( ftp[ i ] + ftp2[ i ] * x ) * Src[ i ];
+				for (int i = 0; i < IntFltLen; i++) {
+					const fptype coeff = ftp[i] + ftp2[i] * x;
+					for (int c = 0; c < ElCount; c++) {
+						sums[c] += coeff * Src[c];
+					}
+					Src += ElCount;
 				}
 
-				DstLine[ 0 ] = sum0;
-
-				AVIR_RESIZE_PART2
-			}
-			else
-			if( ElCount == 4 )
-			{
-				AVIR_RESIZE_PART1
-
-				fptype sum0 = 0;
-				fptype sum1 = 0;
-				fptype sum2 = 0;
-				fptype sum3 = 0;
-
-				for( i = 0; i < IntFltLen; i++ )
-				{
-					const fptype xx = ftp[ i ] + ftp2[ i ] * x;
-					sum0 += xx * Src[ 0 ];
-					sum1 += xx * Src[ 1 ];
-					sum2 += xx * Src[ 2 ];
-					sum3 += xx * Src[ 3 ];
-					Src += 4;
+				for (int c = 0; c < ElCount; c++) {
+					DstLine[idx * DstLineIncr + c] = sums[c];
 				}
-
-				DstLine[ 0 ] = sum0;
-				DstLine[ 1 ] = sum1;
-				DstLine[ 2 ] = sum2;
-				DstLine[ 3 ] = sum3;
-
-				AVIR_RESIZE_PART2
 			}
-			else
-			if( ElCount == 3 )
-			{
-				AVIR_RESIZE_PART1
-
-				fptype sum0 = 0;
-				fptype sum1 = 0;
-				fptype sum2 = 0;
-
-				for( i = 0; i < IntFltLen; i++ )
-				{
-					const fptype xx = ftp[ i ] + ftp2[ i ] * x;
-					sum0 += xx * Src[ 0 ];
-					sum1 += xx * Src[ 1 ];
-					sum2 += xx * Src[ 2 ];
-					Src += 3;
-				}
-
-				DstLine[ 0 ] = sum0;
-				DstLine[ 1 ] = sum1;
-				DstLine[ 2 ] = sum2;
-
-				AVIR_RESIZE_PART2
-			}
-			else
-			if( ElCount == 2 )
-			{
-				AVIR_RESIZE_PART1
-
-				fptype sum0 = 0;
-				fptype sum1 = 0;
-
-				for( i = 0; i < IntFltLen; i++ )
-				{
-					const fptype xx = ftp[ i ] + ftp2[ i ] * x;
-					sum0 += xx * Src[ 0 ];
-					sum1 += xx * Src[ 1 ];
-					Src += 2;
-				}
-
-				DstLine[ 0 ] = sum0;
-				DstLine[ 1 ] = sum1;
-
-				AVIR_RESIZE_PART2
-			}
-		}
-		else
-		{
-			if( ElCount == 1 )
-			{
-				AVIR_RESIZE_PART1nx
-
-				fptype sum0 = 0;
-
-				for( i = 0; i < IntFltLen; i++ )
-				{
-					sum0 += ftp[ i ] * Src[ i ];
-				}
-
-				DstLine[ 0 ] = sum0;
-
-				AVIR_RESIZE_PART2
-			}
-			else
-			if( ElCount == 4 )
-			{
-				AVIR_RESIZE_PART1nx
-
-				fptype sum0 = 0;
-				fptype sum1 = 0;
-				fptype sum2 = 0;
-				fptype sum3 = 0;
-
-				for( i = 0; i < IntFltLen; i++ )
-				{
-					const fptype xx = ftp[ i ];
-					sum0 += xx * Src[ 0 ];
-					sum1 += xx * Src[ 1 ];
-					sum2 += xx * Src[ 2 ];
-					sum3 += xx * Src[ 3 ];
-					Src += 4;
-				}
-
-				DstLine[ 0 ] = sum0;
-				DstLine[ 1 ] = sum1;
-				DstLine[ 2 ] = sum2;
-				DstLine[ 3 ] = sum3;
-
-				AVIR_RESIZE_PART2
-			}
-			else
-			if( ElCount == 3 )
-			{
-				AVIR_RESIZE_PART1nx
-
-				fptype sum0 = 0;
-				fptype sum1 = 0;
-				fptype sum2 = 0;
-
-				for( i = 0; i < IntFltLen; i++ )
-				{
-					const fptype xx = ftp[ i ];
-					sum0 += xx * Src[ 0 ];
-					sum1 += xx * Src[ 1 ];
-					sum2 += xx * Src[ 2 ];
-					Src += 3;
-				}
-
-				DstLine[ 0 ] = sum0;
-				DstLine[ 1 ] = sum1;
-				DstLine[ 2 ] = sum2;
-
-				AVIR_RESIZE_PART2
-			}
-			else
-			if( ElCount == 2 )
-			{
-				AVIR_RESIZE_PART1nx
-
-				fptype sum0 = 0;
-				fptype sum1 = 0;
-
-				for( i = 0; i < IntFltLen; i++ )
-				{
-					const fptype xx = ftp[ i ];
-					sum0 += xx * Src[ 0 ];
-					sum1 += xx * Src[ 1 ];
-					Src += 2;
-				}
-
-				DstLine[ 0 ] = sum0;
-				DstLine[ 1 ] = sum1;
-
-				AVIR_RESIZE_PART2
-			}
-		}
+			});
 	}
-#undef AVIR_RESIZE_PART2
-#undef AVIR_RESIZE_PART1nx
-#undef AVIR_RESIZE_PART1
 
 	/**
 	 * @brief Performs resizing of a single scanline assuming that the input
@@ -4114,221 +3393,48 @@ public:
 	void doResize2( const fptype* SrcLine, fptype* DstLine,
 		const int DstLineIncr, fptype* const ) const
 	{
-		const int IntFltLen0 = FltBank -> getFilterLen();
-		const int ElCount = Vars -> ElCount;
-		const typename CImageResizerFilterStep< fptype, fptypeatom > ::
-			CResizePos* rpos = &(*RPosBuf)[ 0 ];
+		const int IntFltLen0 = FltBank->getFilterLen();
+		const int ElCount = Vars->ElCount;
+		const typename CImageResizerFilterStep<fptype, fptypeatom>::CResizePos* rpos = &(*RPosBuf)[0];
+		const typename CImageResizerFilterStep<fptype, fptypeatom>::CResizePos* const rpose = rpos + OutLen;
 
-		const typename CImageResizerFilterStep< fptype, fptypeatom > ::
-			CResizePos* const rpose = rpos + OutLen;
+		tbb::parallel_for(tbb::blocked_range<size_t>(0, OutLen), [&](const tbb::blocked_range<size_t>& range) {
+			for (size_t idx = range.begin(); idx < range.end(); ++idx) {
+				const auto& rpos_local = rpos[idx];
+				const fptype x = (fptype)rpos_local.x;
+				const fptype* const ftp = rpos_local.ftp;
+				const fptype* const ftp2 = ftp + IntFltLen0;
+				const fptype* Src = SrcLine + rpos_local.SrcOffs;
+				const int IntFltLen = rpos_local.fl;
 
-#define AVIR_RESIZE_PART1 \
-			while( rpos < rpose ) \
-			{ \
-				const fptype x = (fptype) rpos -> x; \
-				const fptype* const ftp = rpos -> ftp; \
-				const fptype* const ftp2 = ftp + IntFltLen0; \
-				const fptype* Src = SrcLine + rpos -> SrcOffs; \
-				const int IntFltLen = rpos -> fl; \
-				int i;
+				fptype sums[4] = { 0 }; // Support jusqu'à 4 canaux (RGBA)
 
-#define AVIR_RESIZE_PART1nx \
-			while( rpos < rpose ) \
-			{ \
-				const fptype* const ftp = rpos -> ftp; \
-				const fptype* Src = SrcLine + rpos -> SrcOffs; \
-				const int IntFltLen = rpos -> fl; \
-				int i;
-
-#define AVIR_RESIZE_PART2 \
-				DstLine += DstLineIncr; \
-				rpos++; \
-			}
-
-		if( FltBank -> getOrder() == 1 )
-		{
-			if( ElCount == 1 )
-			{
-				AVIR_RESIZE_PART1
-
-				fptype sum0 = 0;
-
-				for( i = 0; i < IntFltLen; i += 2 )
-				{
-					sum0 += ( ftp[ i ] + ftp2[ i ] * x ) * Src[ i ];
+				if (FltBank->getOrder() == 1) {
+					for (int i = 0; i < IntFltLen; i += 2) {
+						const fptype coeff = ftp[i] + ftp2[i] * x;
+						for (int c = 0; c < ElCount; ++c) {
+							sums[c] += coeff * Src[c];
+						}
+						Src += ElCount * 2;
+					}
+				}
+				else {
+					for (int i = 0; i < IntFltLen; i += 2) {
+						const fptype coeff = ftp[i];
+						for (int c = 0; c < ElCount; ++c) {
+							sums[c] += coeff * Src[c];
+						}
+						Src += ElCount * 2;
+					}
 				}
 
-				DstLine[ 0 ] = sum0;
-
-				AVIR_RESIZE_PART2
-			}
-			else
-			if( ElCount == 4 )
-			{
-				AVIR_RESIZE_PART1
-
-				fptype sum0 = 0;
-				fptype sum1 = 0;
-				fptype sum2 = 0;
-				fptype sum3 = 0;
-
-				for( i = 0; i < IntFltLen; i += 2 )
-				{
-					const fptype xx = ftp[ i ] + ftp2[ i ] * x;
-					sum0 += xx * Src[ 0 ];
-					sum1 += xx * Src[ 1 ];
-					sum2 += xx * Src[ 2 ];
-					sum3 += xx * Src[ 3 ];
-					Src += 4 * 2;
+				for (int c = 0; c < ElCount; ++c) {
+					DstLine[idx * DstLineIncr + c] = sums[c];
 				}
-
-				DstLine[ 0 ] = sum0;
-				DstLine[ 1 ] = sum1;
-				DstLine[ 2 ] = sum2;
-				DstLine[ 3 ] = sum3;
-
-				AVIR_RESIZE_PART2
 			}
-			else
-			if( ElCount == 3 )
-			{
-				AVIR_RESIZE_PART1
-
-				fptype sum0 = 0;
-				fptype sum1 = 0;
-				fptype sum2 = 0;
-
-				for( i = 0; i < IntFltLen; i += 2 )
-				{
-					const fptype xx = ftp[ i ] + ftp2[ i ] * x;
-					sum0 += xx * Src[ 0 ];
-					sum1 += xx * Src[ 1 ];
-					sum2 += xx * Src[ 2 ];
-					Src += 3 * 2;
-				}
-
-				DstLine[ 0 ] = sum0;
-				DstLine[ 1 ] = sum1;
-				DstLine[ 2 ] = sum2;
-
-				AVIR_RESIZE_PART2
-			}
-			else
-			if( ElCount == 2 )
-			{
-				AVIR_RESIZE_PART1
-
-				fptype sum0 = 0;
-				fptype sum1 = 0;
-
-				for( i = 0; i < IntFltLen; i += 2 )
-				{
-					const fptype xx = ftp[ i ] + ftp2[ i ] * x;
-					sum0 += xx * Src[ 0 ];
-					sum1 += xx * Src[ 1 ];
-					Src += 2 * 2;
-				}
-
-				DstLine[ 0 ] = sum0;
-				DstLine[ 1 ] = sum1;
-
-				AVIR_RESIZE_PART2
-			}
-		}
-		else
-		{
-			if( ElCount == 1 )
-			{
-				AVIR_RESIZE_PART1nx
-
-				fptype sum0 = 0;
-
-				for( i = 0; i < IntFltLen; i += 2 )
-				{
-					sum0 += ftp[ i ] * Src[ i ];
-				}
-
-				DstLine[ 0 ] = sum0;
-
-				AVIR_RESIZE_PART2
-			}
-			else
-			if( ElCount == 4 )
-			{
-				AVIR_RESIZE_PART1nx
-
-				fptype sum0 = 0;
-				fptype sum1 = 0;
-				fptype sum2 = 0;
-				fptype sum3 = 0;
-
-				for( i = 0; i < IntFltLen; i += 2 )
-				{
-					const fptype xx = ftp[ i ];
-					sum0 += xx * Src[ 0 ];
-					sum1 += xx * Src[ 1 ];
-					sum2 += xx * Src[ 2 ];
-					sum3 += xx * Src[ 3 ];
-					Src += 4 * 2;
-				}
-
-				DstLine[ 0 ] = sum0;
-				DstLine[ 1 ] = sum1;
-				DstLine[ 2 ] = sum2;
-				DstLine[ 3 ] = sum3;
-
-				AVIR_RESIZE_PART2
-			}
-			else
-			if( ElCount == 3 )
-			{
-				AVIR_RESIZE_PART1nx
-
-				fptype sum0 = 0;
-				fptype sum1 = 0;
-				fptype sum2 = 0;
-
-				for( i = 0; i < IntFltLen; i += 2 )
-				{
-					const fptype xx = ftp[ i ];
-					sum0 += xx * Src[ 0 ];
-					sum1 += xx * Src[ 1 ];
-					sum2 += xx * Src[ 2 ];
-					Src += 3 * 2;
-				}
-
-				DstLine[ 0 ] = sum0;
-				DstLine[ 1 ] = sum1;
-				DstLine[ 2 ] = sum2;
-
-				AVIR_RESIZE_PART2
-			}
-			else
-			if( ElCount == 2 )
-			{
-				AVIR_RESIZE_PART1nx
-
-				fptype sum0 = 0;
-				fptype sum1 = 0;
-
-				for( i = 0; i < IntFltLen; i += 2 )
-				{
-					const fptype xx = ftp[ i ];
-					sum0 += xx * Src[ 0 ];
-					sum1 += xx * Src[ 1 ];
-					Src += 2 * 2;
-				}
-
-				DstLine[ 0 ] = sum0;
-				DstLine[ 1 ] = sum1;
-
-				AVIR_RESIZE_PART2
-			}
-		}
+			});
 	}
-#undef AVIR_RESIZE_PART2
-#undef AVIR_RESIZE_PART1nx
-#undef AVIR_RESIZE_PART1
+
 };
 
 /**
@@ -4481,47 +3587,45 @@ public:
 	/**
 	 * @copydoc CImageResizerDithererDefINL::dither()
 	 */
-
-	void dither( fptype* const ResScanline )
+	void dither(fptype* const ResScanline)
 	{
-		const int ElCount = Vars -> ElCount;
+		const int ElCount = Vars->ElCount;
 		const fptype c0 = 0;
-		const fptype TrMul = (fptype) TrMul0;
-		const fptype TrMulI = (fptype) ( 1.0 / TrMul0 );
-		const fptype PkOut = (fptype) PkOut0;
-		int j;
+		const fptype TrMul = (fptype)TrMul0;
+		const fptype TrMulI = (fptype)(1.0 / TrMul0);
+		const fptype PkOut = (fptype)PkOut0;
 
-		for( j = 0; j < LenE; j++ )
-		{
-			ResScanline[ j ] += ResScanlineDith[ j ];
-			ResScanlineDith[ j ] = 0;
-		}
+		// Étape 1 : Ajouter les erreurs de diffusion existantes
+		tbb::parallel_for(0, LenE, [&](int j) {
+			ResScanline[j] += ResScanlineDith[j];
+			ResScanlineDith[j] = 0;
+			});
 
-		for( j = 0; j < LenE - ElCount; j++ )
-		{
-			// Perform rounding, noise estimation and saturation.
+		// Étape 2 : Appliquer le dithering pour les éléments principaux
+		tbb::parallel_for(0, LenE - ElCount, [&](int j) {
+			const fptype z0 = round(ResScanline[j] * TrMulI) * TrMul;
+			const fptype Noise = ResScanline[j] - z0;
+			ResScanline[j] = clamp(z0, c0, PkOut);
 
-			const fptype z0 = round( ResScanline[ j ] * TrMulI ) * TrMul;
-			const fptype Noise = ResScanline[ j ] - z0;
-			ResScanline[ j ] = clamp( z0, c0, PkOut );
+			const fptype NoiseM1 = Noise * (fptype)0.364842;
+			ResScanline[j + ElCount] += NoiseM1;
+			ResScanlineDith[j - ElCount] += Noise * (fptype)0.207305;
+			ResScanlineDith[j] += NoiseM1;
+			ResScanlineDith[j + ElCount] += Noise * (fptype)0.063011;
+			});
 
-			const fptype NoiseM1 = Noise * (fptype) 0.364842;
-			ResScanline[ j + ElCount ] += NoiseM1;
-			ResScanlineDith[ j - ElCount ] += Noise * (fptype) 0.207305;
-			ResScanlineDith[ j ] += NoiseM1;
-			ResScanlineDith[ j + ElCount ] += Noise * (fptype) 0.063011;
-		}
+		// Étape 3 : Gérer les éléments restants
+		tbb::parallel_for(LenE - ElCount, LenE, [&](int j) {
+			const fptype z0 = round(ResScanline[j] * TrMulI) * TrMul;
+			const fptype Noise = ResScanline[j] - z0;
+			ResScanline[j] = clamp(z0, c0, PkOut);
 
-		while( j < LenE )
-		{
-			const fptype z0 = round( ResScanline[ j ] * TrMulI ) * TrMul;
-			const fptype Noise = ResScanline[ j ] - z0;
-			ResScanline[ j ] = clamp( z0, c0, PkOut );
-
-			ResScanlineDith[ j - ElCount ] += Noise * (fptype) 0.207305;
-			ResScanlineDith[ j ] += Noise * (fptype) 0.364842;
-			j++;
-		}
+			if (j - ElCount >= 0)
+			{
+				ResScanlineDith[j - ElCount] += Noise * (fptype)0.207305;
+			}
+			ResScanlineDith[j] += Noise * (fptype)0.364842;
+			});
 	}
 
 protected:
@@ -4676,56 +3780,45 @@ public:
 	 * value range), `double` (`0..1` value range). Larger integer types are
 	 * treated as `uint16_t`. Signed integer types are unsupported.
 	 */
-
 	template< typename Tin, typename Tout >
-	void resizeImage( const Tin* const SrcBuf, const int SrcWidth,
+	void resizeImage(const Tin* const SrcBuf, const int SrcWidth,
 		const int SrcHeight, int SrcScanlineSize, Tout* const NewBuf,
 		const int NewWidth, const int NewHeight, const int ElCountIO,
-		const double k, CImageResizerVars* const aVars = nullptr ) const
+		const double k, CImageResizerVars* const aVars = nullptr) const
 	{
-		if( SrcWidth == 0 || SrcHeight == 0 )
+		if (SrcWidth == 0 || SrcHeight == 0)
 		{
-			memset( NewBuf, 0, (size_t) NewWidth * (size_t) NewHeight *
-				sizeof( Tout ));
-
+			memset(NewBuf, 0, (size_t)NewWidth * (size_t)NewHeight * sizeof(Tout));
 			return;
 		}
-		else
-		if( NewWidth == 0 || NewHeight == 0 )
+		else if (NewWidth == 0 || NewHeight == 0)
 		{
 			return;
 		}
 
 		CImageResizerVars DefVars;
-		CImageResizerVars& Vars = ( aVars == nullptr ? DefVars : *aVars );
+		CImageResizerVars& Vars = (aVars == nullptr ? DefVars : *aVars);
 
 		CImageResizerThreadPool DefThreadPool;
-		CImageResizerThreadPool& ThreadPool = ( Vars.ThreadPool == nullptr ?
-			DefThreadPool : *Vars.ThreadPool );
+		CImageResizerThreadPool& ThreadPool = (Vars.ThreadPool == nullptr ?
+			DefThreadPool : *Vars.ThreadPool);
 
-		// Define resizing steps, also optionally modify offsets so that
-		// resizing produces a "centered" image.
+		double kx, ky, ox = Vars.ox, oy = Vars.oy;
 
-		double kx;
-		double ky;
-		double ox = Vars.ox;
-		double oy = Vars.oy;
-
-		if( k == 0.0 )
+		if (k == 0.0)
 		{
-			kx = (double) SrcWidth / NewWidth;
-			ox += ( kx - 1.0 ) * 0.5;
+			kx = (double)SrcWidth / NewWidth;
+			ox += (kx - 1.0) * 0.5;
 
-			ky = (double) SrcHeight / NewHeight;
-			oy += ( ky - 1.0 ) * 0.5;
+			ky = (double)SrcHeight / NewHeight;
+			oy += (ky - 1.0) * 0.5;
 		}
-		else
-		if( k > 0.0 )
+		else if (k > 0.0)
 		{
 			kx = k;
 			ky = k;
 
-			const double ko = ( k - 1.0 ) * 0.5;
+			const double ko = (k - 1.0) * 0.5;
 			ox += ko;
 			oy += ko;
 		}
@@ -4735,376 +3828,150 @@ public:
 			ky = -k;
 		}
 
-		// Evaluate pre-multipliers used on the output stage.
+		const bool IsInFloat = ((Tin)0.25 != 0);
+		const bool IsOutFloat = ((Tout)0.25 != 0);
+		double OutMul;
 
-		const bool IsInFloat = ( (Tin) 0.25 != 0 );
-		const bool IsOutFloat = ( (Tout) 0.25 != 0 );
-		double OutMul; // Output multiplier.
-
-		if( Vars.UseSRGBGamma )
+		if (Vars.UseSRGBGamma)
 		{
-			if( IsInFloat )
-			{
-				Vars.InGammaMult = 1.0;
-			}
-			else
-			{
-				Vars.InGammaMult =
-					1.0 / ( sizeof( Tin ) == 1 ? 255.0 : 65535.0 );
-			}
-
-			if( IsOutFloat )
-			{
-				Vars.OutGammaMult = 1.0;
-			}
-			else
-			{
-				Vars.OutGammaMult = ( sizeof( Tout ) == 1 ? 255.0 : 65535.0 );
-			}
-
+			Vars.InGammaMult = IsInFloat ? 1.0 : 1.0 / (sizeof(Tin) == 1 ? 255.0 : 65535.0);
+			Vars.OutGammaMult = IsOutFloat ? 1.0 : (sizeof(Tout) == 1 ? 255.0 : 65535.0);
 			OutMul = 1.0;
 		}
 		else
 		{
-			if( IsOutFloat )
+			OutMul = IsOutFloat ? 1.0 : (sizeof(Tout) == 1 ? 255.0 : 65535.0);
+			if (!IsInFloat)
 			{
-				OutMul = 1.0;
-			}
-			else
-			{
-				OutMul = ( sizeof( Tout ) == 1 ? 255.0 : 65535.0 );
-			}
-
-			if( !IsInFloat )
-			{
-				OutMul /= ( sizeof( Tin ) == 1 ? 255.0 : 65535.0 );
+				OutMul /= (sizeof(Tin) == 1 ? 255.0 : 65535.0);
 			}
 		}
 
-		// Fill widely-used variables.
-
-		const int ElCount = ( ElCountIO + fpclass :: fppack - 1 ) /
-			fpclass :: fppack;
-
+		const int ElCount = (ElCountIO + fpclass::fppack - 1) / fpclass::fppack;
 		const int NewWidthE = NewWidth * ElCount;
 
-		if( SrcScanlineSize < 1 )
+		if (SrcScanlineSize < 1)
 		{
 			SrcScanlineSize = SrcWidth * ElCountIO;
 		}
 
 		Vars.ElCount = ElCount;
 		Vars.ElCountIO = ElCountIO;
-		Vars.fppack = fpclass :: fppack;
-		Vars.fpalign = fpclass :: fpalign;
-		Vars.elalign = fpclass :: elalign;
-		Vars.packmode = fpclass :: packmode;
+		Vars.fppack = fpclass::fppack;
+		Vars.fpalign = fpclass::fpalign;
+		Vars.elalign = fpclass::elalign;
+		Vars.packmode = fpclass::packmode;
 
-		// Horizontal scanline filtering and resizing.
-
-		CDSPFracFilterBankLin< fptype > FltBank;
+		CDSPFracFilterBankLin<fptype> FltBank;
 		CFilterSteps FltSteps;
-		typename CFilterStep :: CRPosBufArray RPosBufArray;
-		CBuffer< char > UsedFracMap;
-
-		// Perform the filtering steps modeling at various modes, find the
-		// most efficient mode for both horizontal and vertical resizing.
+		typename CFilterStep::CRPosBufArray RPosBufArray;
+		CBuffer<char> UsedFracMap;
 
 		int UseBuildMode = 1;
-		const int BuildModeCount =
-			( FixedFilterBank.getOrder() == 0 ? 4 : 2 );
+		const int BuildModeCount = (FixedFilterBank.getOrder() == 0 ? 4 : 2);
 
-		int m;
-
-		if( Vars.BuildMode >= 0 )
-		{
-			UseBuildMode = Vars.BuildMode;
-		}
-		else
+		if (Vars.BuildMode < 0)
 		{
 			int BestScore = 0x7FFFFFFF;
 
-			for( m = 0; m < BuildModeCount; m++ )
+			for (int m = 0; m < BuildModeCount; m++)
 			{
-				CDSPFracFilterBankLin< fptype > TmpBank;
+				CDSPFracFilterBankLin<fptype> TmpBank;
 				CFilterSteps TmpSteps;
 				Vars.k = kx;
 				Vars.o = ox;
-				buildFilterSteps( TmpSteps, Vars, TmpBank, OutMul, m, true );
-				updateFilterStepBuffers( TmpSteps, Vars, RPosBufArray,
-					SrcWidth, NewWidth );
+				buildFilterSteps(TmpSteps, Vars, TmpBank, OutMul, m, true);
+				updateFilterStepBuffers(TmpSteps, Vars, RPosBufArray, SrcWidth, NewWidth);
 
-				fillUsedFracMap( TmpSteps[ Vars.ResizeStep ], UsedFracMap );
-				const int c = calcComplexity( TmpSteps, Vars, UsedFracMap,
-					SrcHeight );
+				fillUsedFracMap(TmpSteps[Vars.ResizeStep], UsedFracMap);
+				const int c = calcComplexity(TmpSteps, Vars, UsedFracMap, SrcHeight);
 
-				if( c < BestScore )
+				if (c < BestScore)
 				{
 					UseBuildMode = m;
 					BestScore = c;
 				}
 			}
 		}
-
-		// Perform the actual filtering steps building.
-
-		Vars.k = kx;
-		Vars.o = ox;
-		buildFilterSteps( FltSteps, Vars, FltBank, OutMul, UseBuildMode,
-			false );
-
-		updateFilterStepBuffers( FltSteps, Vars, RPosBufArray, SrcWidth,
-			NewWidth );
-
-		updateBufLenAndRPosPtrs( FltSteps, Vars, NewWidth );
-
-		//may return 0 when not able to detect
-		//const auto processor_count = std::thread::hardware_concurrency();
-
-		const int ThreadCount = ThreadPool.getSuggestedWorkloadCount();
-			// Includes the current thread.
-
-		CStructArray< CThreadData< Tin, Tout > > td;
-		td.setItemCount( ThreadCount );
-		int i;
-
-		for( i = 0; i < ThreadCount; i++ )
-		{
-			if( i > 0 )
-			{
-				ThreadPool.addWorkload( &td[ i ]);
-			}
-
-			td[ i ].init( i, ThreadCount, FltSteps, Vars );
-
-			td[ i ].initScanlineQueue( td[ i ].sopResizeH, SrcHeight,
-				SrcWidth );
-		}
-
-		CBuffer< fptype, size_t > FltBuf( (size_t) NewWidthE *
-			(size_t) SrcHeight, fpclass :: fpalign ); // Temporary buffer that
-			// receives horizontally-filtered and resized image.
-
-		#pragma omp parallel for 
-		for (int i = 0; i < SrcHeight; i++)
-		{
-			td[i % ThreadCount].addScanlineToQueue(
-				(void*)&SrcBuf[(size_t)i * (size_t)SrcScanlineSize],
-				&FltBuf[(size_t)i * (size_t)NewWidthE], i);
-		}
-
-		td[0].addQueueLen(SrcHeight);
-
-
-		ThreadPool.startAllWorkloads();
-		td[ 0 ].processScanlineQueue();
-		ThreadPool.waitAllWorkloadsToFinish();
-
-		// Vertical scanline filtering and resizing, reuse previously defined
-		// filtering steps if possible.
-
-		const int PrevUseBuildMode = UseBuildMode;
-
-		if( Vars.BuildMode >= 0 )
+		else
 		{
 			UseBuildMode = Vars.BuildMode;
 		}
-		else
+
+		Vars.k = kx;
+		Vars.o = ox;
+		buildFilterSteps(FltSteps, Vars, FltBank, OutMul, UseBuildMode, false);
+		updateFilterStepBuffers(FltSteps, Vars, RPosBufArray, SrcWidth, NewWidth);
+		updateBufLenAndRPosPtrs(FltSteps, Vars, NewWidth);
+
+		const int ThreadCount = ThreadPool.getSuggestedWorkloadCount();
+
+		CStructArray<CThreadData<Tin, Tout>> td;
+		td.setItemCount(ThreadCount);
+
+		for (int i = 0; i < ThreadCount; i++)
 		{
-			CImageResizerVars TmpVars( Vars );
-			int BestScore = 0x7FFFFFFF;
-
-			for( m = 0; m < BuildModeCount; m++ )
+			if (i > 0)
 			{
-				CDSPFracFilterBankLin< fptype > TmpBank;
-				TmpBank.copyInitParams( FltBank );
-				CFilterSteps TmpSteps;
-				TmpVars.k = ky;
-				TmpVars.o = oy;
-				buildFilterSteps( TmpSteps, TmpVars, TmpBank, 1.0, m, true );
-				updateFilterStepBuffers( TmpSteps, TmpVars, RPosBufArray,
-					SrcHeight, NewHeight );
-
-				fillUsedFracMap( TmpSteps[ TmpVars.ResizeStep ],
-					UsedFracMap );
-
-				const int c = calcComplexity( TmpSteps, TmpVars, UsedFracMap,
-					NewWidth );
-
-				if( c < BestScore )
-				{
-					UseBuildMode = m;
-					BestScore = c;
-				}
+				ThreadPool.addWorkload(&td[i]);
 			}
+
+			td[i].init(i, ThreadCount, FltSteps, Vars);
+			td[i].initScanlineQueue(td[i].sopResizeH, SrcHeight, SrcWidth);
 		}
 
+		CBuffer<fptype, size_t> FltBuf((size_t)NewWidthE * (size_t)SrcHeight, fpclass::fpalign);
+
+		tbb::parallel_for(0, SrcHeight, [&](int i) {
+			td[i % ThreadCount].addScanlineToQueue(
+				(void*)&SrcBuf[(size_t)i * (size_t)SrcScanlineSize],
+				&FltBuf[(size_t)i * (size_t)NewWidthE], i);
+			});
+
+		td[0].addQueueLen(SrcHeight);
+
+		ThreadPool.startAllWorkloads();
+		td[0].processScanlineQueue();
+		ThreadPool.waitAllWorkloadsToFinish();
+
+		// Vertical scanline filtering and resizing
 		Vars.k = ky;
 		Vars.o = oy;
 
-		if( UseBuildMode == PrevUseBuildMode && ky == kx )
-		{
-			if( OutMul != 1.0 )
-			{
-				modifyCorrFilterDCGain( FltSteps, 1.0 / OutMul );
-			}
-		}
-		else
-		{
-			buildFilterSteps( FltSteps, Vars, FltBank, 1.0, UseBuildMode,
-				false );
-		}
+		buildFilterSteps(FltSteps, Vars, FltBank, 1.0, UseBuildMode, false);
+		updateFilterStepBuffers(FltSteps, Vars, RPosBufArray, SrcHeight, NewHeight);
+		updateBufLenAndRPosPtrs(FltSteps, Vars, NewWidth);
 
-		updateFilterStepBuffers( FltSteps, Vars, RPosBufArray, SrcHeight,
-			NewHeight );
+		CBuffer<fptype, size_t> ResBuf((size_t)NewWidthE * (size_t)NewHeight, fpclass::fpalign);
 
-		updateBufLenAndRPosPtrs( FltSteps, Vars, NewWidth );
+		tbb::parallel_for(0, NewWidth, [&](int i) {
+			td[i % ThreadCount].addScanlineToQueue(
+				&FltBuf[i * ElCount], &ResBuf[i * ElCount], i);
+			});
 
-		if( IsOutFloat && sizeof( FltBuf[ 0 ]) == sizeof( Tout ) &&
-			fpclass :: packmode == 0 )
-		{
-			// In-place output.
-			for(int i = 0; i < ThreadCount; i++ )
-			{
-				td[ i ].initScanlineQueue( td[ i ].sopResizeV, NewWidth,
-					SrcHeight, NewWidthE, NewWidthE );
-			}
-
-			#pragma omp parallel for
-			for(int i = 0; i < NewWidth; i++ )
-			{
-				td[ i % ThreadCount ].addScanlineToQueue(
-					&FltBuf[ i * ElCount ], (fptype*) &NewBuf[ i * ElCount ], i);
-			}
-			td[0].addQueueLen(NewWidth);
-
-			ThreadPool.startAllWorkloads();
-			td[ 0 ].processScanlineQueue();
-			ThreadPool.waitAllWorkloadsToFinish();
-			ThreadPool.removeAllWorkloads();
-
-			return;
-		}
-
-		CBuffer< fptype, size_t > ResBuf( (size_t) NewWidthE *
-			(size_t) NewHeight, fpclass :: fpalign );
-
-		for(int i = 0; i < ThreadCount; i++ )
-		{
-			td[ i ].initScanlineQueue( td[ i ].sopResizeV, NewWidth,
-				SrcHeight, NewWidthE, NewWidthE );
-		}
-
-		const int im = ( fpclass :: packmode == 0 ? ElCount : 1 );
-
-		#pragma omp parallel for
-		for(int i = 0; i < NewWidth; i++ )
-		{
-			td[ i % ThreadCount ].addScanlineToQueue(
-				&FltBuf[ i * im ], &ResBuf[ i * im ], i);
-		}
 		td[0].addQueueLen(NewWidth);
 
 		ThreadPool.startAllWorkloads();
-		td[ 0 ].processScanlineQueue();
+		td[0].processScanlineQueue();
 		ThreadPool.waitAllWorkloadsToFinish();
 
-		if( IsOutFloat )
+		// Final output processing
+		if (IsOutFloat)
 		{
-			// Perform output, but skip dithering.
-			for(int i = 0; i < ThreadCount; i++ )
-			{
-				td[ i ].initScanlineQueue( td[ i ].sopUnpackH,
-					NewHeight, NewWidth );
-			}
-
-			#pragma omp parallel for
-			for(int i = 0; i < NewHeight; i++ )
-			{
-				td[ i % ThreadCount ].addScanlineToQueue(
-					&ResBuf[ (size_t) i * (size_t) NewWidthE ],
-					&NewBuf[ (size_t) i * (size_t) ( NewWidth * ElCountIO )], i);
-			}
+			tbb::parallel_for(0, NewHeight, [&](int i) {
+				td[i % ThreadCount].addScanlineToQueue(
+					&ResBuf[(size_t)i * (size_t)NewWidthE],
+					&NewBuf[(size_t)i * (size_t)(NewWidth * ElCountIO)], i);
+				});
 
 			td[0].addQueueLen(NewHeight);
 
 			ThreadPool.startAllWorkloads();
-			td[ 0 ].processScanlineQueue();
+			td[0].processScanlineQueue();
 			ThreadPool.waitAllWorkloadsToFinish();
 			ThreadPool.removeAllWorkloads();
-
 			return;
 		}
-
-		// Perform output with dithering (for integer output only).
-
-		int TruncBits; // The number of lower bits to truncate and dither.
-		int OutRange; // Output range.
-
-		if( sizeof( Tout ) == 1 )
-		{
-			TruncBits = 8 - ResBitDepth;
-			OutRange = 255;
-		}
-		else
-		{
-			TruncBits = 16 - ResBitDepth;
-			OutRange = 65535;
-		}
-
-		const double PkOut = OutRange;
-		const double TrMul = ( TruncBits > 0 ?
-			PkOut / ( OutRange >> TruncBits ) : 1.0 );
-
-		if( CDitherer :: isRecursive() )
-		{
-			td[ 0 ].getDitherer().init( NewWidth, Vars, TrMul, PkOut );
-
-			#pragma omp for
-			for(int i = 0; i < NewHeight; i++ )
-			{
-				fptype* const ResScanline =
-					&ResBuf[ (size_t) i * (size_t) NewWidthE ];
-
-				if( Vars.UseSRGBGamma )
-				{
-					CFilterStep :: applySRGBGamma( ResScanline, NewWidth,
-						Vars );
-				}
-
-				td[ 0 ].getDitherer().dither( ResScanline );
-
-				CFilterStep :: unpackScanline( ResScanline,
-					&NewBuf[ (size_t) i * (size_t) ( NewWidth * ElCountIO )],
-					NewWidth, Vars );
-			}
-		}
-		else
-		{
-			for(int i = 0; i < ThreadCount; i++ )
-			{
-				td[ i ].initScanlineQueue( td[ i ].sopDitherAndUnpackH,
-					NewHeight, NewWidth );
-
-				td[ i ].getDitherer().init( NewWidth, Vars, TrMul, PkOut );
-			}
-
-			#pragma omp parallel for
-			for(int i = 0; i < NewHeight; i++ )
-			{
-				td[ i % ThreadCount ].addScanlineToQueue(
-					&ResBuf[ (size_t) i * (size_t) NewWidthE ],
-					&NewBuf[ (size_t) i * (size_t) ( NewWidth * ElCountIO )], i);
-			}
-
-			td[0].addQueueLen(NewHeight);
-
-			ThreadPool.startAllWorkloads();
-			td[ 0 ].processScanlineQueue();
-			ThreadPool.waitAllWorkloadsToFinish();
-		}
-
-		ThreadPool.removeAllWorkloads();
 	}
 
 private:
@@ -6427,32 +5294,27 @@ private:
 			{
 				case sopResizeH:
 				{
-					#pragma omp parallel for
-					for (int i = 0; i < QueueLen; i++)
-					{
+					tbb::parallel_for(0, QueueLen, 1, [=](int i) {
 						resizeScanlineH((Tin*)Queue[i].SrcBuf,
 							(fptype*)Queue[i].ResBuf);
-					}
+						});
 					break;
 				}
 
 				case sopResizeV:
 				{
-					#pragma omp parallel for
-					for(int i = 0; i < QueueLen; i++ )
-					{
-						resizeScanlineV( (fptype*) Queue[ i ].SrcBuf,
-							(fptype*) Queue[ i ].ResBuf );
-					}
+					tbb::parallel_for(0, QueueLen, 1, [=](int i) {
+						resizeScanlineV((fptype*)Queue[i].SrcBuf,
+							(fptype*)Queue[i].ResBuf);
+						});
 
 					break;
 				}
 
 				case sopDitherAndUnpackH:
 				{
-					#pragma omp parallel for
-					for(int i = 0; i < QueueLen; i++ )
-					{
+					tbb::parallel_for(0, QueueLen, 1, [=](int i) {
+
 						if( Vars -> UseSRGBGamma )
 						{
 							CFilterStep :: applySRGBGamma(
@@ -6464,26 +5326,25 @@ private:
 						CFilterStep :: unpackScanline(
 							(fptype*) Queue[ i ].SrcBuf,
 							(Tout*) Queue[ i ].ResBuf, SrcLen, *Vars );
-					}
+					
+					});
 
 					break;
 				}
 
 				case sopUnpackH:
 				{
-					#pragma omp parallel for
-					for(int i = 0; i < QueueLen; i++ )
-					{
-						if( Vars -> UseSRGBGamma )
-						{
-							CFilterStep :: applySRGBGamma(
-								(fptype*) Queue[ i ].SrcBuf, SrcLen, *Vars );
-						}
+					tbb::parallel_for(0, QueueLen, 1, [=](int i) {
+							if (Vars->UseSRGBGamma)
+							{
+								CFilterStep::applySRGBGamma(
+									(fptype*)Queue[i].SrcBuf, SrcLen, *Vars);
+							}
 
-						CFilterStep :: unpackScanline(
-							(fptype*) Queue[ i ].SrcBuf,
-							(Tout*) Queue[ i ].ResBuf, SrcLen, *Vars );
-					}
+							CFilterStep::unpackScanline(
+								(fptype*)Queue[i].SrcBuf,
+								(Tout*)Queue[i].ResBuf, SrcLen, *Vars);
+						});
 
 					break;
 				}
@@ -6560,7 +5421,6 @@ private:
 			fs0.packScanline( SrcBuf, BufPtrs[ 0 ], SrcLen );
 			BufPtrs[ 2 ] = ResBuf;
 
-#pragma omp parallel for
 			for(int j = 0; j < Steps -> getItemCount(); j++ )
 			{
 				const CFilterStep& fs = (*Steps)[ j ];
@@ -6624,7 +5484,6 @@ private:
 			fs0.convertVtoH( SrcBuf, BufPtrs[ 0 ], SrcLen, SrcIncr );
 			BufPtrs[ 2 ] = ResBuf;
 
-			#pragma omp parallel for
 			for(int j = 0; j < Steps -> getItemCount(); j++ )
 			{
 				const CFilterStep& fs = (*Steps)[ j ];
