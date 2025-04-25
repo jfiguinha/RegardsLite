@@ -54,6 +54,7 @@
 #include <cstring>
 #include <cmath>
 #include <tbb/parallel_reduce.h>
+#include <tbb/parallel_invoke.h>
 #if __cplusplus >= 201103L
 
 	#include <cstdint>
@@ -2706,200 +2707,99 @@ public:
 	 * @param l0 The number of pixels to "pack".
 	 * @tparam Tin Input values' type.
 	 */
-
 	template< typename Tin >
-	void packScanline( const Tin* ip, fptype* const op0, const int l0 ) const
+	void packScanline(const Tin* ip, fptype* const op0, const int l0) const
 	{
-		const int ElCount = Vars -> ElCount;
-		const int ElCountIO = Vars -> ElCountIO;
+		const int ElCount = Vars->ElCount;
+		const int ElCountIO = Vars->ElCountIO;
 		fptype* op = op0;
-		int l = l0;
 
-		if( !Vars -> UseSRGBGamma )
+		if (!Vars->UseSRGBGamma)
 		{
-			if( ElCountIO == 1 )
-			{
-				while( l > 0 )
+			tbb::parallel_for(0, l0, [&](int i) {
+				fptypeatom* v = (fptypeatom*)(op + i * ElCount);
+				if (ElCountIO == 1)
 				{
-					fptypeatom* v = (fptypeatom*) op;
-					v[ 0 ] = (fptypeatom) ip[ 0 ];
-					op += ElCount;
-					ip++;
-					l--;
+					v[0] = (fptypeatom)ip[i];
 				}
-			}
-			else
-			if( ElCountIO == 4 )
-			{
-				while( l > 0 )
+				else if (ElCountIO == 4)
 				{
-					fptypeatom* v = (fptypeatom*) op;
-					v[ 0 ] = (fptypeatom) ip[ 0 ];
-					v[ 1 ] = (fptypeatom) ip[ 1 ];
-					v[ 2 ] = (fptypeatom) ip[ 2 ];
-					v[ 3 ] = (fptypeatom) ip[ 3 ];
-					op += ElCount;
-					ip += 4;
-					l--;
+					v[0] = (fptypeatom)ip[i * 4 + 0];
+					v[1] = (fptypeatom)ip[i * 4 + 1];
+					v[2] = (fptypeatom)ip[i * 4 + 2];
+					v[3] = (fptypeatom)ip[i * 4 + 3];
 				}
-			}
-			else
-			if( ElCountIO == 3 )
-			{
-				while( l > 0 )
+				else if (ElCountIO == 3)
 				{
-					fptypeatom* v = (fptypeatom*) op;
-					v[ 0 ] = (fptypeatom) ip[ 0 ];
-					v[ 1 ] = (fptypeatom) ip[ 1 ];
-					v[ 2 ] = (fptypeatom) ip[ 2 ];
-					op += ElCount;
-					ip += 3;
-					l--;
+					v[0] = (fptypeatom)ip[i * 3 + 0];
+					v[1] = (fptypeatom)ip[i * 3 + 1];
+					v[2] = (fptypeatom)ip[i * 3 + 2];
 				}
-			}
-			else
-			if( ElCountIO == 2 )
-			{
-				while( l > 0 )
+				else if (ElCountIO == 2)
 				{
-					fptypeatom* v = (fptypeatom*) op;
-					v[ 0 ] = (fptypeatom) ip[ 0 ];
-					v[ 1 ] = (fptypeatom) ip[ 1 ];
-					op += ElCount;
-					ip += 2;
-					l--;
+					v[0] = (fptypeatom)ip[i * 2 + 0];
+					v[1] = (fptypeatom)ip[i * 2 + 1];
 				}
-			}
+				});
 		}
 		else
 		{
-			const fptypeatom gm = (fptypeatom) Vars -> InGammaMult;
+			const fptypeatom gm = (fptypeatom)Vars->InGammaMult;
 
-			if( ElCountIO == 1 )
-			{
-				while( l > 0 )
+			tbb::parallel_for(0, l0, [&](int i) {
+				fptypeatom* v = (fptypeatom*)(op + i * ElCount);
+				if (ElCountIO == 1)
 				{
-					fptypeatom* v = (fptypeatom*) op;
-					v[ 0 ] = convertSRGB2Lin( ip[ 0 ], gm );
-					op += ElCount;
-					ip++;
-					l--;
+					v[0] = convertSRGB2Lin(ip[i], gm);
 				}
-			}
-			else
-			if( ElCountIO == 4 )
-			{
-				if( Vars -> AlphaIndex == 0 )
+				else if (ElCountIO == 4)
 				{
-					while( l > 0 )
+					if (Vars->AlphaIndex == 0)
 					{
-						fptypeatom* v = (fptypeatom*) op;
-						v[ 0 ] = (fptypeatom) ip[ 0 ] * gm;
-						v[ 1 ] = convertSRGB2Lin( ip[ 1 ], gm );
-						v[ 2 ] = convertSRGB2Lin( ip[ 2 ], gm );
-						v[ 3 ] = convertSRGB2Lin( ip[ 3 ], gm );
-						op += ElCount;
-						ip += 4;
-						l--;
+						v[0] = (fptypeatom)ip[i * 4 + 0] * gm;
+						v[1] = convertSRGB2Lin(ip[i * 4 + 1], gm);
+						v[2] = convertSRGB2Lin(ip[i * 4 + 2], gm);
+						v[3] = convertSRGB2Lin(ip[i * 4 + 3], gm);
+					}
+					else if (Vars->AlphaIndex == 3)
+					{
+						v[0] = convertSRGB2Lin(ip[i * 4 + 0], gm);
+						v[1] = convertSRGB2Lin(ip[i * 4 + 1], gm);
+						v[2] = convertSRGB2Lin(ip[i * 4 + 2], gm);
+						v[3] = (fptypeatom)ip[i * 4 + 3] * gm;
+					}
+					else
+					{
+						v[0] = convertSRGB2Lin(ip[i * 4 + 0], gm);
+						v[1] = convertSRGB2Lin(ip[i * 4 + 1], gm);
+						v[2] = convertSRGB2Lin(ip[i * 4 + 2], gm);
+						v[3] = convertSRGB2Lin(ip[i * 4 + 3], gm);
 					}
 				}
-				else
-				if( Vars -> AlphaIndex == 3 )
+				else if (ElCountIO == 3)
 				{
-					while( l > 0 )
-					{
-						fptypeatom* v = (fptypeatom*) op;
-						v[ 0 ] = convertSRGB2Lin( ip[ 0 ], gm );
-						v[ 1 ] = convertSRGB2Lin( ip[ 1 ], gm );
-						v[ 2 ] = convertSRGB2Lin( ip[ 2 ], gm );
-						v[ 3 ] = (fptypeatom) ip[ 3 ] * gm;
-						op += ElCount;
-						ip += 4;
-						l--;
-					}
+					v[0] = convertSRGB2Lin(ip[i * 3 + 0], gm);
+					v[1] = convertSRGB2Lin(ip[i * 3 + 1], gm);
+					v[2] = convertSRGB2Lin(ip[i * 3 + 2], gm);
 				}
-				else
+				else if (ElCountIO == 2)
 				{
-					while( l > 0 )
-					{
-						fptypeatom* v = (fptypeatom*) op;
-						v[ 0 ] = convertSRGB2Lin( ip[ 0 ], gm );
-						v[ 1 ] = convertSRGB2Lin( ip[ 1 ], gm );
-						v[ 2 ] = convertSRGB2Lin( ip[ 2 ], gm );
-						v[ 3 ] = convertSRGB2Lin( ip[ 3 ], gm );
-						op += ElCount;
-						ip += 4;
-						l--;
-					}
+					v[0] = convertSRGB2Lin(ip[i * 2 + 0], gm);
+					v[1] = convertSRGB2Lin(ip[i * 2 + 1], gm);
 				}
-			}
-			else
-			if( ElCountIO == 3 )
-			{
-				while( l > 0 )
-				{
-					fptypeatom* v = (fptypeatom*) op;
-					v[ 0 ] = convertSRGB2Lin( ip[ 0 ], gm );
-					v[ 1 ] = convertSRGB2Lin( ip[ 1 ], gm );
-					v[ 2 ] = convertSRGB2Lin( ip[ 2 ], gm );
-					op += ElCount;
-					ip += 3;
-					l--;
-				}
-			}
-			else
-			if( ElCountIO == 2 )
-			{
-				while( l > 0 )
-				{
-					fptypeatom* v = (fptypeatom*) op;
-					v[ 0 ] = convertSRGB2Lin( ip[ 0 ], gm );
-					v[ 1 ] = convertSRGB2Lin( ip[ 1 ], gm );
-					op += ElCount;
-					ip += 2;
-					l--;
-				}
-			}
+				});
 		}
 
-		const int ZeroCount = ElCount * Vars -> fppack - ElCountIO;
-		op = (fptype*) ( (fptypeatom*) op0 + ElCountIO );
-		l = l0;
-
-		if( ZeroCount == 1 )
+		const int ZeroCount = ElCount * Vars->fppack - ElCountIO;
+		if (ZeroCount > 0)
 		{
-			while( l > 0 )
-			{
-				fptypeatom* v = (fptypeatom*) op;
-				v[ 0 ] = (fptypeatom) 0;
-				op += ElCount;
-				l--;
-			}
-		}
-		else
-		if( ZeroCount == 2 )
-		{
-			while( l > 0 )
-			{
-				fptypeatom* v = (fptypeatom*) op;
-				v[ 0 ] = (fptypeatom) 0;
-				v[ 1 ] = (fptypeatom) 0;
-				op += ElCount;
-				l--;
-			}
-		}
-		else
-		if( ZeroCount == 3 )
-		{
-			while( l > 0 )
-			{
-				fptypeatom* v = (fptypeatom*) op;
-				v[ 0 ] = (fptypeatom) 0;
-				v[ 1 ] = (fptypeatom) 0;
-				v[ 2 ] = (fptypeatom) 0;
-				op += ElCount;
-				l--;
-			}
+			tbb::parallel_for(0, l0, [&](int i) {
+				fptypeatom* v = (fptypeatom*)(op0 + i * ElCount + ElCountIO);
+				for (int z = 0; z < ZeroCount; ++z)
+				{
+					v[z] = (fptypeatom)0;
+				}
+				});
 		}
 	}
 
@@ -2911,93 +2811,56 @@ public:
 	 * @param l The number of pixels to de-linearize.
 	 * @param Vars0 Image resizing-related variables.
 	 */
-
-	static void applySRGBGamma( fptype* p, int l,
-		const CImageResizerVars& Vars0 )
+	static void applySRGBGamma(fptype* p, int l, const CImageResizerVars& Vars0)
 	{
 		const int ElCount = Vars0.ElCount;
 		const int ElCountIO = Vars0.ElCountIO;
-		const fptypeatom gm = (fptypeatom) Vars0.OutGammaMult;
+		const fptypeatom gm = (fptypeatom)Vars0.OutGammaMult;
 
-		if( ElCountIO == 1 )
-		{
-			while( l > 0 )
+		tbb::parallel_for(0, l, [&](int i) {
+			fptype* pixel = p + i * ElCount;
+			fptypeatom* v = (fptypeatom*)pixel;
+
+			if (ElCountIO == 1)
 			{
-				fptypeatom* v = (fptypeatom*) p;
-				v[ 0 ] = convertLin2SRGB( v[ 0 ]) * gm;
-				p += ElCount;
-				l--;
+				v[0] = convertLin2SRGB(v[0]) * gm;
 			}
-		}
-		else
-		if( ElCountIO == 4 )
-		{
-			if( Vars0.AlphaIndex == 0 )
+			else if (ElCountIO == 4)
 			{
-				while( l > 0 )
+				if (Vars0.AlphaIndex == 0)
 				{
-					fptypeatom* v = (fptypeatom*) p;
-					v[ 0 ] *= gm;
-					v[ 1 ] = convertLin2SRGB( v[ 1 ]) * gm;
-					v[ 2 ] = convertLin2SRGB( v[ 2 ]) * gm;
-					v[ 3 ] = convertLin2SRGB( v[ 3 ]) * gm;
-					p += ElCount;
-					l--;
+					v[0] *= gm;
+					v[1] = convertLin2SRGB(v[1]) * gm;
+					v[2] = convertLin2SRGB(v[2]) * gm;
+					v[3] = convertLin2SRGB(v[3]) * gm;
+				}
+				else if (Vars0.AlphaIndex == 3)
+				{
+					v[0] = convertLin2SRGB(v[0]) * gm;
+					v[1] = convertLin2SRGB(v[1]) * gm;
+					v[2] = convertLin2SRGB(v[2]) * gm;
+					v[3] *= gm;
+				}
+				else
+				{
+					v[0] = convertLin2SRGB(v[0]) * gm;
+					v[1] = convertLin2SRGB(v[1]) * gm;
+					v[2] = convertLin2SRGB(v[2]) * gm;
+					v[3] = convertLin2SRGB(v[3]) * gm;
 				}
 			}
-			else
-			if( Vars0.AlphaIndex == 3 )
+			else if (ElCountIO == 3)
 			{
-				while( l > 0 )
-				{
-					fptypeatom* v = (fptypeatom*) p;
-					v[ 0 ] = convertLin2SRGB( v[ 0 ]) * gm;
-					v[ 1 ] = convertLin2SRGB( v[ 1 ]) * gm;
-					v[ 2 ] = convertLin2SRGB( v[ 2 ]) * gm;
-					v[ 3 ] *= gm;
-					p += ElCount;
-					l--;
-				}
+				v[0] = convertLin2SRGB(v[0]) * gm;
+				v[1] = convertLin2SRGB(v[1]) * gm;
+				v[2] = convertLin2SRGB(v[2]) * gm;
 			}
-			else
+			else if (ElCountIO == 2)
 			{
-				while( l > 0 )
-				{
-					fptypeatom* v = (fptypeatom*) p;
-					v[ 0 ] = convertLin2SRGB( v[ 0 ]) * gm;
-					v[ 1 ] = convertLin2SRGB( v[ 1 ]) * gm;
-					v[ 2 ] = convertLin2SRGB( v[ 2 ]) * gm;
-					v[ 3 ] = convertLin2SRGB( v[ 3 ]) * gm;
-					p += ElCount;
-					l--;
-				}
+				v[0] = convertLin2SRGB(v[0]) * gm;
+				v[1] = convertLin2SRGB(v[1]) * gm;
 			}
-		}
-		else
-		if( ElCountIO == 3 )
-		{
-			while( l > 0 )
-			{
-				fptypeatom* v = (fptypeatom*) p;
-				v[ 0 ] = convertLin2SRGB( v[ 0 ]) * gm;
-				v[ 1 ] = convertLin2SRGB( v[ 1 ]) * gm;
-				v[ 2 ] = convertLin2SRGB( v[ 2 ]) * gm;
-				p += ElCount;
-				l--;
-			}
-		}
-		else
-		if( ElCountIO == 2 )
-		{
-			while( l > 0 )
-			{
-				fptypeatom* v = (fptypeatom*) p;
-				v[ 0 ] = convertLin2SRGB( v[ 0 ]) * gm;
-				v[ 1 ] = convertLin2SRGB( v[ 1 ]) * gm;
-				p += ElCount;
-				l--;
-			}
-		}
+			});
 	}
 
 	/**
@@ -4110,16 +3973,15 @@ private:
 	 * @param IsModel `true`, if filtering steps modeling is performed,
 	 * without actual filter building.
 	 */
-
-	void assignFilterParams( CFilterStep& fs, const bool IsUpsample,
+	void assignFilterParams(CFilterStep& fs, const bool IsUpsample,
 		const int ResampleFactor, const double FltCutoff, const double DCGain,
-		const bool UseFltOrig, const bool IsModel ) const
+		const bool UseFltOrig, const bool IsModel) const
 	{
 		double FltAlpha;
 		double Len2;
 		double Freq;
 
-		if( FltCutoff == 0.0 )
+		if (FltCutoff == 0.0)
 		{
 			const double m = 2.0 / ResampleFactor;
 			FltAlpha = Params.HBFltAlpha;
@@ -4133,7 +3995,7 @@ private:
 			Freq = AVIR_PI * Params.LPFltCutoffMult * FltCutoff;
 		}
 
-		if( IsUpsample )
+		if (IsUpsample)
 		{
 			Len2 *= ResampleFactor;
 			Freq /= ResampleFactor;
@@ -4149,7 +4011,7 @@ private:
 		fs.FltOrig.Alpha = FltAlpha;
 		fs.FltOrig.DCGain = fs.DCGain;
 
-		CDSPPeakedCosineLPF w( Len2, Freq, FltAlpha );
+		CDSPPeakedCosineLPF w(Len2, Freq, FltAlpha);
 
 		fs.IsUpsample = IsUpsample;
 		fs.ResampleFactor = ResampleFactor;
@@ -4157,90 +4019,86 @@ private:
 
 		int FltExt; // Filter's extension due to fpclass :: elalign.
 
-		if( IsModel )
+		if (IsModel)
 		{
-			allocFilter( fs.Flt, w.FilterLen, true, &FltExt );
+			allocFilter(fs.Flt, w.FilterLen, true, &FltExt);
 
-			if( UseFltOrig )
+			if (UseFltOrig)
 			{
-				// Allocate a real buffer even in modeling mode since this
-				// filter may be copied by the filter bank.
-
-				fs.FltOrig.alloc( w.FilterLen );
-				memset( &fs.FltOrig[ 0 ], 0,
-					(size_t) w.FilterLen * sizeof( fs.FltOrig[ 0 ]));
+				fs.FltOrig.alloc(w.FilterLen);
+				memset(&fs.FltOrig[0], 0, (size_t)w.FilterLen * sizeof(fs.FltOrig[0]));
 			}
 		}
 		else
 		{
-			fs.FltOrig.alloc( w.FilterLen );
+			fs.FltOrig.alloc(w.FilterLen);
+			w.generateLPF(&fs.FltOrig[0], fs.DCGain);
 
-			w.generateLPF( &fs.FltOrig[ 0 ], fs.DCGain );
+			allocFilter(fs.Flt, fs.FltOrig.getCapacity(), false, &FltExt);
+			copyArray(&fs.FltOrig[0], &fs.Flt[0], fs.FltOrig.getCapacity());
 
-			allocFilter( fs.Flt, fs.FltOrig.getCapacity(), false, &FltExt );
-			copyArray( &fs.FltOrig[ 0 ], &fs.Flt[ 0 ],
-				fs.FltOrig.getCapacity() );
-
-			if( !UseFltOrig )
+			if (!UseFltOrig)
 			{
 				fs.FltOrig.free();
 			}
 		}
 
-		if( IsUpsample )
+		if (IsUpsample)
 		{
-			int l = fs.Flt.getCapacity() - fs.FltLatency - ResampleFactor -
-				FltExt;
+			int l = fs.Flt.getCapacity() - fs.FltLatency - ResampleFactor - FltExt;
 
-			allocFilter( fs.PrefixDC, l, IsModel );
-			allocFilter( fs.SuffixDC, fs.FltLatency, IsModel );
+			allocFilter(fs.PrefixDC, l, IsModel);
+			allocFilter(fs.SuffixDC, fs.FltLatency, IsModel);
 
-			if( IsModel )
+			if (IsModel)
 			{
 				return;
 			}
 
-			// Create prefix and suffix "tails" used during upsampling.
+			// Parallélisation avec TBB pour créer les préfixes et suffixes
+			tbb::parallel_invoke(
+				[&]() {
+					const fptype* ip = &fs.Flt[fs.FltLatency + ResampleFactor];
+					copyArray(ip, &fs.PrefixDC[0], l);
 
-			const fptype* ip = &fs.Flt[ fs.FltLatency + ResampleFactor ];
-			copyArray( ip, &fs.PrefixDC[ 0 ], l );
+					while (true)
+					{
+						ip += ResampleFactor;
+						l -= ResampleFactor;
 
-			while( true )
-			{
-				ip += ResampleFactor;
-				l -= ResampleFactor;
+						if (l <= 0)
+						{
+							break;
+						}
 
-				if( l <= 0 )
-				{
-					break;
-				}
+						addArray(ip, &fs.PrefixDC[0], l);
+					}
+				},
+				[&]() {
+					int l = fs.FltLatency;
+					fptype* op = &fs.SuffixDC[0];
+					copyArray(&fs.Flt[0], op, l);
 
-				addArray( ip, &fs.PrefixDC[ 0 ], l );
-			}
+					while (true)
+					{
+						op += ResampleFactor;
+						l -= ResampleFactor;
 
-			l = fs.FltLatency;
-			fptype* op = &fs.SuffixDC[ 0 ];
-			copyArray( &fs.Flt[ 0 ], op, l );
+						if (l <= 0)
+						{
+							break;
+						}
 
-			while( true )
-			{
-				op += ResampleFactor;
-				l -= ResampleFactor;
-
-				if( l <= 0 )
-				{
-					break;
-				}
-
-				addArray( &fs.Flt[ 0 ], op, l );
-			}
+						addArray(&fs.Flt[0], op, l);
+					}
+				});
 		}
-		else
-		if( !UseFltOrig )
+		else if (!UseFltOrig)
 		{
 			fs.EdgePixelCount = fs.EdgePixelCountDef;
 		}
 	}
+
 
 	/**
 	 * @brief Adds a correction filter that tries to achieve a linear
@@ -4264,19 +4122,20 @@ private:
 	 * without actual filter building.
 	 */
 
-	void addCorrectionFilter( CFilterSteps& Steps, const double bw,
-		const bool IsPreCorrection, const bool IsModel ) const
+
+	void addCorrectionFilter(CFilterSteps& Steps, const double bw,
+		const bool IsPreCorrection, const bool IsModel) const
 	{
-		CFilterStep& nfs = ( IsPreCorrection ? Steps[ 0 ] : Steps.add() );
+		CFilterStep& nfs = (IsPreCorrection ? Steps[0] : Steps.add());
 		nfs.IsUpsample = false;
 		nfs.ResampleFactor = 1;
 		nfs.DCGain = 1.0;
-		nfs.EdgePixelCount = ( IsPreCorrection ? nfs.EdgePixelCountDef : 0 );
+		nfs.EdgePixelCount = (IsPreCorrection ? nfs.EdgePixelCountDef : 0);
 
-		if( IsModel )
+		if (IsModel)
 		{
-			allocFilter( nfs.Flt, CDSPFIREQ :: calcFilterLength(
-				Params.CorrFltLen, nfs.FltLatency ), true );
+			allocFilter(nfs.Flt, CDSPFIREQ::calcFilterLength(
+				Params.CorrFltLen, nfs.FltLatency), true);
 
 			return;
 		}
@@ -4289,25 +4148,25 @@ private:
 		double re;
 		double im;
 
-		CBuffer< double > Bins( BinCount ); // Adjustment introduced by all
-			// steps at all frequencies of interest.
+		CBuffer<double> Bins(BinCount); // Adjustment introduced by all
+		// steps at all frequencies of interest.
 
-		for( j = 0; j < BinCount; j++ )
+		for (j = 0; j < BinCount; j++)
 		{
-			Bins[ j ] = 1.0;
+			Bins[j] = 1.0;
 		}
 
-		const int si = ( IsPreCorrection ? 1 : 0 );
+		const int si = (IsPreCorrection ? 1 : 0);
 
-		for( i = si; i < Steps.getItemCount() - ( si ^ 1 ); i++ )
+		for (i = si; i < Steps.getItemCount() - (si ^ 1); i++)
 		{
-			const CFilterStep& fs = Steps[ i ];
+			const CFilterStep& fs = Steps[i];
 
-			if( fs.IsUpsample )
+			if (fs.IsUpsample)
 			{
 				curbw *= fs.ResampleFactor;
 
-				if( fs.FltOrig.getCapacity() > 0 )
+				if (fs.FltOrig.getCapacity() > 0)
 				{
 					continue;
 				}
@@ -4316,76 +4175,51 @@ private:
 			const fptype* Flt;
 			int FltLen;
 
-			if( fs.ResampleFactor == 0 )
+			if (fs.ResampleFactor == 0)
 			{
-				if( fs.FltBankDyn == nullptr )
+				if (fs.FltBankDyn == nullptr)
 				{
-					Flt = fs.FltBank -> getFilterConst( 0 );
-					FltLen = fs.FltBank -> getFilterLen();
+					Flt = fs.FltBank->getFilterConst(0);
+					FltLen = fs.FltBank->getFilterLen();
 				}
 				else
 				{
-					Flt = fs.FltBankDyn -> getFilter( 0 );
-					FltLen = fs.FltBankDyn -> getFilterLen();
+					Flt = fs.FltBankDyn->getFilter(0);
+					FltLen = fs.FltBankDyn->getFilterLen();
 				}
 			}
 			else
 			{
-				Flt = &fs.Flt[ 0 ];
+				Flt = &fs.Flt[0];
 				FltLen = fs.Flt.getCapacity();
 			}
 
-			// Calculate frequency response adjustment introduced by the
-			// filter at this step, within the bounds of bandwidth of
-			// interest.
+			// Parallélisation avec TBB pour calculer la réponse fréquentielle
+			const double thm = AVIR_PI * bw / (curbw * BinCount1);
+			tbb::parallel_for(0, BinCount, [&](int j) {
+				calcFIRFilterResponse(Flt, FltLen, j * thm, re, im);
+				Bins[j] *= fs.DCGain / sqrt(re * re + im * im);
+				});
 
-			const double thm = AVIR_PI * bw / ( curbw * BinCount1 );
-
-			for( j = 0; j < BinCount; j++ )
-			{
-				calcFIRFilterResponse( Flt, FltLen, j * thm, re, im );
-
-				Bins[ j ] *= fs.DCGain / sqrt( re * re + im * im );
-			}
-
-			if( !fs.IsUpsample && fs.ResampleFactor > 1 )
+			if (!fs.IsUpsample && fs.ResampleFactor > 1)
 			{
 				curbw /= fs.ResampleFactor;
 			}
 		}
 
-		// Calculate filter.
-
+		// Calcul du filtre
 		CDSPFIREQ EQ;
-		EQ.init( bw * 2.0, Params.CorrFltLen, BinCount, 0.0, bw, false,
-			Params.CorrFltAlpha );
+		EQ.init(bw * 2.0, Params.CorrFltLen, BinCount, 0.0, bw, false,
+			Params.CorrFltAlpha);
 
 		nfs.FltLatency = EQ.getFilterLatency();
 
-		CBuffer< double > Filter( EQ.getFilterLength() );
-		EQ.buildFilter( Bins, &Filter[ 0 ]);
-		normalizeFIRFilter( &Filter[ 0 ], Filter.getCapacity(), 1.0 );
+		CBuffer<double> Filter(EQ.getFilterLength());
+		EQ.buildFilter(Bins, &Filter[0]);
+		normalizeFIRFilter(&Filter[0], Filter.getCapacity(), 1.0);
 
-		allocFilter( nfs.Flt, Filter.getCapacity() );
-		copyArray( &Filter[ 0 ], &nfs.Flt[ 0 ], Filter.getCapacity() );
-
-		// Print a theoretically achieved final frequency response at various
-		// feature sizes (from DC to 1 pixel). Values above 255 means features
-		// become brighter, values below 255 means features become dimmer.
-
-/*		const double sbw = ( bw > 1.0 ? 1.0 / bw : 1.0 );
-
-		for( j = 0; j < BinCount; j++ )
-		{
-			const double th = AVIR_PI * sbw * j / BinCount1;
-
-			calcFIRFilterResponse( &nfs.Flt[ 0 ], nfs.Flt.getCapacity(),
-				th, re, im );
-
-			printf( "%f\n", sqrt( re * re + im * im ) / Bins[ j ] * 255 );
-		}
-
-		printf( "***\n" );*/
+		allocFilter(nfs.Flt, Filter.getCapacity());
+		copyArray(&Filter[0], &nfs.Flt[0], Filter.getCapacity());
 	}
 
 	/**
@@ -4662,32 +4496,31 @@ private:
 	 * @param Vars Variables object.
 	 */
 
-	static void fillRPosBuf( CFilterStep& fs, const CImageResizerVars& Vars )
+	static void fillRPosBuf(CFilterStep& fs, const CImageResizerVars& Vars)
 	{
-		const int PrevLen = fs.RPosBuf -> getCapacity();
+		const int PrevLen = fs.RPosBuf->getCapacity();
 
-		if( fs.OutLen > PrevLen )
+		if (fs.OutLen > PrevLen)
 		{
-			fs.RPosBuf -> increaseCapacity( fs.OutLen );
+			fs.RPosBuf->increaseCapacity(fs.OutLen);
 		}
 
-		typename CFilterStep :: CResizePos* rpos = &(*fs.RPosBuf)[ PrevLen ];
-		const int FracCount = fs.FltBank -> getFracCount();
+		typename CFilterStep::CResizePos* rpos = &(*fs.RPosBuf)[PrevLen];
+		const int FracCount = fs.FltBank->getFracCount();
 		const double o = Vars.o;
 		const double k = Vars.k;
-		int i;
 
-		for( i = PrevLen; i < fs.OutLen; i++ )
-		{
+		// Parallélisation de la boucle avec TBB
+		tbb::parallel_for(PrevLen, fs.OutLen, [&](int i) {
 			const double SrcPos = o + k * i;
-			const int SrcPosInt = (int) floor( SrcPos );
-			const double x = ( SrcPos - SrcPosInt ) * FracCount;
-			const int fti = (int) x;
-			rpos -> x = (typename fpclass :: fptypeatom) ( x - fti );
-			rpos -> fti = fti;
-			rpos -> SrcPosInt = SrcPosInt;
-			rpos++;
-		}
+			const int SrcPosInt = (int)floor(SrcPos);
+			const double x = (SrcPos - SrcPosInt) * FracCount;
+			const int fti = (int)x;
+
+			rpos[i - PrevLen].x = (typename fpclass::fptypeatom)(x - fti);
+			rpos[i - PrevLen].fti = fti;
+			rpos[i - PrevLen].SrcPosInt = SrcPosInt;
+			});
 	}
 
 	/**
@@ -4706,26 +4539,24 @@ private:
 	 * @param SrcLen Source scanline's length in pixels.
 	 * @param NewLen New scanline's length in pixels.
 	 */
-
-	static void updateFilterStepBuffers( CFilterSteps& Steps,
+	static void updateFilterStepBuffers(CFilterSteps& Steps,
 		CImageResizerVars& Vars,
-		typename CFilterStep :: CRPosBufArray& RPosBufArray, int SrcLen,
-		const int NewLen )
+		typename CFilterStep::CRPosBufArray& RPosBufArray, int SrcLen,
+		const int NewLen)
 	{
 		int upstep = -1;
 		int InBuf = 0;
-		int i;
 
-		for( i = 0; i < Steps.getItemCount(); i++ )
-		{
-			CFilterStep& fs = Steps[ i ];
+		// Parallélisation de la boucle principale avec TBB
+		tbb::parallel_for(0, Steps.getItemCount(), [&](int i) {
+			CFilterStep& fs = Steps[i];
 
 			fs.Vars = &Vars;
 			fs.InLen = SrcLen;
 			fs.InBuf = InBuf;
-			fs.OutBuf = ( InBuf + 1 ) & 1;
+			fs.OutBuf = (InBuf + 1) & 1;
 
-			if( fs.IsUpsample )
+			if (fs.IsUpsample)
 			{
 				upstep = i;
 				Vars.k *= fs.ResampleFactor;
@@ -4734,44 +4565,41 @@ private:
 				fs.InSuffix = 0;
 				fs.OutLen = fs.InLen * fs.ResampleFactor;
 				fs.OutPrefix = fs.FltLatency;
-				fs.OutSuffix = fs.Flt.getCapacity() - fs.FltLatency -
-					fs.ResampleFactor;
+				fs.OutSuffix = fs.Flt.getCapacity() - fs.FltLatency - fs.ResampleFactor;
 
 				int l0 = fs.OutPrefix + fs.OutLen + fs.OutSuffix;
-				int l = fs.InLen * fs.ResampleFactor +
-					fs.SuffixDC.getCapacity();
+				int l = fs.InLen * fs.ResampleFactor + fs.SuffixDC.getCapacity();
 
-				if( l > l0 )
+				if (l > l0)
 				{
 					fs.OutSuffix += l - l0;
 				}
 
 				l0 = fs.OutLen + fs.OutSuffix;
 
-				if( fs.PrefixDC.getCapacity() > l0 )
+				if (fs.PrefixDC.getCapacity() > l0)
 				{
 					fs.OutSuffix += fs.PrefixDC.getCapacity() - l0;
 				}
 			}
-			else
-			if( fs.ResampleFactor == 0 )
+			else if (fs.ResampleFactor == 0)
 			{
-				const int FilterLenD2 = fs.FltBank -> getFilterLen() / 2;
+				const int FilterLenD2 = fs.FltBank->getFilterLen() / 2;
 				const int FilterLenD21 = FilterLenD2 - 1;
 
-				const int ResizeLPix = (int) floor( Vars.o ) - FilterLenD21;
-				fs.InPrefix = ( ResizeLPix < 0 ? -ResizeLPix : 0 );
-				const int ResizeRPix = (int) floor( Vars.o +
-					( NewLen - 1 ) * Vars.k ) + FilterLenD2 + 1;
+				const int ResizeLPix = (int)floor(Vars.o) - FilterLenD21;
+				fs.InPrefix = (ResizeLPix < 0 ? -ResizeLPix : 0);
+				const int ResizeRPix = (int)floor(Vars.o +
+					(NewLen - 1) * Vars.k) + FilterLenD2 + 1;
 
-				fs.InSuffix = ( ResizeRPix > fs.InLen ?
-					ResizeRPix - fs.InLen : 0 );
+				fs.InSuffix = (ResizeRPix > fs.InLen ?
+					ResizeRPix - fs.InLen : 0);
 
 				fs.OutLen = NewLen;
-				fs.RPosBuf = &RPosBufArray.getRPosBuf( Vars.k, Vars.o,
-					fs.FltBank -> getFracCount() );
+				fs.RPosBuf = &RPosBufArray.getRPosBuf(Vars.k, Vars.o,
+					fs.FltBank->getFracCount());
 
-				fillRPosBuf( fs, Vars );
+				fillRPosBuf(fs, Vars);
 			}
 			else
 			{
@@ -4782,13 +4610,11 @@ private:
 				fs.InPrefix = fs.FltLatency;
 				fs.InSuffix = fs.Flt.getCapacity() - fs.FltLatency - 1;
 
-				// Additionally extend `OutLen`, to produce more precise edge
-				// pixels.
-
-				fs.OutLen = ( fs.InLen + fs.ResampleFactor - 1 ) /
+				// Extension supplémentaire de `OutLen` pour produire des pixels de bord plus précis.
+				fs.OutLen = (fs.InLen + fs.ResampleFactor - 1) /
 					fs.ResampleFactor + fs.EdgePixelCount;
 
-				fs.InSuffix += ( fs.OutLen - 1 ) * fs.ResampleFactor + 1 -
+				fs.InSuffix += (fs.OutLen - 1) * fs.ResampleFactor + 1 -
 					fs.InLen;
 
 				fs.InPrefix += fs.EdgePixelCount * fs.ResampleFactor;
@@ -4797,23 +4623,22 @@ private:
 
 			InBuf = fs.OutBuf;
 			SrcLen = fs.OutLen;
-		}
+			});
 
-		Steps[ Steps.getItemCount() - 1 ].OutBuf = 2;
+		Steps[Steps.getItemCount() - 1].OutBuf = 2;
 		Vars.IsResize2 = false;
 
-		if( upstep != -1 )
+		if (upstep != -1)
 		{
-			extendUpsample( Steps[ upstep ], Steps[ upstep + 1 ]);
+			extendUpsample(Steps[upstep], Steps[upstep + 1]);
 
-			if( Steps[ upstep ].ResampleFactor == 2 &&
+			if (Steps[upstep].ResampleFactor == 2 &&
 				Vars.ResizeStep == upstep + 1 &&
-				fpclass :: packmode == 0 &&
-				Steps[ upstep ].FltOrig.getCapacity() > 0 )
+				fpclass::packmode == 0 &&
+				Steps[upstep].FltOrig.getCapacity() > 0)
 			{
-				// Interpolation with preceeding 2x filterless upsample,
-				// interleaved resizing only.
-
+				// Interpolation avec un suréchantillonnage 2x sans filtre précédent,
+				// uniquement pour le redimensionnement entrelacé.
 				Vars.IsResize2 = true;
 			}
 		}
@@ -4836,177 +4661,109 @@ private:
 	 * to last step's `OutLen`, for vertical processing this value is equal to
 	 * resulting image's width.
 	 */
-
-	static void updateBufLenAndRPosPtrs( CFilterSteps& Steps,
-		CImageResizerVars& Vars, const int ResElIncr )
+	static void updateBufLenAndRPosPtrs(CFilterSteps& Steps,
+		CImageResizerVars& Vars,
+		const int ResElIncr)
 	{
-		int MaxPrefix[ 2 ] = { 0, 0 };
-		int MaxLen[ 2 ] = { 0, 0 };
-		int i;
+		int MaxPrefix[2] = { 0, 0 };
+		int MaxLen[2] = { 0, 0 };
 
-		for( i = 0; i < Steps.getItemCount(); i++ )
-		{
-			CFilterStep& fs = Steps[ i ];
+		// Parallélisation de la première boucle
+		tbb::parallel_for(0, Steps.getItemCount(), [&](int i) {
+			CFilterStep& fs = Steps[i];
 			const int ib = fs.InBuf;
 
-			if( fs.InPrefix > MaxPrefix[ ib ])
-			{
-				MaxPrefix[ ib ] = fs.InPrefix;
-			}
+			// Mise à jour des préfixes et longueurs maximales
+			tbb::parallel_invoke(
+				[&]() {
+					if (fs.InPrefix > MaxPrefix[ib]) {
+						MaxPrefix[ib] = fs.InPrefix;
+					}
+				},
+				[&]() {
+					int l = fs.InLen + fs.InSuffix;
+					if (l > MaxLen[ib]) {
+						MaxLen[ib] = l;
+					}
+				});
 
-			int l = fs.InLen + fs.InSuffix;
+			fs.InElIncr = fs.InPrefix + fs.InLen + fs.InSuffix;
 
-			if( l > MaxLen[ ib ])
-			{
-				MaxLen[ ib ] = l;
-			}
-
-			fs.InElIncr = fs.InPrefix + l;
-
-			if( fs.OutBuf == 2 )
-			{
-				break;
-			}
+			if (fs.OutBuf == 2) return;
 
 			const int ob = fs.OutBuf;
 
-			if( fs.IsUpsample )
-			{
-				if( fs.OutPrefix > MaxPrefix[ ob ])
-				{
-					MaxPrefix[ ob ] = fs.OutPrefix;
-				}
-
-				l = fs.OutLen + fs.OutSuffix;
-
-				if( l > MaxLen[ ob ])
-				{
-					MaxLen[ ob ] = l;
+			if (fs.IsUpsample) {
+				tbb::parallel_invoke(
+					[&]() {
+						if (fs.OutPrefix > MaxPrefix[ob]) {
+							MaxPrefix[ob] = fs.OutPrefix;
+						}
+					},
+					[&]() {
+						int l = fs.OutLen + fs.OutSuffix;
+						if (l > MaxLen[ob]) {
+							MaxLen[ob] = l;
+						}
+					});
+			}
+			else {
+				if (fs.OutLen > MaxLen[ob]) {
+					MaxLen[ob] = fs.OutLen;
 				}
 			}
-			else
-			{
-				if( fs.OutLen > MaxLen[ ob ])
-				{
-					MaxLen[ ob ] = fs.OutLen;
-				}
-			}
-		}
+			});
 
-		// Update OutElIncr values of all steps.
+		// Mise à jour des incréments d'éléments de sortie
+		for (int i = 0; i < Steps.getItemCount(); i++) {
+			CFilterStep& fs = Steps[i];
 
-		for( i = 0; i < Steps.getItemCount(); i++ )
-		{
-			CFilterStep& fs = Steps[ i ];
-
-			if( fs.OutBuf == 2 )
-			{
+			if (fs.OutBuf == 2) {
 				fs.OutElIncr = ResElIncr;
 				break;
 			}
 
-			CFilterStep& fs2 = Steps[ i + 1 ];
+			CFilterStep& fs2 = Steps[i + 1];
 
-			if( fs.IsUpsample )
-			{
+			if (fs.IsUpsample) {
 				fs.OutElIncr = fs.OutPrefix + fs.OutLen + fs.OutSuffix;
-
-				if( fs.OutElIncr > fs2.InElIncr )
-				{
-					fs2.InElIncr = fs.OutElIncr;
-				}
-				else
-				{
-					fs.OutElIncr = fs2.InElIncr;
-				}
+				fs2.InElIncr = std::max(fs.OutElIncr, fs2.InElIncr);
 			}
-			else
-			{
+			else {
 				fs.OutElIncr = fs2.InElIncr;
 			}
 		}
 
-		// Update temporary buffer's length.
+		// Mise à jour des longueurs des tampons intermédiaires
+		for (int i = 0; i < 2; i++) {
+			Vars.BufLen[i] = MaxPrefix[i] + MaxLen[i];
+			Vars.BufOffs[i] = MaxPrefix[i];
 
-		for( i = 0; i < 2; i++ )
-		{
-			Vars.BufLen[ i ] = MaxPrefix[ i ] + MaxLen[ i ];
-			Vars.BufOffs[ i ] = MaxPrefix[ i ];
-
-			if( Vars.packmode == 0 )
-			{
-				Vars.BufOffs[ i ] *= Vars.ElCount;
+			if (Vars.packmode == 0) {
+				Vars.BufOffs[i] *= Vars.ElCount;
 			}
 
-			Vars.BufLen[ i ] *= Vars.ElCount;
+			Vars.BufLen[i] *= Vars.ElCount;
 		}
 
-		// Update `RPosBuf` pointers, and `SrcOffs`.
-
-		CFilterStep& fs = Steps[ Vars.ResizeStep ];
-		typename CFilterStep :: CResizePos* rpos = &(*fs.RPosBuf)[ 0 ];
-		const int em = ( fpclass :: packmode == 0 ? Vars.ElCount : 1 );
-		const int fl = ( fs.FltBankDyn == nullptr ?
-			fs.FltBank -> getFilterLen() : fs.FltBankDyn -> getFilterLen() );
-
+		// Mise à jour des pointeurs RPosBuf et des décalages SrcOffs
+		CFilterStep& fs = Steps[Vars.ResizeStep];
+		typename CFilterStep::CResizePos* rpos = &(*fs.RPosBuf)[0];
+		const int em = (fpclass::packmode == 0 ? Vars.ElCount : 1);
+		const int fl = (fs.FltBankDyn == nullptr ? fs.FltBank->getFilterLen()
+			: fs.FltBankDyn->getFilterLen());
 		const int FilterLenD21 = fl / 2 - 1;
 
-		if( Vars.IsResize2 )
-		{
-			if( fs.FltBankDyn == nullptr )
-			{
-				for( i = 0; i < fs.OutLen; i++ )
-				{
-					const int p = rpos -> SrcPosInt - FilterLenD21;
-					const int fo = p & 1;
-					rpos -> SrcOffs = ( p + fo ) * em;
-					rpos -> ftp = fs.FltBank -> getFilterConst(
-						rpos -> fti ) + fo;
-
-					rpos -> fl = fl - fo;
-					rpos++;
-				}
-			}
-			else
-			{
-				for( i = 0; i < fs.OutLen; i++ )
-				{
-					const int p = rpos -> SrcPosInt - FilterLenD21;
-					const int fo = p & 1;
-					rpos -> SrcOffs = ( p + fo ) * em;
-					rpos -> ftp = fs.FltBankDyn -> getFilter(
-						rpos -> fti ) + fo;
-
-					rpos -> fl = fl - fo;
-					rpos++;
-				}
-			}
-		}
-		else
-		{
-			if( fs.FltBankDyn == nullptr )
-			{
-				for( i = 0; i < fs.OutLen; i++ )
-				{
-					rpos -> SrcOffs = ( rpos -> SrcPosInt -
-						FilterLenD21 ) * em;
-
-					rpos -> ftp = fs.FltBank -> getFilterConst( rpos -> fti );
-					rpos++;
-				}
-			}
-			else
-			{
-				for( i = 0; i < fs.OutLen; i++ )
-				{
-					rpos -> SrcOffs = ( rpos -> SrcPosInt -
-						FilterLenD21 ) * em;
-
-					rpos -> ftp = fs.FltBankDyn -> getFilter( rpos -> fti );
-					rpos++;
-				}
-			}
-		}
+		tbb::parallel_for(0, fs.OutLen, [&](int i) {
+			const int p = rpos[i].SrcPosInt - FilterLenD21;
+			const int fo = (Vars.IsResize2 ? p & 1 : 0);
+			rpos[i].SrcOffs = (p + fo) * em;
+			rpos[i].ftp = (fs.FltBankDyn == nullptr
+				? fs.FltBank->getFilterConst(rpos[i].fti)
+				: fs.FltBankDyn->getFilter(rpos[i].fti)) +
+				fo;
+			rpos[i].fl = fl - fo;
+			});
 	}
 
 	/**
@@ -5047,22 +4804,23 @@ private:
 	 * @param[out] UsedFracMap Map of used fractional delay filters.
 	 */
 
-	static void fillUsedFracMap( const CFilterStep& fs,
-		CBuffer< char >& UsedFracMap )
+	static void fillUsedFracMap(const CFilterStep& fs, CBuffer<char>& UsedFracMap)
 	{
-		const int FracCount = fs.FltBank -> getFracCount();
-		UsedFracMap.increaseCapacity( FracCount, false );
-		memset( &UsedFracMap[ 0 ], 0,
-			(size_t) FracCount * sizeof( UsedFracMap[ 0 ]));
+		const int FracCount = fs.FltBank->getFracCount();
+		UsedFracMap.increaseCapacity(FracCount, false);
+		memset(&UsedFracMap[0], 0, (size_t)FracCount * sizeof(UsedFracMap[0]));
 
-		typename CFilterStep :: CResizePos* rpos = &(*fs.RPosBuf)[ 0 ];
-		int i;
-
-		for( i = 0; i < fs.OutLen; i++ )
+		if (!fs.RPosBuf || FracCount <= 0)
 		{
-			UsedFracMap[ rpos -> fti ] |= 1;
-			rpos++;
+			return; // Validation des entrées
 		}
+
+		typename CFilterStep::CResizePos* rpos = &(*fs.RPosBuf)[0];
+
+		// Parallélisation de la boucle avec TBB
+		tbb::parallel_for(0, fs.OutLen, [&](int i) {
+			UsedFracMap[rpos[i].fti] |= 1;
+			});
 	}
 
 	/**
