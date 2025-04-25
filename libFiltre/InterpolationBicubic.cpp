@@ -59,30 +59,37 @@ void CInterpolationBicubic::Execute(const cv::Mat & in, cv::Mat & out)
 
 		CalculWeight(out.cols, out.rows, ratioY, ratioX, 0.0f, 0.0f);
 
+		//Pre calcul posY
+		float* posTabY = new float[out.rows];
+
+		for (auto y = 0; y < out.rows; y++)
+			posTabY[y] = (float)y * ratioY;
+
+		float* posTabX = new float[out.cols];
+		for (auto x = 0; x < out.cols; x++)
+			posTabX[x] = (float)x * ratioX;
+
 	#pragma omp parallel for
 		for (auto y = 0; y < out.rows; y++)
 		{
 	#pragma omp parallel for
 			for (auto x = 0; x < out.cols; x++)
 			{
-				float posY = (float)y * ratioY;
-				float posX = (float)x * ratioX;
-
-				s_rgb value = Bicubic(in, posX, posY, wY[y].tabF, wX[x].tabF);
-				
-				//int position = (posX) * 4 + (posY) * in.cols * 4;
-
-				
-				int i =  (x << 2) + (y * (out.cols << 2));// int i = Out->GetPosition(x, y);
-				memcpy(out.data + i, &value, sizeof(s_rgb));
-
+				//float posY = (float)y * ratioY;
+				//float posX = (float)x * ratioX;
+				int i = (x << 2) + (y * (out.cols << 2));
+				uchar* data = out.data + i;
+				Bicubic(in, data, posTabX[x], posTabY[y], wY[y].tabF, wX[x].tabF);
 			}
 		}
+
+		delete[] posTabY;
+		delete[] posTabX;
 	}
 
 }
 
-s_rgb CInterpolationBicubic::Bicubic(const cv::Mat& in, const float& x, const float& y, float* tabF1, float* tabF)
+void CInterpolationBicubic::Bicubic(const cv::Mat& in, uchar * & data, const float& x, const float& y, float* tabF1, float* tabF)
 {
 	s_rgb out{ 0,0,0,0 };
 	float nDenom = 0.0;
@@ -149,12 +156,13 @@ s_rgb CInterpolationBicubic::Bicubic(const cv::Mat& in, const float& x, const fl
 			a += 0;
 		}
 	}
-	out.b = uint8_t(r / nDenom);
-	out.g = uint8_t(g / nDenom);
-	out.r = uint8_t(b / nDenom);
-	out.alpha = uint8_t(a / nDenom);
+	data[0] = uint8_t(r / nDenom);
+	data[1] = uint8_t(g / nDenom);
+	data[2] = uint8_t(b / nDenom);
+	data[3] = uint8_t(a / nDenom);
 
-	return out;
+	//memcpy(data, &out, sizeof(s_rgb));
+
 }
 
 double CInterpolationBicubic::Filter(const double &f)
