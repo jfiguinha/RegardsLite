@@ -3633,6 +3633,7 @@ namespace avir {
 						}
 		}
 
+
 		/**
 		 * @brief Performs scanline filtering with optional downsampling.
 		 *
@@ -3645,108 +3646,124 @@ namespace avir {
 		 * horizontal or vertical scanline stepping.
 		 */
 
-		 /**
-		  * @brief Performs scanline filtering with optional downsampling.
-		  *
-		  * Function makes use of the symmetry of the filter.
-		  *
-		  * @param Src Source scanline buffer (length = `InLen`). Source scanline
-		  * increment will be equal to ElCount.
-		  * @param Dst Destination scanline buffer.
-		  * @param DstIncr Destination scanline buffer increment, used for
-		  * horizontal or vertical scanline stepping.
-		  */
-		void doFilter(const fptype* const Src, fptype* Dst, const int DstIncr) const
+		void doFilter(const fptype* const Src, fptype* Dst,
+			const int DstIncr) const
 		{
 			const int ElCount = Vars->ElCount;
 			const fptype* const f = &Flt[FltLatency];
 			const int flen = FltLatency + 1;
 			const int ipstep = ElCount * ResampleFactor;
 			const fptype* ip = Src - EdgePixelCount * ipstep;
+			const fptype* ip1;
+			const fptype* ip2;
+			int l = OutLen;
+			int i;
 
-			tbb::parallel_for(0, OutLen, [&](int idx) {
-				const fptype* local_ip = ip + idx * ipstep;
-				fptype* local_dst = Dst + idx * DstIncr;
-
-				if (ElCount == 1)
+			if (ElCount == 1)
+			{
+				while (l > 0)
 				{
-					fptype s = f[0] * local_ip[0];
-					const fptype* ip1 = local_ip;
-					const fptype* ip2 = local_ip;
+					fptype s = f[0] * ip[0];
+					ip1 = ip;
+					ip2 = ip;
 
-					for (int i = 1; i < flen; i++)
+					for (i = 1; i < flen; i++)
 					{
 						ip1++;
 						ip2--;
 						s += f[i] * (ip1[0] + ip2[0]);
 					}
 
-					local_dst[0] = s;
+					Dst[0] = s;
+					Dst += DstIncr;
+					ip += ipstep;
+					l--;
 				}
-				else if (ElCount == 4)
+			}
+			else
+				if (ElCount == 4)
 				{
-					fptype s1 = f[0] * local_ip[0];
-					fptype s2 = f[0] * local_ip[1];
-					fptype s3 = f[0] * local_ip[2];
-					fptype s4 = f[0] * local_ip[3];
-					const fptype* ip1 = local_ip;
-					const fptype* ip2 = local_ip;
-
-					for (int i = 1; i < flen; i++)
+					while (l > 0)
 					{
-						ip1 += 4;
-						ip2 -= 4;
-						s1 += f[i] * (ip1[0] + ip2[0]);
-						s2 += f[i] * (ip1[1] + ip2[1]);
-						s3 += f[i] * (ip1[2] + ip2[2]);
-						s4 += f[i] * (ip1[3] + ip2[3]);
+						fptype s1 = f[0] * ip[0];
+						fptype s2 = f[0] * ip[1];
+						fptype s3 = f[0] * ip[2];
+						fptype s4 = f[0] * ip[3];
+						ip1 = ip;
+						ip2 = ip;
+
+						for (i = 1; i < flen; i++)
+						{
+							ip1 += 4;
+							ip2 -= 4;
+							s1 += f[i] * (ip1[0] + ip2[0]);
+							s2 += f[i] * (ip1[1] + ip2[1]);
+							s3 += f[i] * (ip1[2] + ip2[2]);
+							s4 += f[i] * (ip1[3] + ip2[3]);
+						}
+
+						Dst[0] = s1;
+						Dst[1] = s2;
+						Dst[2] = s3;
+						Dst[3] = s4;
+						Dst += DstIncr;
+						ip += ipstep;
+						l--;
 					}
-
-					local_dst[0] = s1;
-					local_dst[1] = s2;
-					local_dst[2] = s3;
-					local_dst[3] = s4;
 				}
-				else if (ElCount == 3)
-				{
-					fptype s1 = f[0] * local_ip[0];
-					fptype s2 = f[0] * local_ip[1];
-					fptype s3 = f[0] * local_ip[2];
-					const fptype* ip1 = local_ip;
-					const fptype* ip2 = local_ip;
-
-					for (int i = 1; i < flen; i++)
+				else
+					if (ElCount == 3)
 					{
-						ip1 += 3;
-						ip2 -= 3;
-						s1 += f[i] * (ip1[0] + ip2[0]);
-						s2 += f[i] * (ip1[1] + ip2[1]);
-						s3 += f[i] * (ip1[2] + ip2[2]);
+						while (l > 0)
+						{
+							fptype s1 = f[0] * ip[0];
+							fptype s2 = f[0] * ip[1];
+							fptype s3 = f[0] * ip[2];
+							ip1 = ip;
+							ip2 = ip;
+
+							for (i = 1; i < flen; i++)
+							{
+								ip1 += 3;
+								ip2 -= 3;
+								s1 += f[i] * (ip1[0] + ip2[0]);
+								s2 += f[i] * (ip1[1] + ip2[1]);
+								s3 += f[i] * (ip1[2] + ip2[2]);
+							}
+
+							Dst[0] = s1;
+							Dst[1] = s2;
+							Dst[2] = s3;
+							Dst += DstIncr;
+							ip += ipstep;
+							l--;
+						}
 					}
+					else
+						if (ElCount == 2)
+						{
+							while (l > 0)
+							{
+								fptype s1 = f[0] * ip[0];
+								fptype s2 = f[0] * ip[1];
+								ip1 = ip;
+								ip2 = ip;
 
-					local_dst[0] = s1;
-					local_dst[1] = s2;
-					local_dst[2] = s3;
-				}
-				else if (ElCount == 2)
-				{
-					fptype s1 = f[0] * local_ip[0];
-					fptype s2 = f[0] * local_ip[1];
-					const fptype* ip1 = local_ip;
-					const fptype* ip2 = local_ip;
+								for (i = 1; i < flen; i++)
+								{
+									ip1 += 2;
+									ip2 -= 2;
+									s1 += f[i] * (ip1[0] + ip2[0]);
+									s2 += f[i] * (ip1[1] + ip2[1]);
+								}
 
-					for (int i = 1; i < flen; i++)
-					{
-						ip1 += 2;
-						ip2 -= 2;
-						s1 += f[i] * (ip1[0] + ip2[0]);
-						s2 += f[i] * (ip1[1] + ip2[1]);
-					}
-
-					local_dst[0] = s1;
-					local_dst[1] = s2;
-				}
-				});
+								Dst[0] = s1;
+								Dst[1] = s2;
+								Dst += DstIncr;
+								ip += ipstep;
+								l--;
+							}
+						}
 		}
 
 
@@ -4009,50 +4026,238 @@ namespace avir {
 			  * horizontal or vertical scanline stepping.
 			  */
 
+
+			  /**
+			   * @brief Performs resizing of a single scanline assuming that the input
+			   * buffer consists of zero-padded elements (2X upsampling without
+			   * filtering).
+			   *
+			   * Similar to the doResize() function otherwise.
+			   *
+			   * @param SrcLine Source scanline buffer.
+			   * @param DstLine Destination (resized) scanline buffer.
+			   * @param DstLineIncr Destination scanline position increment, used for
+			   * horizontal or vertical scanline stepping.
+			   */
+
 			void doResize2(const fptype* SrcLine, fptype* DstLine,
 				const int DstLineIncr, fptype* const) const
 			{
 				const int IntFltLen0 = FltBank->getFilterLen();
 				const int ElCount = Vars->ElCount;
-				const typename CImageResizerFilterStep<fptype, fptypeatom>::CResizePos* rpos = &(*RPosBuf)[0];
-				const typename CImageResizerFilterStep<fptype, fptypeatom>::CResizePos* const rpose = rpos + OutLen;
+				const typename CImageResizerFilterStep< fptype, fptypeatom > ::
+					CResizePos* rpos = &(*RPosBuf)[0];
 
-				tbb::parallel_for(tbb::blocked_range<size_t>(0, OutLen), [&](const tbb::blocked_range<size_t>& range) {
-					for (size_t idx = range.begin(); idx < range.end(); ++idx) {
-						const auto& rpos_local = rpos[idx];
-						const fptype x = (fptype)rpos_local.x;
-						const fptype* const ftp = rpos_local.ftp;
-						const fptype* const ftp2 = ftp + IntFltLen0;
-						const fptype* Src = SrcLine + rpos_local.SrcOffs;
-						const int IntFltLen = rpos_local.fl;
+				const typename CImageResizerFilterStep< fptype, fptypeatom > ::
+					CResizePos* const rpose = rpos + OutLen;
 
-						fptype sums[4] = { 0 }; // Support jusqu'à 4 canaux (RGBA)
+#define AVIR_RESIZE_PART1 \
+			while( rpos < rpose ) \
+			{ \
+				const fptype x = (fptype) rpos -> x; \
+				const fptype* const ftp = rpos -> ftp; \
+				const fptype* const ftp2 = ftp + IntFltLen0; \
+				const fptype* Src = SrcLine + rpos -> SrcOffs; \
+				const int IntFltLen = rpos -> fl; \
+				int i;
 
-						if (FltBank->getOrder() == 1) {
-							for (int i = 0; i < IntFltLen; i += 2) {
-								const fptype coeff = ftp[i] + ftp2[i] * x;
-								for (int c = 0; c < ElCount; ++c) {
-									sums[c] += coeff * Src[c];
-								}
-								Src += ElCount * 2;
-							}
-						}
-						else {
-							for (int i = 0; i < IntFltLen; i += 2) {
-								const fptype coeff = ftp[i];
-								for (int c = 0; c < ElCount; ++c) {
-									sums[c] += coeff * Src[c];
-								}
-								Src += ElCount * 2;
-							}
-						}
+#define AVIR_RESIZE_PART1nx \
+			while( rpos < rpose ) \
+			{ \
+				const fptype* const ftp = rpos -> ftp; \
+				const fptype* Src = SrcLine + rpos -> SrcOffs; \
+				const int IntFltLen = rpos -> fl; \
+				int i;
 
-						for (int c = 0; c < ElCount; ++c) {
-							DstLine[idx * DstLineIncr + c] = sums[c];
-						}
-					}
-					});
+#define AVIR_RESIZE_PART2 \
+				DstLine += DstLineIncr; \
+				rpos++; \
 			}
+
+				if (FltBank->getOrder() == 1)
+				{
+					if (ElCount == 1)
+					{
+						AVIR_RESIZE_PART1
+
+							fptype sum0 = 0;
+
+						for (i = 0; i < IntFltLen; i += 2)
+						{
+							sum0 += (ftp[i] + ftp2[i] * x) * Src[i];
+						}
+
+						DstLine[0] = sum0;
+
+						AVIR_RESIZE_PART2
+					}
+					else
+						if (ElCount == 4)
+						{
+							AVIR_RESIZE_PART1
+
+								fptype sum0 = 0;
+							fptype sum1 = 0;
+							fptype sum2 = 0;
+							fptype sum3 = 0;
+
+							for (i = 0; i < IntFltLen; i += 2)
+							{
+								const fptype xx = ftp[i] + ftp2[i] * x;
+								sum0 += xx * Src[0];
+								sum1 += xx * Src[1];
+								sum2 += xx * Src[2];
+								sum3 += xx * Src[3];
+								Src += 4 * 2;
+							}
+
+							DstLine[0] = sum0;
+							DstLine[1] = sum1;
+							DstLine[2] = sum2;
+							DstLine[3] = sum3;
+
+							AVIR_RESIZE_PART2
+						}
+						else
+							if (ElCount == 3)
+							{
+								AVIR_RESIZE_PART1
+
+									fptype sum0 = 0;
+								fptype sum1 = 0;
+								fptype sum2 = 0;
+
+								for (i = 0; i < IntFltLen; i += 2)
+								{
+									const fptype xx = ftp[i] + ftp2[i] * x;
+									sum0 += xx * Src[0];
+									sum1 += xx * Src[1];
+									sum2 += xx * Src[2];
+									Src += 3 * 2;
+								}
+
+								DstLine[0] = sum0;
+								DstLine[1] = sum1;
+								DstLine[2] = sum2;
+
+								AVIR_RESIZE_PART2
+							}
+							else
+								if (ElCount == 2)
+								{
+									AVIR_RESIZE_PART1
+
+										fptype sum0 = 0;
+									fptype sum1 = 0;
+
+									for (i = 0; i < IntFltLen; i += 2)
+									{
+										const fptype xx = ftp[i] + ftp2[i] * x;
+										sum0 += xx * Src[0];
+										sum1 += xx * Src[1];
+										Src += 2 * 2;
+									}
+
+									DstLine[0] = sum0;
+									DstLine[1] = sum1;
+
+									AVIR_RESIZE_PART2
+								}
+				}
+				else
+				{
+					if (ElCount == 1)
+					{
+						AVIR_RESIZE_PART1nx
+
+						fptype sum0 = 0;
+
+						for (i = 0; i < IntFltLen; i += 2)
+						{
+							sum0 += ftp[i] * Src[i];
+						}
+
+						DstLine[0] = sum0;
+
+						AVIR_RESIZE_PART2
+					}
+					else
+						if (ElCount == 4)
+						{
+							AVIR_RESIZE_PART1nx
+
+								fptype sum0 = 0;
+							fptype sum1 = 0;
+							fptype sum2 = 0;
+							fptype sum3 = 0;
+
+							for (i = 0; i < IntFltLen; i += 2)
+							{
+								const fptype xx = ftp[i];
+								sum0 += xx * Src[0];
+								sum1 += xx * Src[1];
+								sum2 += xx * Src[2];
+								sum3 += xx * Src[3];
+								Src += 4 * 2;
+							}
+
+							DstLine[0] = sum0;
+							DstLine[1] = sum1;
+							DstLine[2] = sum2;
+							DstLine[3] = sum3;
+
+							AVIR_RESIZE_PART2
+						}
+						else
+							if (ElCount == 3)
+							{
+								AVIR_RESIZE_PART1nx
+
+									fptype sum0 = 0;
+								fptype sum1 = 0;
+								fptype sum2 = 0;
+
+								for (i = 0; i < IntFltLen; i += 2)
+								{
+									const fptype xx = ftp[i];
+									sum0 += xx * Src[0];
+									sum1 += xx * Src[1];
+									sum2 += xx * Src[2];
+									Src += 3 * 2;
+								}
+
+								DstLine[0] = sum0;
+								DstLine[1] = sum1;
+								DstLine[2] = sum2;
+
+								AVIR_RESIZE_PART2
+							}
+							else
+								if (ElCount == 2)
+								{
+									AVIR_RESIZE_PART1nx
+
+										fptype sum0 = 0;
+									fptype sum1 = 0;
+
+									for (i = 0; i < IntFltLen; i += 2)
+									{
+										const fptype xx = ftp[i];
+										sum0 += xx * Src[0];
+										sum1 += xx * Src[1];
+										Src += 2 * 2;
+									}
+
+									DstLine[0] = sum0;
+									DstLine[1] = sum1;
+
+									AVIR_RESIZE_PART2
+								}
+				}
+			}
+#undef AVIR_RESIZE_PART2
+#undef AVIR_RESIZE_PART1nx
+#undef AVIR_RESIZE_PART1
 
 };
 			/**
