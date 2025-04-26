@@ -4609,13 +4609,12 @@ namespace avir {
 						(size_t)SrcHeight, fpclass::fpalign); // Temporary buffer that
 					// receives horizontally-filtered and resized image.
 
-					#pragma omp parallel for 
-					for (int i = 0; i < SrcHeight; i++)
-					{
-						td[i % ThreadCount].addScanlineToQueue(
-							(void*)&SrcBuf[(size_t)i * (size_t)SrcScanlineSize],
-							&FltBuf[(size_t)i * (size_t)NewWidthE], i);
-					}
+					tbb::parallel_for(0, SrcHeight, [&](int i)
+						{
+							td[i % ThreadCount].addScanlineToQueue(
+								(void*)&SrcBuf[(size_t)i * (size_t)SrcScanlineSize],
+								&FltBuf[(size_t)i * (size_t)NewWidthE], i);
+						});
 
 					td[0].addQueueLen(SrcHeight);
 
@@ -4694,12 +4693,11 @@ namespace avir {
 								SrcHeight, NewWidthE, NewWidthE);
 						}
 
-						#pragma omp parallel for
-						for (int i = 0; i < NewWidth; i++)
-						{
-							td[i % ThreadCount].addScanlineToQueue(
-								&FltBuf[i * ElCount], (fptype*)&NewBuf[i * ElCount], i);
-						}
+						tbb::parallel_for(0, NewWidth, [&](int i)
+							{
+								td[i % ThreadCount].addScanlineToQueue(
+									&FltBuf[i * ElCount], (fptype*)&NewBuf[i * ElCount], i);
+							});
 						td[0].addQueueLen(NewWidth);
 
 						ThreadPool.startAllWorkloads();
@@ -4721,12 +4719,11 @@ namespace avir {
 
 					const int im = (fpclass::packmode == 0 ? ElCount : 1);
 
-					#pragma omp parallel for
-					for (int i = 0; i < NewWidth; i++)
-					{
-						td[i % ThreadCount].addScanlineToQueue(
-							&FltBuf[i * im], &ResBuf[i * im], i);
-					}
+					tbb::parallel_for(0, NewWidth, [&](int i)
+						{
+							td[i % ThreadCount].addScanlineToQueue(
+								&FltBuf[i * im], &ResBuf[i * im], i);
+						});
 					td[0].addQueueLen(NewWidth);
 
 					ThreadPool.startAllWorkloads();
@@ -4742,13 +4739,12 @@ namespace avir {
 								NewHeight, NewWidth);
 						}
 
-						#pragma omp parallel for
-						for (int i = 0; i < NewHeight; i++)
+						tbb::parallel_for(0, NewHeight, [&](int i)
 						{
-							td[i % ThreadCount].addScanlineToQueue(
-								&ResBuf[(size_t)i * (size_t)NewWidthE],
-								&NewBuf[(size_t)i * (size_t)(NewWidth * ElCountIO)], i);
-						}
+								td[i % ThreadCount].addScanlineToQueue(
+									&ResBuf[(size_t)i * (size_t)NewWidthE],
+									&NewBuf[(size_t)i * (size_t)(NewWidth * ElCountIO)], i);
+							});
 
 						td[0].addQueueLen(NewHeight);
 
@@ -4784,24 +4780,23 @@ namespace avir {
 					{
 						td[0].getDitherer().init(NewWidth, Vars, TrMul, PkOut);
 
-						#pragma omp for
-						for (int i = 0; i < NewHeight; i++)
-						{
-							fptype* const ResScanline =
-								&ResBuf[(size_t)i * (size_t)NewWidthE];
-
-							if (Vars.UseSRGBGamma)
+						tbb::parallel_for(0, NewHeight, [&](int i)
 							{
-								CFilterStep::applySRGBGamma(ResScanline, NewWidth,
-									Vars);
-							}
+								fptype* const ResScanline =
+									&ResBuf[(size_t)i * (size_t)NewWidthE];
 
-							td[0].getDitherer().dither(ResScanline);
+								if (Vars.UseSRGBGamma)
+								{
+									CFilterStep::applySRGBGamma(ResScanline, NewWidth,
+										Vars);
+								}
 
-							CFilterStep::unpackScanline(ResScanline,
-								&NewBuf[(size_t)i * (size_t)(NewWidth * ElCountIO)],
-								NewWidth, Vars);
-						}
+								td[0].getDitherer().dither(ResScanline);
+
+								CFilterStep::unpackScanline(ResScanline,
+									&NewBuf[(size_t)i * (size_t)(NewWidth * ElCountIO)],
+									NewWidth, Vars);
+							});
 					}
 					else
 					{
@@ -4813,13 +4808,12 @@ namespace avir {
 							td[i].getDitherer().init(NewWidth, Vars, TrMul, PkOut);
 						}
 
-						#pragma omp parallel for
-						for (int i = 0; i < NewHeight; i++)
-						{
-							td[i % ThreadCount].addScanlineToQueue(
-								&ResBuf[(size_t)i * (size_t)NewWidthE],
-								&NewBuf[(size_t)i * (size_t)(NewWidth * ElCountIO)], i);
-						}
+						tbb::parallel_for(0, NewHeight, [&](int i)
+							{
+								td[i % ThreadCount].addScanlineToQueue(
+									&ResBuf[(size_t)i * (size_t)NewWidthE],
+									&NewBuf[(size_t)i * (size_t)(NewWidth * ElCountIO)], i);
+							});
 
 						td[0].addQueueLen(NewHeight);
 
@@ -6151,7 +6145,7 @@ namespace avir {
 						{
 						case sopResizeH:
 						{
-							tbb::parallel_for(0, QueueLen, 1, [=](int i)
+							tbb::parallel_for(0, QueueLen, [&](int i)
 								{
 									resizeScanlineH((Tin*)Queue[i].SrcBuf,
 										(fptype*)Queue[i].ResBuf);
@@ -6161,8 +6155,7 @@ namespace avir {
 
 						case sopResizeV:
 						{
-
-							tbb::parallel_for(0, QueueLen, 1, [=](int i)
+							tbb::parallel_for(0, QueueLen, [&](int i)
 								{
 									resizeScanlineV((fptype*)Queue[i].SrcBuf,
 										(fptype*)Queue[i].ResBuf);
@@ -6174,7 +6167,7 @@ namespace avir {
 						case sopDitherAndUnpackH:
 						{
 
-							tbb::parallel_for(0, QueueLen, 1, [=](int i)
+							tbb::parallel_for(0, QueueLen, [&](int i)
 								{
 									if (Vars->UseSRGBGamma)
 									{
@@ -6194,7 +6187,7 @@ namespace avir {
 
 						case sopUnpackH:
 						{
-							tbb::parallel_for(0, QueueLen, 1, [=](int i)
+							tbb::parallel_for(0, QueueLen, [&](int i)
 								{
 									if (Vars->UseSRGBGamma)
 									{
