@@ -1048,7 +1048,7 @@ Mat CFiltreEffetCPU::Interpolation(const Mat& inputData, const int& widthOut, co
 			cv::Mat inBuf, outBuf(Size(widthOut, heightOut), CV_8UC4, Scalar(0, 0, 0));
 			cvtColor(cvImage, inBuf, cv::COLOR_BGR2BGRA);
 
-			avir::CImageResizer<avir::fpclass_float4> ImageResizer(8);
+			avir::CImageResizer ImageResizer(8);
 			avir::CImageResizerVars Vars;
 			Vars.UseSRGBGamma = true;
 			ImageResizer.resizeImage(

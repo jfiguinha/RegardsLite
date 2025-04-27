@@ -99,10 +99,10 @@ namespace avir {
 #define AVIR_VERSION "3.1" ///< The macro defines AVIR version string.
 
 #define AVIR_PI 3.1415926535897932 ///< The macro equals to `pi` constant,
-	///< fills 53-bit floating point mantissa. Undefined at the end of file.
+	///< fills 53-bit floaucharg point mantissa. Undefined at the end of file.
 
 #define AVIR_PId2 1.5707963267948966 ///< The macro equals to `pi divided
-	///< by 2` constant, fills 53-bit floating point mantissa. Undefined at
+	///< by 2` constant, fills 53-bit floaucharg point mantissa. Undefined at
 	///< the end of file.
 
 /**
@@ -202,11 +202,12 @@ namespace avir {
 	 * @param m Preliminary multiplier, usually a value equal to input type range.
 	 * @return Linearized sRGB gamma value, approximated.
 	 * @tparam T Output type.
-	 * @tparam Tin Input value type.
+	 * @tparam uchar Input value type.
 	 */
 
-	template< typename T, typename Tin >
-	inline T convertSRGB2Lin(const Tin& s0, const T m)
+	/*
+	template< typename T >
+	inline T convertSRGB2Lin(const uchar& s0, const T m)
 	{
 		const T s = (T)s0 * m;
 		const T a = (T)0.055;
@@ -218,6 +219,7 @@ namespace avir {
 
 		return(pow24_sRGB((s + a) / ((T)1 + a)));
 	}
+	*/
 
 	/**
 	 * @brief Approximately linearizes the sRGB gamma value. Fast specialization
@@ -369,8 +371,8 @@ namespace avir {
 	 * @param flt FIR filter's coefficients.
 	 * @param fltlen Number of coefficients (taps) in the filter.
 	 * @param th Circular frequency, [0; pi].
-	 * @param[out] re0 Resulting real part of the complex frequency response.
-	 * @param[out] im0 Resulting imaginary part of the complex frequency response.
+	 * @param[out] re0 Resulucharg real part of the complex frequency response.
+	 * @param[out] im0 Resulucharg imaginary part of the complex frequency response.
 	 * @param fltlat Filter's latency in samples (taps).
 	 * @tparam T Filter coefficients' type.
 	 */
@@ -463,7 +465,7 @@ namespace avir {
 	 * tracking.
 	 *
 	 * Allows easier handling of memory blocks allocation and automatic
-	 * deallocation for arrays (buffers) consisting of elements of specified
+	 * deallocation for arrays (buffers) consisucharg of elements of specified
 	 * class. By default, tracks buffer's capacity in a `int` variable, which is
 	 * unsuitable for allocation of very large memory blocks (with more than 2
 	 * billion elements).
@@ -595,7 +597,7 @@ namespace avir {
 		 * @brief "Forces" *this* buffer to have an arbitary capacity.
 		 *
 		 * Calling this function invalidates all further operations except
-		 * deleting *this* object. This function should not be usually used at
+		 * deleucharg *this* object. This function should not be usually used at
 		 * all. Function can be used to "model" certain buffer capacity without
 		 * calling a costly memory allocation function.
 		 *
@@ -650,7 +652,7 @@ namespace avir {
 
 		/**
 		 * @brief "Truncates" (reduces) capacity of *this* buffer, without
-		 * reallocating it.
+		 * reallocaucharg it.
 		 *
 		 * Alignment is not changed.
 		 *
@@ -926,7 +928,7 @@ namespace avir {
 		 * @brief Initializes *this* sine signal generator.
 		 *
 		 * @param si Sine function increment, in radians.
-		 * @param ph Starting phase, in radians. Add `0.5 * AVIR_PI` for cosine
+		 * @param ph Starucharg phase, in radians. Add `0.5 * AVIR_PI` for cosine
 		 * function.
 		 */
 
@@ -1018,7 +1020,7 @@ namespace avir {
 	 * calculated filter is windowed by the Peaked Cosine window function.
 	 *
 	 * In image processing, due to short length of filters being used (6-8 taps),
-	 * the resulting frequency response of the filter is approximate, and may be
+	 * the resulucharg frequency response of the filter is approximate, and may be
 	 * mathematically imperfect, but still adequate to the visual requirements.
 	 *
 	 * On a side note, this equalizer generator can be successfully used for audio
@@ -1226,7 +1228,7 @@ namespace avir {
 		 * on the required non-truncated filter length.
 		 *
 		 * @param aFilterLength Required filter length in samples (non-truncated).
-		 * @param[out] Latency Resulting latency (group delay) of the filter,
+		 * @param[out] Latency Resulucharg latency (group delay) of the filter,
 		 * in samples (taps).
 		 * @return Filter length, in samples (taps).
 		 */
@@ -1437,7 +1439,7 @@ namespace avir {
 		 *
 		 * @param[out] op Output buffer, length equals `FilterLen`
 		 * (`fl2 * 2 + 1`).
-		 * @param DCGain Required gain at DC. The resulting filter will be
+		 * @param DCGain Required gain at DC. The resulucharg filter will be
 		 * normalized to achieve this DC gain. If non-positive, no automatic
 		 * normalization will be performed.
 		 * @tparam T Filter coefficients' type.
@@ -1812,7 +1814,7 @@ namespace avir {
 
 		int calcInitComplexity(const CBuffer< char >& FracUseMap) const
 		{
-			const int FltInitCost = 65; // Cost to initialize a single sample
+			const int FlucharitCost = 65; // Cost to initialize a single sample
 			// of the fractional delay filter.
 			const int FltUseCost = FilterLen * Order +
 				SrcFilterLen * ExtFilter.getCapacity(); // Cost to use a single
@@ -1823,7 +1825,7 @@ namespace avir {
 
 			if (IsInitRequired)
 			{
-				ic = FracCount * SrcFilterLen * FltInitCost;
+				ic = FracCount * SrcFilterLen * FlucharitCost;
 
 				for (i = 0; i < FracCount; i++)
 				{
@@ -2156,14 +2158,14 @@ namespace avir {
 	 *
 	 * Anti-alias filtering during downsizing can be defined as a considerable
 	 * reduction of contrast of smallest features of an image. Unfortunately, such
-	 * de-contrasting partially affects features of all sizes thus producing a
+	 * de-contrasucharg partially affects features of all sizes thus producing a
 	 * non-linearity of frequency response. All pre-defined parameter sets are
 	 * described by 3 values separated by slashes. The first value is the
-	 * de-contrasting factor of small features (which are being removed) while
-	 * the second value is the de-contrasting factor of large features (which
-	 * should remain intact), with value of 1 equating to "no contrast change".
+	 * de-contrasucharg factor of small features (which are being removed) while
+	 * the second value is the de-contrasucharg factor of large features (which
+	 * should remain intact), with value of 1 equaucharg to "no contrast change".
 	 * The third value is the optimization score (see below), with value of 0
-	 * equating to the "perfect" linearity of frequency response.
+	 * equaucharg to the "perfect" linearity of frequency response.
 	 *
 	 * The pre-defined parameter sets offered by this library were auto-optimized
 	 * for the given `LPFltBaseLen`, `IntFltLen`, and `CorrFltAlpha` values. The
@@ -2312,7 +2314,7 @@ namespace avir {
 	 * (9.21/1.91/1.040(391960.71)/0.000023).
 	 *
 	 * This set of resizing algorithm parameters offers a lower-ringing
-	 * performance in comparison to the default setting, at the expense of higher
+	 * performance in comparison to the default setucharg, at the expense of higher
 	 * aliasing artifacts and a slightly reduced contrast.
 	 */
 
@@ -2337,7 +2339,7 @@ namespace avir {
 	 *
 	 * This set of resizing algorithm parameters offers a considerable
 	 * anti-aliasing performance with a good frequency response linearity (and
-	 * contrast). This is an intermediate setting between the default and Ultra
+	 * contrast). This is an intermediate setucharg between the default and Ultra
 	 * parameters.
 	 */
 
@@ -2392,7 +2394,7 @@ namespace avir {
 	{
 	public:
 		int ElCount; ///< The number of `fptype` elements used to store 1 pixel.
-		int ElCountIO; ///< The number of source and destination image's elements
+		int ElCountIO; ///< The number of source and desucharation image's elements
 		///< used to store 1 pixel.
 		int fppack; ///< The number of atomic types stored in a single `fptype`
 		///< element.
@@ -2412,7 +2414,7 @@ namespace avir {
 		///< ElCount if pixels are stored in interleaved form.
 		double k; ///< Resizing step coefficient, updated to reflect the actually
 		///< used coefficient during resizing.
-		double o; ///< Starting pixel offset inside the source image, updated to
+		double o; ///< Starucharg pixel offset inside the source image, updated to
 		///< reflect the actually used offset during resizing.
 		int ResizeStep; ///< Index of the resizing step in the latest filtering
 		///< steps array.
@@ -2478,7 +2480,7 @@ namespace avir {
 	 * are used to perform the actual filtering in interleaved or de-interleaved
 	 * mode.
 	 *
-	 * @tparam fptype Floating point type to use for storing pixel elements. SIMD
+	 * @tparam fptype Floaucharg point type to use for storing pixel elements. SIMD
 	 * types can be used: in this case each element may hold a whole pixel.
 	 * @tparam fptypeatom The atomic type the `fptype` consists of.
 	 */
@@ -2521,7 +2523,7 @@ namespace avir {
 		int InElIncr; ///< Pixel element increment within the input buffer, used
 		///< during de-interleaved processing: in this case each image's
 		///< channel is stored independently, `InElIncr` elements apart.
-		int OutLen; ///< Length of the resulting scanline.
+		int OutLen; ///< Length of the resulucharg scanline.
 		int OutBuf; ///< Output buffer index. 0 or 1; 2 for the last step.
 		int OutPrefix; ///< Required output prefix pixels. These prefix pixels
 		///< will not be pre-filled with any values. Value is valid only if
@@ -2533,10 +2535,10 @@ namespace avir {
 		///< during de-interleaved processing. Equals to `InBufElIncr` of the
 		///< next step.
 		CBuffer< fptype > PrefixDC; ///< DC component fluctuations added at the
-		///< start of the resulting scanline, used when `IsUpsample` equals
+		///< start of the resulucharg scanline, used when `IsUpsample` equals
 		///< `true`.
 		CBuffer< fptype > SuffixDC; ///< DC component fluctuations added at the
-		///< end of the resulting scanline, used when `IsUpsample` equals
+		///< end of the resulucharg scanline, used when `IsUpsample` equals
 		///< `true`.
 		int EdgePixelCount; ///< The number of edge pixels added. Affects the
 		///< initial position within the input scanline, used to produce edge
@@ -2651,7 +2653,7 @@ namespace avir {
 	 * This class implements scanline filtering functions in interleaved mode.
 	 * This means that each pixel is processed independently, not in groups.
 	 *
-	 * @tparam fptype Floating point type to use for storing pixel elements. SIMD
+	 * @tparam fptype Floaucharg point type to use for storing pixel elements. SIMD
 	 * types can be used: in this case each element may hold a whole pixel.
 	 * @tparam fptypeatom The atomic type the `fptype` consists of.
 	 */
@@ -2689,11 +2691,10 @@ namespace avir {
 		 * @param ip Input scanline.
 		 * @param op0 Output scanline.
 		 * @param l0 The number of pixels to "pack".
-		 * @tparam Tin Input values' type.
+		 * @tparam uchar Input values' type.
 		 */
 
-		template< typename Tin >
-		void packScanline(const Tin* ip, fptype* const op0, const int l0) const
+		void packScanline(const uchar* ip, fptype* const op0, const int l0) const
 		{
 			const int ElCount = Vars->ElCount;
 			const int ElCountIO = Vars->ElCountIO;
@@ -3029,7 +3030,7 @@ namespace avir {
 		/**
 		 * @brief Performs "unpacking" of a scanline, and type conversion.
 		 *
-		 * Truncation is used when floating point is converted to integer.
+		 * Truncation is used when floaucharg point is converted to integer.
 		 *
 		 * Scanline, depending on the `fptype` can be potentially stored as a
 		 * packed SIMD values having a certain atomic type. The unpacking function
@@ -3040,11 +3041,10 @@ namespace avir {
 		 * @param op Output scanline.
 		 * @param l The number of pixels to "unpack".
 		 * @param Vars0 Image resizing-related variables.
-		 * @tparam Tout Output value's type.
+		 * @tparam uchar Output value's type.
 		 */
 
-		template< typename Tout >
-		static void unpackScanline(const fptype* ip, Tout* op, int l,
+		static void unpackScanline(const fptype* ip, uchar* op, int l,
 			const CImageResizerVars& Vars0)
 		{
 			const int ElCount = Vars0.ElCount;
@@ -3055,7 +3055,7 @@ namespace avir {
 				while (l > 0)
 				{
 					const fptypeatom* v = (const fptypeatom*)ip;
-					op[0] = (Tout)v[0];
+					op[0] = (uchar)v[0];
 					ip += ElCount;
 					op++;
 					l--;
@@ -3067,10 +3067,10 @@ namespace avir {
 					while (l > 0)
 					{
 						const fptypeatom* v = (const fptypeatom*)ip;
-						op[0] = (Tout)v[0];
-						op[1] = (Tout)v[1];
-						op[2] = (Tout)v[2];
-						op[3] = (Tout)v[3];
+						op[0] = (uchar)v[0];
+						op[1] = (uchar)v[1];
+						op[2] = (uchar)v[2];
+						op[3] = (uchar)v[3];
 						ip += ElCount;
 						op += 4;
 						l--;
@@ -3082,9 +3082,9 @@ namespace avir {
 						while (l > 0)
 						{
 							const fptypeatom* v = (const fptypeatom*)ip;
-							op[0] = (Tout)v[0];
-							op[1] = (Tout)v[1];
-							op[2] = (Tout)v[2];
+							op[0] = (uchar)v[0];
+							op[1] = (uchar)v[1];
+							op[2] = (uchar)v[2];
 							ip += ElCount;
 							op += 3;
 							l--;
@@ -3096,8 +3096,8 @@ namespace avir {
 							while (l > 0)
 							{
 								const fptypeatom* v = (const fptypeatom*)ip;
-								op[0] = (Tout)v[0];
-								op[1] = (Tout)v[1];
+								op[0] = (uchar)v[0];
+								op[1] = (uchar)v[1];
 								ip += ElCount;
 								op += 2;
 								l--;
@@ -3134,7 +3134,7 @@ namespace avir {
 		 *
 		 * @param Src Source scanline buffer (length = `InLen`). Source scanline
 		 * increment will be equal to `ElCount`.
-		 * @param Dst Destination scanline buffer.
+		 * @param Dst Desucharation scanline buffer.
 		 */
 
 
@@ -3143,7 +3143,7 @@ namespace avir {
 		  *
 		  * @param Src Source scanline buffer (length = `InLen`). Source scanline
 		  * increment will be equal to `ElCount`.
-		  * @param Dst Destination scanline buffer.
+		  * @param Dst Desucharation scanline buffer.
 		  */
 
 		void doUpsample(const fptype* const Src, fptype* const Dst) const
@@ -3641,13 +3641,13 @@ namespace avir {
 		 *
 		 * @param Src Source scanline buffer (length = `InLen`). Source scanline
 		 * increment will be equal to ElCount.
-		 * @param Dst Destination scanline buffer.
-		 * @param DstIncr Destination scanline buffer increment, used for
+		 * @param Dst Desucharation scanline buffer.
+		 * @param Dsucharcr Desucharation scanline buffer increment, used for
 		 * horizontal or vertical scanline stepping.
 		 */
 
 		void doFilter(const fptype* const Src, fptype* Dst,
-			const int DstIncr) const
+			const int Dsucharcr) const
 		{
 			const int ElCount = Vars->ElCount;
 			const fptype* const f = &Flt[FltLatency];
@@ -3675,7 +3675,7 @@ namespace avir {
 					}
 
 					Dst[0] = s;
-					Dst += DstIncr;
+					Dst += Dsucharcr;
 					ip += ipstep;
 					l--;
 				}
@@ -3706,7 +3706,7 @@ namespace avir {
 						Dst[1] = s2;
 						Dst[2] = s3;
 						Dst[3] = s4;
-						Dst += DstIncr;
+						Dst += Dsucharcr;
 						ip += ipstep;
 						l--;
 					}
@@ -3734,7 +3734,7 @@ namespace avir {
 							Dst[0] = s1;
 							Dst[1] = s2;
 							Dst[2] = s3;
-							Dst += DstIncr;
+							Dst += Dsucharcr;
 							ip += ipstep;
 							l--;
 						}
@@ -3759,7 +3759,7 @@ namespace avir {
 
 								Dst[0] = s1;
 								Dst[1] = s2;
-								Dst += DstIncr;
+								Dst += Dsucharcr;
 								ip += ipstep;
 								l--;
 							}
@@ -3778,8 +3778,8 @@ namespace avir {
 		 * equal to `ElCount`.
 		 *
 		 * @param SrcLine Source scanline buffer.
-		 * @param DstLine Destination (resized) scanline buffer.
-		 * @param DstLineIncr Destination scanline position increment, used for
+		 * @param DstLine Desucharation (resized) scanline buffer.
+		 * @param DstLineIncr Desucharation scanline position increment, used for
 		 * horizontal or vertical scanline stepping.
 		 */
 
@@ -4008,8 +4008,8 @@ namespace avir {
 			 * Similar to the doResize() function otherwise.
 			 *
 			 * @param SrcLine Source scanline buffer.
-			 * @param DstLine Destination (resized) scanline buffer.
-			 * @param DstLineIncr Destination scanline position increment, used for
+			 * @param DstLine Desucharation (resized) scanline buffer.
+			 * @param DstLineIncr Desucharation scanline position increment, used for
 			 * horizontal or vertical scanline stepping.
 			 */
 
@@ -4021,8 +4021,8 @@ namespace avir {
 			  * Similar to the doResize() function otherwise.
 			  *
 			  * @param SrcLine Source scanline buffer.
-			  * @param DstLine Destination (resized) scanline buffer.
-			  * @param DstLineIncr Destination scanline position increment, used for
+			  * @param DstLine Desucharation (resized) scanline buffer.
+			  * @param DstLineIncr Desucharation scanline position increment, used for
 			  * horizontal or vertical scanline stepping.
 			  */
 
@@ -4035,8 +4035,8 @@ namespace avir {
 			   * Similar to the doResize() function otherwise.
 			   *
 			   * @param SrcLine Source scanline buffer.
-			   * @param DstLine Destination (resized) scanline buffer.
-			   * @param DstLineIncr Destination scanline position increment, used for
+			   * @param DstLine Desucharation (resized) scanline buffer.
+			   * @param DstLineIncr Desucharation scanline position increment, used for
 			   * horizontal or vertical scanline stepping.
 			   */
 
@@ -4273,7 +4273,7 @@ namespace avir {
 			 * ditherer implements a simple rounding without dithering: it can be used for
 			 * an efficient dithering method which can be multi-threaded.
 			 *
-			 * @tparam fptype Floating point type to use for storing pixel data. SIMD
+			 * @tparam fptype Floaucharg point type to use for storing pixel data. SIMD
 			 * types can be used.
 			 */
 
@@ -4360,10 +4360,10 @@ namespace avir {
 			 *
 			 * This ditherer implements error-diffusion dithering which looks good, and
 			 * whose results are compressed by PNG well. This implementation uses
-			 * weighting coefficients obtained via machine optimization and visual
+			 * weighucharg coefficients obtained via machine optimization and visual
 			 * evaluation.
 			 *
-			 * @tparam fptype Floating point type to use for storing pixel data. SIMD
+			 * @tparam fptype Floaucharg point type to use for storing pixel data. SIMD
 			 * types can be used.
 			 */
 
@@ -4466,7 +4466,7 @@ namespace avir {
 			};
 
 			/**
-			 * @brief Floating-point processing definition and abstraction class.
+			 * @brief Floaucharg-point processing definition and abstraction class.
 			 *
 			 * This class defines several constants and typedefs that point to classes
 			 * that should be used by the image resizing algorithm. Such "definition
@@ -4479,7 +4479,7 @@ namespace avir {
 			 * non-SIMD types, but using algorithms that operate on interleaved pixels,
 			 * and which are non-SIMD optimized themselves.
 			 *
-			 * @tparam afptype Floating point type to use for storing intermediate data
+			 * @tparam afptype Floaucharg point type to use for storing intermediate data
 			 * and variables. For variables that are not used in intensive calculations
 			 * the `double` type is always used. On the latest Intel processors (like
 			 * i7-4770K) there is almost no performance difference between `double` and
@@ -4500,7 +4500,7 @@ namespace avir {
 			class fpclass_def
 			{
 			public:
-				typedef afptype fptype; ///< Floating-point type to use during processing.
+				typedef afptype fptype; ///< Floaucharg-point type to use during processing.
 				typedef afptypeatom fptypeatom; ///< Atomic type `fptype` consists of.
 				static const int fppack = sizeof(fptype) / sizeof(fptypeatom); ///<
 				///< The number of atomic types stored in a single `fptype` element.
@@ -4531,11 +4531,27 @@ namespace avir {
 			 *
 			 * Object of this class can be allocated on stack.
 			 *
-			 * @tparam fpclass Floating-point processing definition class to use. See
+			 * @tparam fpclass Floaucharg-point processing definition class to use. See
 			 * avir::fpclass_def for more details.
 			 */
 
-			template< class fpclass = fpclass_def< float > >
+
+			 /**
+			  * @brief Image resizer class.
+			  *
+			  * The object of this class can be used to resize 1-4 channel images to any
+			  * required size. Resizing is performed by utilizing interpolated sinc
+			  * fractional delay filters plus (if necessary) a cascade of built-in
+			  * sinc function-based 2X upsampling or 2X downsampling stages, followed by a
+			  * correction filtering.
+			  *
+			  * Object of this class can be allocated on stack.
+			  *
+			  * @tparam fpclass_def< float > Floaucharg-point processing definition class to use. See
+			  * avir::fpclass_def< float >_def for more details.
+			  */
+
+
 			class CImageResizer
 			{
 				AVIR_NOCTOR(CImageResizer)
@@ -4544,9 +4560,9 @@ namespace avir {
 				/**
 				 * @brief Initializes the resizer.
 				 *
-				 * @param aResBitDepth Required bit depth of resulting image (1-16). If
+				 * @param aResBitDepth Required bit depth of resulucharg image (1-16). If
 				 * integer value output is used (e.g., `uint8_t`), the bit depth also
-				 * affects rounding: for example, if `aResBitDepth` equals 6, and `Tout`
+				 * affects rounding: for example, if `aResBitDepth` equals 6, and `uchar`
 				 * is `uint8_t`, the result will be rounded to 6 most significant bits
 				 * (2 least significant bits truncated, with dithering applied).
 				 * @param aSrcBitDepth Source image's real bit-depth. Set to 0 to use
@@ -4582,7 +4598,7 @@ namespace avir {
 				 * @param NewWidth New image width.
 				 * @param NewHeight New image height.
 				 * @param ElCountIO The number of elements (channels) used to store each
-				 * source and destination pixel (1-4).
+				 * source and desucharation pixel (1-4).
 				 * @param k Resizing step (one output pixel corresponds to `k` input
 				 * pixels). A downsizing factor if greater than 1.0; upsizing factor if
 				 * lesser than 1.0. Multiply by -1 if you would like to bypass `ox` and
@@ -4596,26 +4612,26 @@ namespace avir {
 				 * All other variables can be modified by this function. The access to
 				 * this object is not thread-safe, each concurrent instance of this
 				 * function should use a separate aVars object.
-				 * @tparam Tin Input buffer element's type. Can be `uint8_t` (`0..255`
+				 * @tparam uchar Input buffer element's type. Can be `uint8_t` (`0..255`
 				 * value range), `uint16_t` (`0..65535` value range), float (`0..1` value
 				 * range), `double` (`0..1` value range). Larger integer types are treated
 				 * as `uint16_t`. Signed integer types are unsupported.
-				 * @tparam Tout Output buffer element's type. Can be `uint8_t` (`0..255`
+				 * @tparam uchar Output buffer element's type. Can be `uint8_t` (`0..255`
 				 * value range), `uint16_t` (`0..65535` value range), `float` (`0..1`
 				 * value range), `double` (`0..1` value range). Larger integer types are
 				 * treated as `uint16_t`. Signed integer types are unsupported.
 				 */
 
-				template< typename Tin, typename Tout >
-				void resizeImage(const Tin* const SrcBuf, const int SrcWidth,
-					const int SrcHeight, int SrcScanlineSize, Tout* const NewBuf,
+
+				void resizeImage(const uchar* const SrcBuf, const int SrcWidth,
+					const int SrcHeight, int SrcScanlineSize, uchar* const NewBuf,
 					const int NewWidth, const int NewHeight, const int ElCountIO,
 					const double k, CImageResizerVars* const aVars = nullptr) const
 				{
 					if (SrcWidth == 0 || SrcHeight == 0)
 					{
 						memset(NewBuf, 0, (size_t)NewWidth * (size_t)NewHeight *
-							sizeof(Tout));
+							sizeof(uchar));
 
 						return;
 					}
@@ -4666,8 +4682,8 @@ namespace avir {
 
 					// Evaluate pre-multipliers used on the output stage.
 
-					const bool IsInFloat = ((Tin)0.25 != 0);
-					const bool IsOutFloat = ((Tout)0.25 != 0);
+					const bool IsInFloat = ((uchar)0.25 != 0);
+					const bool IsOutFloat = ((uchar)0.25 != 0);
 					double OutMul; // Output multiplier.
 
 					if (Vars.UseSRGBGamma)
@@ -4679,7 +4695,7 @@ namespace avir {
 						else
 						{
 							Vars.InGammaMult =
-								1.0 / (sizeof(Tin) == 1 ? 255.0 : 65535.0);
+								1.0 / (sizeof(uchar) == 1 ? 255.0 : 65535.0);
 						}
 
 						if (IsOutFloat)
@@ -4688,7 +4704,7 @@ namespace avir {
 						}
 						else
 						{
-							Vars.OutGammaMult = (sizeof(Tout) == 1 ? 255.0 : 65535.0);
+							Vars.OutGammaMult = (sizeof(uchar) == 1 ? 255.0 : 65535.0);
 						}
 
 						OutMul = 1.0;
@@ -4701,19 +4717,19 @@ namespace avir {
 						}
 						else
 						{
-							OutMul = (sizeof(Tout) == 1 ? 255.0 : 65535.0);
+							OutMul = (sizeof(uchar) == 1 ? 255.0 : 65535.0);
 						}
 
 						if (!IsInFloat)
 						{
-							OutMul /= (sizeof(Tin) == 1 ? 255.0 : 65535.0);
+							OutMul /= (sizeof(uchar) == 1 ? 255.0 : 65535.0);
 						}
 					}
 
 					// Fill widely-used variables.
 
-					const int ElCount = (ElCountIO + fpclass::fppack - 1) /
-						fpclass::fppack;
+					const int ElCount = (ElCountIO + fpclass_def< float >::fppack - 1) /
+						fpclass_def< float >::fppack;
 
 					const int NewWidthE = NewWidth * ElCount;
 
@@ -4724,10 +4740,10 @@ namespace avir {
 
 					Vars.ElCount = ElCount;
 					Vars.ElCountIO = ElCountIO;
-					Vars.fppack = fpclass::fppack;
-					Vars.fpalign = fpclass::fpalign;
-					Vars.elalign = fpclass::elalign;
-					Vars.packmode = fpclass::packmode;
+					Vars.fppack = fpclass_def< float >::fppack;
+					Vars.fpalign = fpclass_def< float >::fpalign;
+					Vars.elalign = fpclass_def< float >::elalign;
+					Vars.packmode = fpclass_def< float >::packmode;
 
 					// Horizontal scanline filtering and resizing.
 
@@ -4793,7 +4809,7 @@ namespace avir {
 					const int ThreadCount = ThreadPool.getSuggestedWorkloadCount();
 					// Includes the current thread.
 
-					CStructArray< CThreadData< Tin, Tout > > td;
+					CStructArray<CThreadData> td;
 					td.setItemCount(ThreadCount);
 					int i;
 
@@ -4811,7 +4827,7 @@ namespace avir {
 					}
 
 					CBuffer< fptype, size_t > FltBuf((size_t)NewWidthE *
-						(size_t)SrcHeight, fpclass::fpalign); // Temporary buffer that
+						(size_t)SrcHeight, fpclass_def< float >::fpalign); // Temporary buffer that
 					// receives horizontally-filtered and resized image.
 
 					tbb::parallel_for(0, SrcHeight, [&](int i)
@@ -4888,8 +4904,8 @@ namespace avir {
 
 					updateBufLenAndRPosPtrs(FltSteps, Vars, NewWidth);
 
-					if (IsOutFloat && sizeof(FltBuf[0]) == sizeof(Tout) &&
-						fpclass::packmode == 0)
+					if (IsOutFloat && sizeof(FltBuf[0]) == sizeof(uchar) &&
+						fpclass_def< float >::packmode == 0)
 					{
 						// In-place output.
 						for (int i = 0; i < ThreadCount; i++)
@@ -4914,7 +4930,7 @@ namespace avir {
 					}
 
 					CBuffer< fptype, size_t > ResBuf((size_t)NewWidthE *
-						(size_t)NewHeight, fpclass::fpalign);
+						(size_t)NewHeight, fpclass_def< float >::fpalign);
 
 					for (int i = 0; i < ThreadCount; i++)
 					{
@@ -4922,7 +4938,7 @@ namespace avir {
 							SrcHeight, NewWidthE, NewWidthE);
 					}
 
-					const int im = (fpclass::packmode == 0 ? ElCount : 1);
+					const int im = (fpclass_def< float >::packmode == 0 ? ElCount : 1);
 
 					tbb::parallel_for(0, NewWidth, [&](int i)
 						{
@@ -4945,7 +4961,7 @@ namespace avir {
 						}
 
 						tbb::parallel_for(0, NewHeight, [&](int i)
-						{
+							{
 								td[i % ThreadCount].addScanlineToQueue(
 									&ResBuf[(size_t)i * (size_t)NewWidthE],
 									&NewBuf[(size_t)i * (size_t)(NewWidth * ElCountIO)], i);
@@ -4966,7 +4982,7 @@ namespace avir {
 					int TruncBits; // The number of lower bits to truncate and dither.
 					int OutRange; // Output range.
 
-					if (sizeof(Tout) == 1)
+					if (sizeof(uchar) == 1)
 					{
 						TruncBits = 8 - ResBitDepth;
 						OutRange = 255;
@@ -5031,30 +5047,30 @@ namespace avir {
 				}
 
 			private:
-				typedef typename fpclass::fptype fptype; ///< Floating-point type to use
+				typedef typename fpclass_def< float >::fptype fptype; ///< Floaucharg-point type to use
 				///< during processing.
-				typedef typename fpclass::CFilterStep CFilterStep; ///< Filtering step
+				typedef typename fpclass_def< float >::CFilterStep CFilterStep; ///< Filtering step
 				///< class to use during processing.
-				typedef typename fpclass::CDitherer CDitherer; ///< Ditherer class to
+				typedef typename fpclass_def< float >::CDitherer CDitherer; ///< Ditherer class to
 				///< use during processing.
 				CImageResizerParams Params; ///< Algorithm's parameters currently in use.
 				int SrcBitDepth; ///< Bit resolution of the source image.
-				int ResBitDepth; ///< Bit resolution of the resulting image.
+				int ResBitDepth; ///< Bit resolution of the resulucharg image.
 				CDSPFracFilterBankLin< fptype > FixedFilterBank; ///< Fractional delay
 				///< filter bank with fixed characteristics, mainly for upsizing
 				///< cases.
-
-			/**
-			 * @brief Filtering steps array.
-			 *
-			 * The object of this class stores filtering steps together.
-			 */
+				
+				/**
+				 * @brief Filtering steps array.
+				 *
+				 * The object of this class stores filtering steps together.
+				 */
 
 				typedef CStructArray< CFilterStep > CFilterSteps;
 
 				/**
 				 * @brief Initializes the filter bank in the specified resizing step
-				 * according to the source and resulting image bit depths.
+				 * according to the source and resulucharg image bit depths.
 				 *
 				 * @param FltBank Filter bank to initialize.
 				 * @param CutoffMult Cutoff multiplier, 0 to 1. 1 corresponds to
@@ -5099,11 +5115,11 @@ namespace avir {
 
 					FltBank.init(FracCount, UseOrder, Params.IntFltLen / CutoffMult,
 						Params.IntFltCutoff * CutoffMult, Params.IntFltAlpha, ExtFilter,
-						fpclass::fpalign, fpclass::elalign);
+						fpclass_def< float >::fpalign, fpclass_def< float >::elalign);
 				}
 
 				/**
-				 * @brief Allocates filter buffer taking `fpclass` alignments into
+				 * @brief Allocates filter buffer taking `fpclass_def< float >` alignments into
 				 * account.
 				 *
 				 * The allocated buffer may be larger than the requested size: in this
@@ -5120,8 +5136,8 @@ namespace avir {
 				static void allocFilter(CBuffer< fptype >& Flt, const int ReqCapacity,
 					const bool IsModel = false, int* const FltExt = nullptr)
 				{
-					int UseCapacity = (ReqCapacity + fpclass::elalign - 1) &
-						~(fpclass::elalign - 1);
+					int UseCapacity = (ReqCapacity + fpclass_def< float >::elalign - 1) &
+						~(fpclass_def< float >::elalign - 1);
 
 					int Ext = UseCapacity - ReqCapacity;
 
@@ -5136,7 +5152,7 @@ namespace avir {
 						return;
 					}
 
-					Flt.alloc(UseCapacity, fpclass::fpalign);
+					Flt.alloc(UseCapacity, fpclass_def< float >::fpalign);
 
 					while (Ext > 0)
 					{
@@ -5211,7 +5227,7 @@ namespace avir {
 					fs.ResampleFactor = ResampleFactor;
 					fs.FltLatency = w.fl2;
 
-					int FltExt; // Filter's extension due to fpclass :: elalign.
+					int FltExt; // Filter's extension due to fpclass_def< float > :: elalign.
 
 					if (IsModel)
 					{
@@ -5302,7 +5318,7 @@ namespace avir {
 				 * @brief Adds a correction filter that tries to achieve a linear
 				 * frequency response at all frequencies.
 				 *
-				 * The actual resulting response may feature a slight damping of the
+				 * The actual resulucharg response may feature a slight damping of the
 				 * highest frequencies since a suitably short correction filter cannot fix
 				 * steep high-frequency damping.
 				 *
@@ -5311,7 +5327,7 @@ namespace avir {
 				 * correction filter both before and after the resizing step.
 				 *
 				 * @param Steps Filtering steps.
-				 * @param bw Resulting bandwidth relative to the original bandwidth (which
+				 * @param bw Resulucharg bandwidth relative to the original bandwidth (which
 				 * is 1.0), usually `1/k`. Should be lesser than or equal to 1.0.
 				 * @param IsPreCorrection `true`, if the filtering step was already
 				 * created, and it is first in the `Steps` array. `true` also adds edge
@@ -5453,10 +5469,10 @@ namespace avir {
 				 *
 				 * It is assumed that 40 decibel stop-band attenuation should be
 				 * considered a required minimum: this allows application of (deliberately
-				 * strong) 64X sharpening without spotting any artifacts.
+				 * strong) 64X sharpening without spotucharg any artifacts.
 				 *
 				 * @param Steps Filtering steps.
-				 * @param bw Resulting bandwidth relative to the original bandwidth (which
+				 * @param bw Resulucharg bandwidth relative to the original bandwidth (which
 				 * is 1.0), usually `1/k`.
 				 * @param IsModel `true`, if filtering steps modeling is performed,
 				 * without actual filter building.
@@ -5565,11 +5581,11 @@ namespace avir {
 					const bool UseHalfband = ((ModeFlags & 4) != 0); // Use half-band
 					// filter.
 
-					const double bw = 1.0 / Vars.k; // Resulting bandwidth.
+					const double bw = 1.0 / Vars.k; // Resulucharg bandwidth.
 					const int UpsampleFactor = ((int)floor(Vars.k) < 2 ? 2 : 1);
 					double IntCutoffMult; // Interpolation filter cutoff multiplier.
 					CFilterStep* ReuseStep; // If not `nullptr`, resizing step should use
-					// this step object instead of creating a new one.
+					// this step object instead of creaucharg a new one.
 					CFilterStep* ExtFltStep; // Use `FltOrig` of this step as the external
 					// filter to applied to the interpolator.
 					bool IsPreCorrection; // `true`, if the correction filter is applied
@@ -5739,7 +5755,7 @@ namespace avir {
 						const int SrcPosInt = (int)floor(SrcPos);
 						const double x = (SrcPos - SrcPosInt) * FracCount;
 						const int fti = (int)x;
-						rpos->x = (typename fpclass::fptypeatom) (x - fti);
+						rpos->x = (typename fpclass_def< float >::fptypeatom) (x - fti);
 						rpos->fti = fti;
 						rpos->SrcPosInt = SrcPosInt;
 						rpos++;
@@ -5864,7 +5880,7 @@ namespace avir {
 
 						if (Steps[upstep].ResampleFactor == 2 &&
 							Vars.ResizeStep == upstep + 1 &&
-							fpclass::packmode == 0 &&
+							fpclass_def< float >::packmode == 0 &&
 							Steps[upstep].FltOrig.getCapacity() > 0)
 						{
 							// Interpolation with preceeding 2x filterless upsample,
@@ -5887,10 +5903,10 @@ namespace avir {
 				 *
 				 * @param Steps Filtering steps.
 				 * @param[out] Vars Variables object, will receive buffer size and length.
-				 * @param ResElIncr Resulting (final) element increment, used to produce
+				 * @param ResElIncr Resulucharg (final) element increment, used to produce
 				 * de-interleaved result. For horizontal processing this value is equal
 				 * to last step's `OutLen`, for vertical processing this value is equal to
-				 * resulting image's width.
+				 * resulucharg image's width.
 				 */
 
 				static void updateBufLenAndRPosPtrs(CFilterSteps& Steps,
@@ -6001,7 +6017,7 @@ namespace avir {
 
 					CFilterStep& fs = Steps[Vars.ResizeStep];
 					typename CFilterStep::CResizePos* rpos = &(*fs.RPosBuf)[0];
-					const int em = (fpclass::packmode == 0 ? Vars.ElCount : 1);
+					const int em = (fpclass_def< float >::packmode == 0 ? Vars.ElCount : 1);
 					const int fl = (fs.FltBankDyn == nullptr ?
 						fs.FltBank->getFilterLen() : fs.FltBankDyn->getFilterLen());
 
@@ -6214,13 +6230,13 @@ namespace avir {
 				 * This structure holds data necessary for image's horizontal or vertical
 				 * scanline processing, including scanline processing queue.
 				 *
-				 * @tparam Tin Source element data type. Intermediate buffers store data
-				 * in floating point format.
-				 * @tparam Tout Destination element data type. Intermediate buffers store
-				 * data in floating point format.
+				 * @tparam uchar Source element data type. Intermediate buffers store data
+				 * in floaucharg point format.
+				 * @tparam uchar Desucharation element data type. Intermediate buffers store
+				 * data in floaucharg point format.
 				 */
 
-				template< typename Tin, typename Tout >
+
 				class CThreadData : public CImageResizerThreadPool::CWorkload
 				{
 				public:
@@ -6273,7 +6289,7 @@ namespace avir {
 					 * @param aSrcLen Source scanline length in pixels.
 					 * @param aSrcIncr Source scanline buffer increment. Ignored in
 					 * horizontal scanline processing.
-					 * @param aResIncr Resulting scanline buffer increment. Ignored in
+					 * @param aResIncr Resulucharg scanline buffer increment. Ignored in
 					 * horizontal scanline processing.
 					 */
 
@@ -6285,7 +6301,7 @@ namespace avir {
 
 						if (Bufs.getCapacity() < l)
 						{
-							Bufs.alloc(l, fpclass::fpalign);
+							Bufs.alloc(l, fpclass_def< float >::fpalign);
 						}
 
 						BufPtrs[0] = Bufs + Vars->BufOffs[0];
@@ -6305,7 +6321,7 @@ namespace avir {
 							}
 						}
 
-						TmpFltBuf.alloc(ml, fpclass::fpalign);
+						TmpFltBuf.alloc(ml, fpclass_def< float >::fpalign);
 						ScanlineOp = aOp;
 						SrcLen = aSrcLen;
 						SrcIncr = aSrcIncr;
@@ -6323,7 +6339,7 @@ namespace avir {
 					 * exceed the `TotalLines` spread over all threads.
 					 *
 					 * @param SrcBuf Source scanline buffer.
-					 * @param ResBuf Resulting scanline buffer.
+					 * @param ResBuf Resulucharg scanline buffer.
 					 */
 
 					void addScanlineToQueue(void* const SrcBuf, void* const ResBuf, const int& queuePos)
@@ -6352,7 +6368,7 @@ namespace avir {
 						{
 							tbb::parallel_for(0, QueueLen, [&](int i)
 								{
-									resizeScanlineH((Tin*)Queue[i].SrcBuf,
+									resizeScanlineH((uchar*)Queue[i].SrcBuf,
 										(fptype*)Queue[i].ResBuf);
 								});
 							break;
@@ -6384,7 +6400,7 @@ namespace avir {
 
 									CFilterStep::unpackScanline(
 										(fptype*)Queue[i].SrcBuf,
-										(Tout*)Queue[i].ResBuf, SrcLen, *Vars);
+										(uchar*)Queue[i].ResBuf, SrcLen, *Vars);
 								});
 
 							break;
@@ -6402,7 +6418,7 @@ namespace avir {
 
 									CFilterStep::unpackScanline(
 										(fptype*)Queue[i].SrcBuf,
-										(Tout*)Queue[i].ResBuf, SrcLen, *Vars);
+										(uchar*)Queue[i].ResBuf, SrcLen, *Vars);
 								});
 
 							break;
@@ -6429,12 +6445,12 @@ namespace avir {
 					fptype* BufPtrs[3]; ///< Flip-flop buffer pointers (referenced by
 					///< filtering step's InBuf and OutBuf indices).
 					CBuffer< fptype > TmpFltBuf; ///< Temporary buffer used in the
-					///< doResize() function, aligned by fpclass :: fpalign.
+					///< doResize() function, aligned by fpclass_def< float > :: fpalign.
 					EScanlineOperation ScanlineOp; ///< Operation to perform over
 					///< scanline.
 					int SrcLen; ///< Source scanline length in the last queue.
 					int SrcIncr; ///< Source scanline buffer increment in the last queue.
-					int ResIncr; ///< Resulting scanline buffer increment in the last
+					int ResIncr; ///< Resulucharg scanline buffer increment in the last
 					///< queue.
 					CDitherer Ditherer; ///< Ditherer object to use.
 
@@ -6447,9 +6463,9 @@ namespace avir {
 					struct CQueueItem
 					{
 						void* SrcBuf; ///< Source scanline buffer, will by typecasted to
-						///< `Tin` or `fptype*`.
-						void* ResBuf; ///< Resulting scanline buffer, will by typecasted
-						///< to `Tout` or `fptype*`.
+						///< `uchar` or `fptype*`.
+						void* ResBuf; ///< Resulucharg scanline buffer, will by typecasted
+						///< to `uchar` or `fptype*`.
 					};
 
 					CBuffer< CQueueItem > Queue; ///< Scanline processing queue.
@@ -6460,10 +6476,10 @@ namespace avir {
 					 *
 					 * @param SrcBuf Source scanline buffer. Can be either horizontal or
 					 * vertical.
-					 * @param ResBuf Resulting scanline buffer.
+					 * @param ResBuf Resulucharg scanline buffer.
 					 */
 
-					void resizeScanlineH(const Tin* const SrcBuf, fptype* const ResBuf)
+					void resizeScanlineH(const uchar* const SrcBuf, fptype* const ResBuf)
 					{
 						const CFilterStep& fs0 = (*Steps)[0];
 						fptype* BufPtrs[3];
@@ -6471,7 +6487,7 @@ namespace avir {
 						CBuffer< fptype > Bufs;
 						if (Bufs.getCapacity() < l)
 						{
-							Bufs.alloc(l, fpclass::fpalign);
+							Bufs.alloc(l, fpclass_def< float >::fpalign);
 						}
 
 						BufPtrs[0] = Bufs + Vars->BufOffs[0];
@@ -6484,7 +6500,7 @@ namespace avir {
 						{
 							const CFilterStep& fs = (*Steps)[j];
 							fs.prepareInBuf(BufPtrs[fs.InBuf]);
-							const int DstIncr =
+							const int Dsucharcr =
 								(Vars->packmode == 0 ? Vars->ElCount : 1);
 
 							if (fs.ResampleFactor != 0)
@@ -6497,7 +6513,7 @@ namespace avir {
 								else
 								{
 									fs.doFilter(BufPtrs[fs.InBuf],
-										BufPtrs[fs.OutBuf], DstIncr);
+										BufPtrs[fs.OutBuf], Dsucharcr);
 								}
 							}
 							else
@@ -6505,12 +6521,12 @@ namespace avir {
 								if (Vars->IsResize2)
 								{
 									fs.doResize2(BufPtrs[fs.InBuf],
-										BufPtrs[fs.OutBuf], DstIncr, TmpFltBuf);
+										BufPtrs[fs.OutBuf], Dsucharcr, TmpFltBuf);
 								}
 								else
 								{
 									fs.doResize(BufPtrs[fs.InBuf],
-										BufPtrs[fs.OutBuf], DstIncr, TmpFltBuf);
+										BufPtrs[fs.OutBuf], Dsucharcr, TmpFltBuf);
 								}
 							}
 						}
@@ -6523,7 +6539,7 @@ namespace avir {
 					 *
 					 * @param SrcBuf Source scanline buffer. Can be either horizontal or
 					 * vertical.
-					 * @param ResBuf Resulting scanline buffer.
+					 * @param ResBuf Resulucharg scanline buffer.
 					 */
 
 					void resizeScanlineV(const fptype* const SrcBuf,
@@ -6535,7 +6551,7 @@ namespace avir {
 						CBuffer< fptype > Bufs;
 						if (Bufs.getCapacity() < l)
 						{
-							Bufs.alloc(l, fpclass::fpalign);
+							Bufs.alloc(l, fpclass_def< float >::fpalign);
 						}
 
 						BufPtrs[0] = Bufs + Vars->BufOffs[0];
@@ -6547,7 +6563,7 @@ namespace avir {
 						{
 							const CFilterStep& fs = (*Steps)[j];
 							fs.prepareInBuf(BufPtrs[fs.InBuf]);
-							const int DstIncr = (fs.OutBuf == 2 ? ResIncr :
+							const int Dsucharcr = (fs.OutBuf == 2 ? ResIncr :
 								(Vars->packmode == 0 ? Vars->ElCount : 1));
 
 							if (fs.ResampleFactor != 0)
@@ -6560,7 +6576,7 @@ namespace avir {
 								else
 								{
 									fs.doFilter(BufPtrs[fs.InBuf],
-										BufPtrs[fs.OutBuf], DstIncr);
+										BufPtrs[fs.OutBuf], Dsucharcr);
 								}
 							}
 							else
@@ -6568,12 +6584,12 @@ namespace avir {
 								if (Vars->IsResize2)
 								{
 									fs.doResize2(BufPtrs[fs.InBuf],
-										BufPtrs[fs.OutBuf], DstIncr, TmpFltBuf);
+										BufPtrs[fs.OutBuf], Dsucharcr, TmpFltBuf);
 								}
 								else
 								{
 									fs.doResize(BufPtrs[fs.InBuf],
-										BufPtrs[fs.OutBuf], DstIncr, TmpFltBuf);
+										BufPtrs[fs.OutBuf], Dsucharcr, TmpFltBuf);
 								}
 							}
 						}
