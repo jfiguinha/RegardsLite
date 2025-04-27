@@ -18,7 +18,6 @@
 #include <opencv2/xphoto/inpainting.hpp>
 #include "opencv2/fuzzy.hpp"
 #include <avir.h>
-#include <avir_float4_sse.h>
 #include "InterpolationFilters.h"
 using namespace Regards::OpenCV;
 using namespace Regards::OpenGL;

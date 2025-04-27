@@ -10,7 +10,7 @@
 #include <opencv2/core/ocl.hpp>
 #include <LibResource.h>
 #include <avir.h>
-#include <avir_float4_sse.h>
+
 using namespace Regards::OpenCL;
 using namespace cv;
 

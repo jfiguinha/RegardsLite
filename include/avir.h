@@ -746,6 +746,8 @@ namespace avir {
 		}
 	};
 
+	static CBuffer< char > UsedFracMap;
+	static CBuffer< float, size_t > FltBuf;
 	/**
 	 * @brief Array of structured objects.
 	 *
@@ -1560,11 +1562,11 @@ namespace avir {
 	 * This class also supports multiplication of each fractional delay filter by
 	 * an external filter (usually a low-pass filter).
 	 *
-	 * @tparam fptype Specifies storage type of the filter coefficients bank. The
+	 * @tparam float Specifies storage type of the filter coefficients bank. The
 	 * filters are initially calculated using the "double" precision.
 	 */
 
-	template< typename fptype >
+	
 	class CDSPFracFilterBankLin
 	{
 		AVIR_NOCTOR(CDSPFracFilterBankLin)
@@ -1731,14 +1733,14 @@ namespace avir {
 		 * elements.
 		 */
 
-		const fptype* getFilter(const int i)
+		const float* getFilter(const int i)
 		{
 			if (!IsSrcTableBuilt)
 			{
 				buildSrcTable();
 			}
 
-			fptype* const Res = &Table[i * FilterSize];
+			float* const Res = &Table[i * FilterSize];
 
 			if ((TableFillFlags[i] & 2) == 0)
 			{
@@ -1748,8 +1750,8 @@ namespace avir {
 				if (Order > 0)
 				{
 					createFilter(i + 1);
-					const fptype* const Res2 = Res + FilterSize;
-					fptype* const op = Res + FilterLen;
+					const float* const Res2 = Res + FilterSize;
+					float* const op = Res + FilterLen;
 					int j;
 
 					// Create higher-order interpolation coefficients (linear
@@ -1778,7 +1780,7 @@ namespace avir {
 		 * elements.
 		 */
 
-		const fptype* getFilterConst(const int i) const
+		const float* getFilterConst(const int i) const
 		{
 			return(&Table[i * FilterSize]);
 		}
@@ -1867,7 +1869,7 @@ namespace avir {
 		bool IsInitRequired; ///< `true`, if `SrcTable` filter table
 		///< initialization is required. This value is available only after
 		///< the call to the init() function.
-		CBuffer< fptype > Table; ///< Interpolation table, size equals to
+		CBuffer< float > Table; ///< Interpolation table, size equals to
 		///< `ReqFracCount * FilterLen * ElementSize`.
 		CBuffer< char > TableFillFlags; ///< Contains `ReqFracCount + 1` elements.
 		///< Bit 0 of every element is 1, if `Table` already contains the
@@ -1956,7 +1958,7 @@ namespace avir {
 			}
 
 			const int ResOffs = FilterLen / 2 - ResLatency;
-			fptype* op = &Table[n * FilterSize];
+			float* op = &Table[n * FilterSize];
 			int i;
 
 			for (i = 0; i < ResOffs; i++)
@@ -1976,7 +1978,7 @@ namespace avir {
 			{
 				for (i = 0; i < ResLen; i++)
 				{
-					op[i] = (fptype)srcflt[i];
+					op[i] = (float)srcflt[i];
 				}
 
 				return;
@@ -2014,7 +2016,7 @@ namespace avir {
 					s += extfltb[i] * srcfltb[i];
 				}
 
-				op[j] = (fptype)s;
+				op[j] = (float)s;
 			}
 		}
 	};
@@ -2393,10 +2395,10 @@ namespace avir {
 	class CImageResizerVarsBase
 	{
 	public:
-		int ElCount; ///< The number of `fptype` elements used to store 1 pixel.
+		int ElCount; ///< The number of `float` elements used to store 1 pixel.
 		int ElCountIO; ///< The number of source and desucharation image's elements
 		///< used to store 1 pixel.
-		int fppack; ///< The number of atomic types stored in a single `fptype`
+		int fppack; ///< The number of atomic types stored in a single `float`
 		///< element.
 		int fpalign; ///< Suggested alignment size in bytes. This is not a
 		///< required alignment, because image resizing algorithm cannot be
@@ -2407,7 +2409,7 @@ namespace avir {
 		///< and scanlines to have a length which is a multiple of this value,
 		///< for more efficient SIMD implementation.
 		int packmode; ///< 0, if interleaved packing; 1, if de-interleaved.
-		int BufLen[2]; ///< Intermediate buffers' lengths in `fptype` elements.
+		int BufLen[2]; ///< Intermediate buffers' lengths in `float` elements.
 		int BufOffs[2]; ///< Offsets into the intermediate buffers, used to
 		///< provide prefix elements required during processing so that no
 		///< "out of range" access happens. This offset is a multiple of
@@ -2480,12 +2482,12 @@ namespace avir {
 	 * are used to perform the actual filtering in interleaved or de-interleaved
 	 * mode.
 	 *
-	 * @tparam fptype Floaucharg point type to use for storing pixel elements. SIMD
+	 * @tparam float Floaucharg point type to use for storing pixel elements. SIMD
 	 * types can be used: in this case each element may hold a whole pixel.
-	 * @tparam fptypeatom The atomic type the `fptype` consists of.
+	 * @tparam float The atomic type the `float` consists of.
 	 */
 
-	template< typename fptype, typename fptypeatom >
+
 	class CImageResizerFilterStep
 	{
 		AVIR_NOCTOR(CImageResizerFilterStep)
@@ -2497,7 +2499,7 @@ namespace avir {
 		int ResampleFactor; ///< Resample factor (greater or equal to 1). If 0,
 		///< this is a resizing step. This value should be greater than 1, if
 		///< `IsUpsample` equals `true`.
-		CBuffer< fptype > Flt; ///< Filter to use at this step.
+		CBuffer< float > Flt; ///< Filter to use at this step.
 		CFltBuffer FltOrig; ///< Originally-designed filter. This buffer may not
 		///< be assigned. Assigned by filters that precede the resizing step
 		///< if such filter is planned to be embedded into the interpolation
@@ -2534,10 +2536,10 @@ namespace avir {
 		int OutElIncr; ///< Pixel element increment within the output buffer, used
 		///< during de-interleaved processing. Equals to `InBufElIncr` of the
 		///< next step.
-		CBuffer< fptype > PrefixDC; ///< DC component fluctuations added at the
+		CBuffer< float > PrefixDC; ///< DC component fluctuations added at the
 		///< start of the resulucharg scanline, used when `IsUpsample` equals
 		///< `true`.
-		CBuffer< fptype > SuffixDC; ///< DC component fluctuations added at the
+		CBuffer< float > SuffixDC; ///< DC component fluctuations added at the
 		///< end of the resulucharg scanline, used when `IsUpsample` equals
 		///< `true`.
 		int EdgePixelCount; ///< The number of edge pixels added. Affects the
@@ -2561,8 +2563,8 @@ namespace avir {
 		{
 			int SrcPosInt; ///< Source scanline position.
 			int fti; ///< Fractional delay filter index.
-			const fptype* ftp; ///< Fractional delay filter pointer.
-			fptypeatom x; ///< Interpolation coefficient between delay filters.
+			const float* ftp; ///< Fractional delay filter pointer.
+			float x; ///< Interpolation coefficient between delay filters.
 			int SrcOffs; ///< Source scanline offset.
 			int fl; ///< Filter length to use, applies to doResize2() only.
 		};
@@ -2636,9 +2638,9 @@ namespace avir {
 
 		CRPosBuf* RPosBuf; ///< Resizing positions buffer. Used when
 		///< `ResampleFactor` equals 0 (resizing step).
-		const CDSPFracFilterBankLin< fptype >* FltBank; ///< Filter bank in use by
+		const CDSPFracFilterBankLin* FltBank; ///< Filter bank in use by
 		///< *this* resizing step, may be equal to `FltBankDyn`.
-		CDSPFracFilterBankLin< fptype >* FltBankDyn; ///< Dynamically-allocated
+		CDSPFracFilterBankLin * FltBankDyn; ///< Dynamically-allocated
 		///< filter bank in use by *this* resizing step. Equals `nullptr`, if
 		///< a static `FltBank` filter bank is in use.
 
@@ -2653,38 +2655,37 @@ namespace avir {
 	 * This class implements scanline filtering functions in interleaved mode.
 	 * This means that each pixel is processed independently, not in groups.
 	 *
-	 * @tparam fptype Floaucharg point type to use for storing pixel elements. SIMD
+	 * @tparam float Floaucharg point type to use for storing pixel elements. SIMD
 	 * types can be used: in this case each element may hold a whole pixel.
-	 * @tparam fptypeatom The atomic type the `fptype` consists of.
+	 * @tparam float The atomic type the `float` consists of.
 	 */
 
-	template< typename fptype, typename fptypeatom >
 	class CImageResizerFilterStepINL :
-		public CImageResizerFilterStep< fptype, fptypeatom >
+		public CImageResizerFilterStep
 	{
 	public:
-		using CImageResizerFilterStep< fptype, fptypeatom > ::IsUpsample;
-		using CImageResizerFilterStep< fptype, fptypeatom > ::ResampleFactor;
-		using CImageResizerFilterStep< fptype, fptypeatom > ::Flt;
-		using CImageResizerFilterStep< fptype, fptypeatom > ::FltOrig;
-		using CImageResizerFilterStep< fptype, fptypeatom > ::FltLatency;
-		using CImageResizerFilterStep< fptype, fptypeatom > ::Vars;
-		using CImageResizerFilterStep< fptype, fptypeatom > ::InLen;
-		using CImageResizerFilterStep< fptype, fptypeatom > ::InPrefix;
-		using CImageResizerFilterStep< fptype, fptypeatom > ::InSuffix;
-		using CImageResizerFilterStep< fptype, fptypeatom > ::OutLen;
-		using CImageResizerFilterStep< fptype, fptypeatom > ::OutPrefix;
-		using CImageResizerFilterStep< fptype, fptypeatom > ::OutSuffix;
-		using CImageResizerFilterStep< fptype, fptypeatom > ::PrefixDC;
-		using CImageResizerFilterStep< fptype, fptypeatom > ::SuffixDC;
-		using CImageResizerFilterStep< fptype, fptypeatom > ::RPosBuf;
-		using CImageResizerFilterStep< fptype, fptypeatom > ::FltBank;
-		using CImageResizerFilterStep< fptype, fptypeatom > ::EdgePixelCount;
+		using CImageResizerFilterStep::IsUpsample;
+		using CImageResizerFilterStep::ResampleFactor;
+		using CImageResizerFilterStep::Flt;
+		using CImageResizerFilterStep::FltOrig;
+		using CImageResizerFilterStep::FltLatency;
+		using CImageResizerFilterStep::Vars;
+		using CImageResizerFilterStep::InLen;
+		using CImageResizerFilterStep::InPrefix;
+		using CImageResizerFilterStep::InSuffix;
+		using CImageResizerFilterStep::OutLen;
+		using CImageResizerFilterStep::OutPrefix;
+		using CImageResizerFilterStep::OutSuffix;
+		using CImageResizerFilterStep::PrefixDC;
+		using CImageResizerFilterStep::SuffixDC;
+		using CImageResizerFilterStep::RPosBuf;
+		using CImageResizerFilterStep::FltBank;
+		using CImageResizerFilterStep::EdgePixelCount;
 
 		/**
 		 * @brief Performs "packing" of a scanline, and type conversion.
 		 *
-		 * Scanline, depending on the `fptype` can be potentially stored as a
+		 * Scanline, depending on the `float` can be potentially stored as a
 		 * packed SIMD values having a certain atomic type. If required, the sRGB
 		 * gamma correction is applied.
 		 *
@@ -2694,11 +2695,11 @@ namespace avir {
 		 * @tparam uchar Input values' type.
 		 */
 
-		void packScanline(const uchar* ip, fptype* const op0, const int l0) const
+		void packScanline(const uchar* ip, float* const op0, const int l0) const
 		{
 			const int ElCount = Vars->ElCount;
 			const int ElCountIO = Vars->ElCountIO;
-			fptype* op = op0;
+			float* op = op0;
 			int l = l0;
 
 			if (!Vars->UseSRGBGamma)
@@ -2707,8 +2708,8 @@ namespace avir {
 				{
 					while (l > 0)
 					{
-						fptypeatom* v = (fptypeatom*)op;
-						v[0] = (fptypeatom)ip[0];
+						float* v = (float*)op;
+						v[0] = (float)ip[0];
 						op += ElCount;
 						ip++;
 						l--;
@@ -2719,11 +2720,11 @@ namespace avir {
 					{
 						while (l > 0)
 						{
-							fptypeatom* v = (fptypeatom*)op;
-							v[0] = (fptypeatom)ip[0];
-							v[1] = (fptypeatom)ip[1];
-							v[2] = (fptypeatom)ip[2];
-							v[3] = (fptypeatom)ip[3];
+							float* v = (float*)op;
+							v[0] = (float)ip[0];
+							v[1] = (float)ip[1];
+							v[2] = (float)ip[2];
+							v[3] = (float)ip[3];
 							op += ElCount;
 							ip += 4;
 							l--;
@@ -2734,10 +2735,10 @@ namespace avir {
 						{
 							while (l > 0)
 							{
-								fptypeatom* v = (fptypeatom*)op;
-								v[0] = (fptypeatom)ip[0];
-								v[1] = (fptypeatom)ip[1];
-								v[2] = (fptypeatom)ip[2];
+								float* v = (float*)op;
+								v[0] = (float)ip[0];
+								v[1] = (float)ip[1];
+								v[2] = (float)ip[2];
 								op += ElCount;
 								ip += 3;
 								l--;
@@ -2748,9 +2749,9 @@ namespace avir {
 							{
 								while (l > 0)
 								{
-									fptypeatom* v = (fptypeatom*)op;
-									v[0] = (fptypeatom)ip[0];
-									v[1] = (fptypeatom)ip[1];
+									float* v = (float*)op;
+									v[0] = (float)ip[0];
+									v[1] = (float)ip[1];
 									op += ElCount;
 									ip += 2;
 									l--;
@@ -2759,13 +2760,13 @@ namespace avir {
 			}
 			else
 			{
-				const fptypeatom gm = (fptypeatom)Vars->InGammaMult;
+				const float gm = (float)Vars->InGammaMult;
 
 				if (ElCountIO == 1)
 				{
 					while (l > 0)
 					{
-						fptypeatom* v = (fptypeatom*)op;
+						float* v = (float*)op;
 						v[0] = convertSRGB2Lin(ip[0], gm);
 						op += ElCount;
 						ip++;
@@ -2779,8 +2780,8 @@ namespace avir {
 						{
 							while (l > 0)
 							{
-								fptypeatom* v = (fptypeatom*)op;
-								v[0] = (fptypeatom)ip[0] * gm;
+								float* v = (float*)op;
+								v[0] = (float)ip[0] * gm;
 								v[1] = convertSRGB2Lin(ip[1], gm);
 								v[2] = convertSRGB2Lin(ip[2], gm);
 								v[3] = convertSRGB2Lin(ip[3], gm);
@@ -2794,11 +2795,11 @@ namespace avir {
 							{
 								while (l > 0)
 								{
-									fptypeatom* v = (fptypeatom*)op;
+									float* v = (float*)op;
 									v[0] = convertSRGB2Lin(ip[0], gm);
 									v[1] = convertSRGB2Lin(ip[1], gm);
 									v[2] = convertSRGB2Lin(ip[2], gm);
-									v[3] = (fptypeatom)ip[3] * gm;
+									v[3] = (float)ip[3] * gm;
 									op += ElCount;
 									ip += 4;
 									l--;
@@ -2808,7 +2809,7 @@ namespace avir {
 							{
 								while (l > 0)
 								{
-									fptypeatom* v = (fptypeatom*)op;
+									float* v = (float*)op;
 									v[0] = convertSRGB2Lin(ip[0], gm);
 									v[1] = convertSRGB2Lin(ip[1], gm);
 									v[2] = convertSRGB2Lin(ip[2], gm);
@@ -2824,7 +2825,7 @@ namespace avir {
 						{
 							while (l > 0)
 							{
-								fptypeatom* v = (fptypeatom*)op;
+								float* v = (float*)op;
 								v[0] = convertSRGB2Lin(ip[0], gm);
 								v[1] = convertSRGB2Lin(ip[1], gm);
 								v[2] = convertSRGB2Lin(ip[2], gm);
@@ -2838,7 +2839,7 @@ namespace avir {
 							{
 								while (l > 0)
 								{
-									fptypeatom* v = (fptypeatom*)op;
+									float* v = (float*)op;
 									v[0] = convertSRGB2Lin(ip[0], gm);
 									v[1] = convertSRGB2Lin(ip[1], gm);
 									op += ElCount;
@@ -2849,15 +2850,15 @@ namespace avir {
 			}
 
 			const int ZeroCount = ElCount * Vars->fppack - ElCountIO;
-			op = (fptype*)((fptypeatom*)op0 + ElCountIO);
+			op = (float*)((float*)op0 + ElCountIO);
 			l = l0;
 
 			if (ZeroCount == 1)
 			{
 				while (l > 0)
 				{
-					fptypeatom* v = (fptypeatom*)op;
-					v[0] = (fptypeatom)0;
+					float* v = (float*)op;
+					v[0] = (float)0;
 					op += ElCount;
 					l--;
 				}
@@ -2867,9 +2868,9 @@ namespace avir {
 				{
 					while (l > 0)
 					{
-						fptypeatom* v = (fptypeatom*)op;
-						v[0] = (fptypeatom)0;
-						v[1] = (fptypeatom)0;
+						float* v = (float*)op;
+						v[0] = (float)0;
+						v[1] = (float)0;
 						op += ElCount;
 						l--;
 					}
@@ -2879,10 +2880,10 @@ namespace avir {
 					{
 						while (l > 0)
 						{
-							fptypeatom* v = (fptypeatom*)op;
-							v[0] = (fptypeatom)0;
-							v[1] = (fptypeatom)0;
-							v[2] = (fptypeatom)0;
+							float* v = (float*)op;
+							v[0] = (float)0;
+							v[1] = (float)0;
+							v[2] = (float)0;
 							op += ElCount;
 							l--;
 						}
@@ -2906,15 +2907,15 @@ namespace avir {
 		  * @param l The number of pixels to de-linearize.
 		  * @param Vars0 Image resizing-related variables.
 		  */
-		static void applySRGBGamma(fptype* p, int l, const CImageResizerVars& Vars0)
+		static void applySRGBGamma(float* p, int l, const CImageResizerVars& Vars0)
 		{
 			const int ElCount = Vars0.ElCount;
 			const int ElCountIO = Vars0.ElCountIO;
-			const fptypeatom gm = (fptypeatom)Vars0.OutGammaMult;
+			const float gm = (float)Vars0.OutGammaMult;
 
 			tbb::parallel_for(0, l, [&](int i) {
-				fptype* pixel = p + i * ElCount;
-				fptypeatom* v = (fptypeatom*)pixel;
+				float* pixel = p + i * ElCount;
+				float* v = (float*)pixel;
 
 				if (ElCountIO == 1)
 				{
@@ -2974,7 +2975,7 @@ namespace avir {
 		 * @param SrcIncr Input buffer increment to the next vertical pixel.
 		 */
 
-		void convertVtoH(const fptype* ip, fptype* op, const int SrcLen,
+		void convertVtoH(const float* ip, float* op, const int SrcLen,
 			const int SrcIncr) const
 		{
 			const int ElCount = Vars->ElCount;
@@ -3032,7 +3033,7 @@ namespace avir {
 		 *
 		 * Truncation is used when floaucharg point is converted to integer.
 		 *
-		 * Scanline, depending on the `fptype` can be potentially stored as a
+		 * Scanline, depending on the `float` can be potentially stored as a
 		 * packed SIMD values having a certain atomic type. The unpacking function
 		 * assumes that scanline is stored in the style produced by the
 		 * packScanline() function.
@@ -3044,7 +3045,7 @@ namespace avir {
 		 * @tparam uchar Output value's type.
 		 */
 
-		static void unpackScanline(const fptype* ip, uchar* op, int l,
+		static void unpackScanline(const float* ip, uchar* op, int l,
 			const CImageResizerVars& Vars0)
 		{
 			const int ElCount = Vars0.ElCount;
@@ -3054,7 +3055,7 @@ namespace avir {
 			{
 				while (l > 0)
 				{
-					const fptypeatom* v = (const fptypeatom*)ip;
+					const float* v = (const float*)ip;
 					op[0] = (uchar)v[0];
 					ip += ElCount;
 					op++;
@@ -3066,7 +3067,7 @@ namespace avir {
 				{
 					while (l > 0)
 					{
-						const fptypeatom* v = (const fptypeatom*)ip;
+						const float* v = (const float*)ip;
 						op[0] = (uchar)v[0];
 						op[1] = (uchar)v[1];
 						op[2] = (uchar)v[2];
@@ -3081,7 +3082,7 @@ namespace avir {
 					{
 						while (l > 0)
 						{
-							const fptypeatom* v = (const fptypeatom*)ip;
+							const float* v = (const float*)ip;
 							op[0] = (uchar)v[0];
 							op[1] = (uchar)v[1];
 							op[2] = (uchar)v[2];
@@ -3095,7 +3096,7 @@ namespace avir {
 						{
 							while (l > 0)
 							{
-								const fptypeatom* v = (const fptypeatom*)ip;
+								const float* v = (const float*)ip;
 								op[0] = (uchar)v[0];
 								op[1] = (uchar)v[1];
 								ip += ElCount;
@@ -3115,7 +3116,7 @@ namespace avir {
 		 * @param Src Source buffer.
 		 */
 
-		void prepareInBuf(fptype* Src) const
+		void prepareInBuf(float* Src) const
 		{
 			if (IsUpsample || InPrefix + InSuffix == 0)
 			{
@@ -3146,14 +3147,14 @@ namespace avir {
 		  * @param Dst Desucharation scanline buffer.
 		  */
 
-		void doUpsample(const fptype* const Src, fptype* const Dst) const
+		void doUpsample(const float* const Src, float* const Dst) const
 		{
 			const int ElCount = Vars->ElCount;
-			fptype* op0 = &Dst[-OutPrefix * ElCount];
+			float* op0 = &Dst[-OutPrefix * ElCount];
 			memset(op0, 0, (size_t)(OutPrefix + OutLen + OutSuffix) *
-				(size_t)ElCount * sizeof(fptype));
+				(size_t)ElCount * sizeof(float));
 
-			const fptype* ip = Src;
+			const float* ip = Src;
 			const int opstep = ElCount * ResampleFactor;
 			int l;
 
@@ -3301,9 +3302,9 @@ namespace avir {
 				return;
 			}
 
-			const fptype* const f = Flt;
+			const float* const f = Flt;
 			const int flen = Flt.getCapacity();
-			fptype* op;
+			float* op;
 			int i;
 
 			if (ElCount == 1)
@@ -3530,7 +3531,7 @@ namespace avir {
 						}
 
 			op = op0;
-			const fptype* dc = SuffixDC;
+			const float* dc = SuffixDC;
 			l = SuffixDC.getCapacity();
 
 			if (ElCount == 1)
@@ -3646,16 +3647,16 @@ namespace avir {
 		 * horizontal or vertical scanline stepping.
 		 */
 
-		void doFilter(const fptype* const Src, fptype* Dst,
+		void doFilter(const float* const Src, float* Dst,
 			const int Dsucharcr) const
 		{
 			const int ElCount = Vars->ElCount;
-			const fptype* const f = &Flt[FltLatency];
+			const float* const f = &Flt[FltLatency];
 			const int flen = FltLatency + 1;
 			const int ipstep = ElCount * ResampleFactor;
-			const fptype* ip = Src - EdgePixelCount * ipstep;
-			const fptype* ip1;
-			const fptype* ip2;
+			const float* ip = Src - EdgePixelCount * ipstep;
+			const float* ip1;
+			const float* ip2;
 			int l = OutLen;
 			int i;
 
@@ -3663,7 +3664,7 @@ namespace avir {
 			{
 				while (l > 0)
 				{
-					fptype s = f[0] * ip[0];
+					float s = f[0] * ip[0];
 					ip1 = ip;
 					ip2 = ip;
 
@@ -3685,10 +3686,10 @@ namespace avir {
 				{
 					while (l > 0)
 					{
-						fptype s1 = f[0] * ip[0];
-						fptype s2 = f[0] * ip[1];
-						fptype s3 = f[0] * ip[2];
-						fptype s4 = f[0] * ip[3];
+						float s1 = f[0] * ip[0];
+						float s2 = f[0] * ip[1];
+						float s3 = f[0] * ip[2];
+						float s4 = f[0] * ip[3];
 						ip1 = ip;
 						ip2 = ip;
 
@@ -3716,9 +3717,9 @@ namespace avir {
 					{
 						while (l > 0)
 						{
-							fptype s1 = f[0] * ip[0];
-							fptype s2 = f[0] * ip[1];
-							fptype s3 = f[0] * ip[2];
+							float s1 = f[0] * ip[0];
+							float s2 = f[0] * ip[1];
+							float s3 = f[0] * ip[2];
 							ip1 = ip;
 							ip2 = ip;
 
@@ -3744,8 +3745,8 @@ namespace avir {
 						{
 							while (l > 0)
 							{
-								fptype s1 = f[0] * ip[0];
-								fptype s2 = f[0] * ip[1];
+								float s1 = f[0] * ip[0];
+								float s2 = f[0] * ip[1];
 								ip1 = ip;
 								ip2 = ip;
 
@@ -3783,31 +3784,31 @@ namespace avir {
 		 * horizontal or vertical scanline stepping.
 		 */
 
-		void doResize(const fptype* SrcLine, fptype* DstLine,
-			const int DstLineIncr, fptype* const) const
+		void doResize(const float* SrcLine, float* DstLine,
+			const int DstLineIncr, float* const) const
 		{
 			const int IntFltLen = FltBank->getFilterLen();
 			const int ElCount = Vars->ElCount;
-			const typename CImageResizerFilterStep< fptype, fptypeatom > ::
+			const typename CImageResizerFilterStep::
 				CResizePos* rpos = &(*RPosBuf)[0];
 
-			const typename CImageResizerFilterStep< fptype, fptypeatom > ::
+			const typename CImageResizerFilterStep::
 				CResizePos* const rpose = rpos + OutLen;
 
 #define AVIR_RESIZE_PART1 \
 			while( rpos < rpose ) \
 			{ \
-				const fptype x = (fptype) rpos -> x; \
-				const fptype* const ftp = rpos -> ftp; \
-				const fptype* const ftp2 = ftp + IntFltLen; \
-				const fptype* Src = SrcLine + rpos -> SrcOffs; \
+				const float x = (float) rpos -> x; \
+				const float* const ftp = rpos -> ftp; \
+				const float* const ftp2 = ftp + IntFltLen; \
+				const float* Src = SrcLine + rpos -> SrcOffs; \
 				int i;
 
 #define AVIR_RESIZE_PART1nx \
 			while( rpos < rpose ) \
 			{ \
-				const fptype* const ftp = rpos -> ftp; \
-				const fptype* Src = SrcLine + rpos -> SrcOffs; \
+				const float* const ftp = rpos -> ftp; \
+				const float* Src = SrcLine + rpos -> SrcOffs; \
 				int i;
 
 #define AVIR_RESIZE_PART2 \
@@ -3821,7 +3822,7 @@ namespace avir {
 				{
 					AVIR_RESIZE_PART1
 
-						fptype sum0 = 0;
+						float sum0 = 0;
 
 					for (i = 0; i < IntFltLen; i++)
 					{
@@ -3837,14 +3838,14 @@ namespace avir {
 					{
 						AVIR_RESIZE_PART1
 
-							fptype sum0 = 0;
-						fptype sum1 = 0;
-						fptype sum2 = 0;
-						fptype sum3 = 0;
+							float sum0 = 0;
+						float sum1 = 0;
+						float sum2 = 0;
+						float sum3 = 0;
 
 						for (i = 0; i < IntFltLen; i++)
 						{
-							const fptype xx = ftp[i] + ftp2[i] * x;
+							const float xx = ftp[i] + ftp2[i] * x;
 							sum0 += xx * Src[0];
 							sum1 += xx * Src[1];
 							sum2 += xx * Src[2];
@@ -3864,13 +3865,13 @@ namespace avir {
 						{
 							AVIR_RESIZE_PART1
 
-								fptype sum0 = 0;
-							fptype sum1 = 0;
-							fptype sum2 = 0;
+								float sum0 = 0;
+							float sum1 = 0;
+							float sum2 = 0;
 
 							for (i = 0; i < IntFltLen; i++)
 							{
-								const fptype xx = ftp[i] + ftp2[i] * x;
+								const float xx = ftp[i] + ftp2[i] * x;
 								sum0 += xx * Src[0];
 								sum1 += xx * Src[1];
 								sum2 += xx * Src[2];
@@ -3888,12 +3889,12 @@ namespace avir {
 							{
 								AVIR_RESIZE_PART1
 
-									fptype sum0 = 0;
-								fptype sum1 = 0;
+									float sum0 = 0;
+								float sum1 = 0;
 
 								for (i = 0; i < IntFltLen; i++)
 								{
-									const fptype xx = ftp[i] + ftp2[i] * x;
+									const float xx = ftp[i] + ftp2[i] * x;
 									sum0 += xx * Src[0];
 									sum1 += xx * Src[1];
 									Src += 2;
@@ -3911,7 +3912,7 @@ namespace avir {
 				{
 					AVIR_RESIZE_PART1nx
 
-						fptype sum0 = 0;
+						float sum0 = 0;
 
 					for (i = 0; i < IntFltLen; i++)
 					{
@@ -3927,14 +3928,14 @@ namespace avir {
 					{
 						AVIR_RESIZE_PART1nx
 
-							fptype sum0 = 0;
-						fptype sum1 = 0;
-						fptype sum2 = 0;
-						fptype sum3 = 0;
+							float sum0 = 0;
+						float sum1 = 0;
+						float sum2 = 0;
+						float sum3 = 0;
 
 						for (i = 0; i < IntFltLen; i++)
 						{
-							const fptype xx = ftp[i];
+							const float xx = ftp[i];
 							sum0 += xx * Src[0];
 							sum1 += xx * Src[1];
 							sum2 += xx * Src[2];
@@ -3954,13 +3955,13 @@ namespace avir {
 						{
 							AVIR_RESIZE_PART1nx
 
-								fptype sum0 = 0;
-							fptype sum1 = 0;
-							fptype sum2 = 0;
+								float sum0 = 0;
+							float sum1 = 0;
+							float sum2 = 0;
 
 							for (i = 0; i < IntFltLen; i++)
 							{
-								const fptype xx = ftp[i];
+								const float xx = ftp[i];
 								sum0 += xx * Src[0];
 								sum1 += xx * Src[1];
 								sum2 += xx * Src[2];
@@ -3978,12 +3979,12 @@ namespace avir {
 							{
 								AVIR_RESIZE_PART1nx
 
-									fptype sum0 = 0;
-								fptype sum1 = 0;
+									float sum0 = 0;
+								float sum1 = 0;
 
 								for (i = 0; i < IntFltLen; i++)
 								{
-									const fptype xx = ftp[i];
+									const float xx = ftp[i];
 									sum0 += xx * Src[0];
 									sum1 += xx * Src[1];
 									Src += 2;
@@ -4040,32 +4041,32 @@ namespace avir {
 			   * horizontal or vertical scanline stepping.
 			   */
 
-			void doResize2(const fptype* SrcLine, fptype* DstLine,
-				const int DstLineIncr, fptype* const) const
+			void doResize2(const float* SrcLine, float* DstLine,
+				const int DstLineIncr, float* const) const
 			{
 				const int IntFltLen0 = FltBank->getFilterLen();
 				const int ElCount = Vars->ElCount;
-				const typename CImageResizerFilterStep< fptype, fptypeatom > ::
+				const typename CImageResizerFilterStep::
 					CResizePos* rpos = &(*RPosBuf)[0];
 
-				const typename CImageResizerFilterStep< fptype, fptypeatom > ::
+				const typename CImageResizerFilterStep::
 					CResizePos* const rpose = rpos + OutLen;
 
 #define AVIR_RESIZE_PART1 \
 			while( rpos < rpose ) \
 			{ \
-				const fptype x = (fptype) rpos -> x; \
-				const fptype* const ftp = rpos -> ftp; \
-				const fptype* const ftp2 = ftp + IntFltLen0; \
-				const fptype* Src = SrcLine + rpos -> SrcOffs; \
+				const float x = (float) rpos -> x; \
+				const float* const ftp = rpos -> ftp; \
+				const float* const ftp2 = ftp + IntFltLen0; \
+				const float* Src = SrcLine + rpos -> SrcOffs; \
 				const int IntFltLen = rpos -> fl; \
 				int i;
 
 #define AVIR_RESIZE_PART1nx \
 			while( rpos < rpose ) \
 			{ \
-				const fptype* const ftp = rpos -> ftp; \
-				const fptype* Src = SrcLine + rpos -> SrcOffs; \
+				const float* const ftp = rpos -> ftp; \
+				const float* Src = SrcLine + rpos -> SrcOffs; \
 				const int IntFltLen = rpos -> fl; \
 				int i;
 
@@ -4080,7 +4081,7 @@ namespace avir {
 					{
 						AVIR_RESIZE_PART1
 
-							fptype sum0 = 0;
+							float sum0 = 0;
 
 						for (i = 0; i < IntFltLen; i += 2)
 						{
@@ -4096,14 +4097,14 @@ namespace avir {
 						{
 							AVIR_RESIZE_PART1
 
-								fptype sum0 = 0;
-							fptype sum1 = 0;
-							fptype sum2 = 0;
-							fptype sum3 = 0;
+								float sum0 = 0;
+							float sum1 = 0;
+							float sum2 = 0;
+							float sum3 = 0;
 
 							for (i = 0; i < IntFltLen; i += 2)
 							{
-								const fptype xx = ftp[i] + ftp2[i] * x;
+								const float xx = ftp[i] + ftp2[i] * x;
 								sum0 += xx * Src[0];
 								sum1 += xx * Src[1];
 								sum2 += xx * Src[2];
@@ -4123,13 +4124,13 @@ namespace avir {
 							{
 								AVIR_RESIZE_PART1
 
-									fptype sum0 = 0;
-								fptype sum1 = 0;
-								fptype sum2 = 0;
+									float sum0 = 0;
+								float sum1 = 0;
+								float sum2 = 0;
 
 								for (i = 0; i < IntFltLen; i += 2)
 								{
-									const fptype xx = ftp[i] + ftp2[i] * x;
+									const float xx = ftp[i] + ftp2[i] * x;
 									sum0 += xx * Src[0];
 									sum1 += xx * Src[1];
 									sum2 += xx * Src[2];
@@ -4147,12 +4148,12 @@ namespace avir {
 								{
 									AVIR_RESIZE_PART1
 
-										fptype sum0 = 0;
-									fptype sum1 = 0;
+										float sum0 = 0;
+									float sum1 = 0;
 
 									for (i = 0; i < IntFltLen; i += 2)
 									{
-										const fptype xx = ftp[i] + ftp2[i] * x;
+										const float xx = ftp[i] + ftp2[i] * x;
 										sum0 += xx * Src[0];
 										sum1 += xx * Src[1];
 										Src += 2 * 2;
@@ -4170,7 +4171,7 @@ namespace avir {
 					{
 						AVIR_RESIZE_PART1nx
 
-						fptype sum0 = 0;
+						float sum0 = 0;
 
 						for (i = 0; i < IntFltLen; i += 2)
 						{
@@ -4186,14 +4187,14 @@ namespace avir {
 						{
 							AVIR_RESIZE_PART1nx
 
-								fptype sum0 = 0;
-							fptype sum1 = 0;
-							fptype sum2 = 0;
-							fptype sum3 = 0;
+								float sum0 = 0;
+							float sum1 = 0;
+							float sum2 = 0;
+							float sum3 = 0;
 
 							for (i = 0; i < IntFltLen; i += 2)
 							{
-								const fptype xx = ftp[i];
+								const float xx = ftp[i];
 								sum0 += xx * Src[0];
 								sum1 += xx * Src[1];
 								sum2 += xx * Src[2];
@@ -4213,13 +4214,13 @@ namespace avir {
 							{
 								AVIR_RESIZE_PART1nx
 
-									fptype sum0 = 0;
-								fptype sum1 = 0;
-								fptype sum2 = 0;
+									float sum0 = 0;
+								float sum1 = 0;
+								float sum2 = 0;
 
 								for (i = 0; i < IntFltLen; i += 2)
 								{
-									const fptype xx = ftp[i];
+									const float xx = ftp[i];
 									sum0 += xx * Src[0];
 									sum1 += xx * Src[1];
 									sum2 += xx * Src[2];
@@ -4237,12 +4238,12 @@ namespace avir {
 								{
 									AVIR_RESIZE_PART1nx
 
-										fptype sum0 = 0;
-									fptype sum1 = 0;
+										float sum0 = 0;
+									float sum1 = 0;
 
 									for (i = 0; i < IntFltLen; i += 2)
 									{
-										const fptype xx = ftp[i];
+										const float xx = ftp[i];
 										sum0 += xx * Src[0];
 										sum1 += xx * Src[1];
 										Src += 2 * 2;
@@ -4273,11 +4274,11 @@ namespace avir {
 			 * ditherer implements a simple rounding without dithering: it can be used for
 			 * an efficient dithering method which can be multi-threaded.
 			 *
-			 * @tparam fptype Floaucharg point type to use for storing pixel data. SIMD
+			 * @tparam float Floaucharg point type to use for storing pixel data. SIMD
 			 * types can be used.
 			 */
 
-			template< typename fptype >
+			
 			class CImageResizerDithererDefINL
 			{
 			public:
@@ -4318,10 +4319,10 @@ namespace avir {
 				 * @param[in,out] ResScanline The buffer containing the final scanline.
 				 */
 
-				void dither(fptype* const ResScanline) const
+				void dither(float* const ResScanline) const
 				{
-					const fptype c0 = 0;
-					const fptype PkOut = (fptype)PkOut0;
+					const float c0 = 0;
+					const float PkOut = (float)PkOut0;
 					int j;
 
 					if (TrMul0 == 1.0)
@@ -4336,12 +4337,12 @@ namespace avir {
 					}
 					else
 					{
-						const fptype TrMul = (fptype)TrMul0;
-						const fptype TrMulI = (fptype)(1.0 / TrMul0);
+						const float TrMul = (float)TrMul0;
+						const float TrMulI = (float)(1.0 / TrMul0);
 
 						for (j = 0; j < LenE; j++)
 						{
-							const fptype z0 = round(ResScanline[j] * TrMulI) * TrMul;
+							const float z0 = round(ResScanline[j] * TrMulI) * TrMul;
 							ResScanline[j] = clamp(z0, c0, PkOut);
 						}
 					}
@@ -4363,13 +4364,13 @@ namespace avir {
 			 * weighucharg coefficients obtained via machine optimization and visual
 			 * evaluation.
 			 *
-			 * @tparam fptype Floaucharg point type to use for storing pixel data. SIMD
+			 * @tparam float Floaucharg point type to use for storing pixel data. SIMD
 			 * types can be used.
 			 */
 
-			template< typename fptype >
+			
 			class CImageResizerDithererErrdINL :
-				public CImageResizerDithererDefINL< fptype >
+				public CImageResizerDithererDefINL
 			{
 			public:
 				/**
@@ -4385,10 +4386,10 @@ namespace avir {
 				void init(const int aLen, const CImageResizerVars& aVars,
 					const double aTrMul, const double aPkOut)
 				{
-					CImageResizerDithererDefINL< fptype > ::init(aLen, aVars, aTrMul,
+					CImageResizerDithererDefINL ::init(aLen, aVars, aTrMul,
 						aPkOut);
 
-					ResScanlineDith0.alloc(LenE + Vars->ElCount, sizeof(fptype));
+					ResScanlineDith0.alloc(LenE + Vars->ElCount, sizeof(float));
 					ResScanlineDith = ResScanlineDith0 + Vars->ElCount;
 					int i;
 
@@ -4411,13 +4412,13 @@ namespace avir {
 				 * @copydoc CImageResizerDithererDefINL::dither()
 				 */
 
-				void dither(fptype* const ResScanline)
+				void dither(float* const ResScanline)
 				{
 					const int ElCount = Vars->ElCount;
-					const fptype c0 = 0;
-					const fptype TrMul = (fptype)TrMul0;
-					const fptype TrMulI = (fptype)(1.0 / TrMul0);
-					const fptype PkOut = (fptype)PkOut0;
+					const float c0 = 0;
+					const float TrMul = (float)TrMul0;
+					const float TrMulI = (float)(1.0 / TrMul0);
+					const float PkOut = (float)PkOut0;
 					int j;
 
 					for (j = 0; j < LenE; j++)
@@ -4430,38 +4431,38 @@ namespace avir {
 					{
 						// Perform rounding, noise estimation and saturation.
 
-						const fptype z0 = round(ResScanline[j] * TrMulI) * TrMul;
-						const fptype Noise = ResScanline[j] - z0;
+						const float z0 = round(ResScanline[j] * TrMulI) * TrMul;
+						const float Noise = ResScanline[j] - z0;
 						ResScanline[j] = clamp(z0, c0, PkOut);
 
-						const fptype NoiseM1 = Noise * (fptype)0.364842;
+						const float NoiseM1 = Noise * (float)0.364842;
 						ResScanline[j + ElCount] += NoiseM1;
-						ResScanlineDith[j - ElCount] += Noise * (fptype)0.207305;
+						ResScanlineDith[j - ElCount] += Noise * (float)0.207305;
 						ResScanlineDith[j] += NoiseM1;
-						ResScanlineDith[j + ElCount] += Noise * (fptype)0.063011;
+						ResScanlineDith[j + ElCount] += Noise * (float)0.063011;
 					}
 
 					while (j < LenE)
 					{
-						const fptype z0 = round(ResScanline[j] * TrMulI) * TrMul;
-						const fptype Noise = ResScanline[j] - z0;
+						const float z0 = round(ResScanline[j] * TrMulI) * TrMul;
+						const float Noise = ResScanline[j] - z0;
 						ResScanline[j] = clamp(z0, c0, PkOut);
 
-						ResScanlineDith[j - ElCount] += Noise * (fptype)0.207305;
-						ResScanlineDith[j] += Noise * (fptype)0.364842;
+						ResScanlineDith[j - ElCount] += Noise * (float)0.207305;
+						ResScanlineDith[j] += Noise * (float)0.364842;
 						j++;
 					}
 				}
 
 			protected:
-				using CImageResizerDithererDefINL< fptype > ::Len;
-				using CImageResizerDithererDefINL< fptype > ::Vars;
-				using CImageResizerDithererDefINL< fptype > ::LenE;
-				using CImageResizerDithererDefINL< fptype > ::TrMul0;
-				using CImageResizerDithererDefINL< fptype > ::PkOut0;
+				using CImageResizerDithererDefINL::Len;
+				using CImageResizerDithererDefINL::Vars;
+				using CImageResizerDithererDefINL::LenE;
+				using CImageResizerDithererDefINL::TrMul0;
+				using CImageResizerDithererDefINL::PkOut0;
 
-				CBuffer< fptype > ResScanlineDith0; ///< Error diffusion buffer.
-				fptype* ResScanlineDith; ///< Error diffusion buffer pointer which skips
+				CBuffer< float > ResScanlineDith0; ///< Error diffusion buffer.
+				float* ResScanlineDith; ///< Error diffusion buffer pointer which skips
 				///< the first ElCount elements.
 			};
 
@@ -4479,7 +4480,7 @@ namespace avir {
 			 * non-SIMD types, but using algorithms that operate on interleaved pixels,
 			 * and which are non-SIMD optimized themselves.
 			 *
-			 * @tparam afptype Floaucharg point type to use for storing intermediate data
+			 * @tparam afloat Floaucharg point type to use for storing intermediate data
 			 * and variables. For variables that are not used in intensive calculations
 			 * the `double` type is always used. On the latest Intel processors (like
 			 * i7-4770K) there is almost no performance difference between `double` and
@@ -4491,20 +4492,17 @@ namespace avir {
 			 * resizing of images with more than 4 channels, to be exact `4 * SIMD
 			 * elements` (e.g. 16 for `float4`), without modification of the image
 			 * resizing algorithm required.
-			 * @tparam afptypeatom The atomic type the `afptype` consists of.
+			 * @tparam afloat The atomic type the `afloat` consists of.
 			 * @tparam adith Ditherer class to use during processing.
 			 */
 
-			template< typename afptype, typename afptypeatom = afptype,
-				class adith = CImageResizerDithererDefINL< afptype > >
 			class fpclass_def
 			{
 			public:
-				typedef afptype fptype; ///< Floaucharg-point type to use during processing.
-				typedef afptypeatom fptypeatom; ///< Atomic type `fptype` consists of.
-				static const int fppack = sizeof(fptype) / sizeof(fptypeatom); ///<
-				///< The number of atomic types stored in a single `fptype` element.
-				static const int fpalign = sizeof(fptype); ///< Suggested alignment size
+
+				static const int fppack = sizeof(float) / sizeof(float); ///<
+				///< The number of atomic types stored in a single `float` element.
+				static const int fpalign = sizeof(float); ///< Suggested alignment size
 				///< in bytes. This is not a required alignment, because image
 				///< resizing algorithm cannot be made to have a strictly aligned data
 				///< access at all steps (e.g. interpolation cannot perform aligned
@@ -4515,9 +4513,9 @@ namespace avir {
 				///< of this value, for more efficient SIMD implementation.
 				static const int packmode = 0; ///< 0 if interleaved packing, 1 if
 				///< de-interleaved.
-				typedef CImageResizerFilterStepINL< fptype, fptypeatom > CFilterStep; ///<
+				typedef CImageResizerFilterStepINL CFilterStep; ///<
 				///< Filtering step class to use during processing.
-				typedef adith CDitherer; ///< Ditherer class to use during processing.
+				typedef CImageResizerDithererDefINL CDitherer; ///< Ditherer class to use during processing.
 			};
 
 			/**
@@ -4547,8 +4545,8 @@ namespace avir {
 			  *
 			  * Object of this class can be allocated on stack.
 			  *
-			  * @tparam fpclass_def< float > Floaucharg-point processing definition class to use. See
-			  * avir::fpclass_def< float >_def for more details.
+			  * @tparam fpclass_def Floaucharg-point processing definition class to use. See
+			  * avir::fpclass_def_def for more details.
 			  */
 
 
@@ -4728,8 +4726,8 @@ namespace avir {
 
 					// Fill widely-used variables.
 
-					const int ElCount = (ElCountIO + fpclass_def< float >::fppack - 1) /
-						fpclass_def< float >::fppack;
+					const int ElCount = (ElCountIO + fpclass_def::fppack - 1) /
+						fpclass_def::fppack;
 
 					const int NewWidthE = NewWidth * ElCount;
 
@@ -4740,17 +4738,17 @@ namespace avir {
 
 					Vars.ElCount = ElCount;
 					Vars.ElCountIO = ElCountIO;
-					Vars.fppack = fpclass_def< float >::fppack;
-					Vars.fpalign = fpclass_def< float >::fpalign;
-					Vars.elalign = fpclass_def< float >::elalign;
-					Vars.packmode = fpclass_def< float >::packmode;
+					Vars.fppack = fpclass_def::fppack;
+					Vars.fpalign = fpclass_def::fpalign;
+					Vars.elalign = fpclass_def::elalign;
+					Vars.packmode = fpclass_def::packmode;
 
 					// Horizontal scanline filtering and resizing.
 
-					CDSPFracFilterBankLin< fptype > FltBank;
+					CDSPFracFilterBankLin FltBank;
 					CFilterSteps FltSteps;
 					typename CFilterStep::CRPosBufArray RPosBufArray;
-					CBuffer< char > UsedFracMap;
+	
 
 					// Perform the filtering steps modeling at various modes, find the
 					// most efficient mode for both horizontal and vertical resizing.
@@ -4771,7 +4769,7 @@ namespace avir {
 
 						for (m = 0; m < BuildModeCount; m++)
 						{
-							CDSPFracFilterBankLin< fptype > TmpBank;
+							CDSPFracFilterBankLin TmpBank;
 							CFilterSteps TmpSteps;
 							Vars.k = kx;
 							Vars.o = ox;
@@ -4826,8 +4824,8 @@ namespace avir {
 							SrcWidth);
 					}
 
-					CBuffer< fptype, size_t > FltBuf((size_t)NewWidthE *
-						(size_t)SrcHeight, fpclass_def< float >::fpalign); // Temporary buffer that
+					CBuffer< float, size_t > FltBuf((size_t)NewWidthE *
+						(size_t)SrcHeight, fpclass_def::fpalign); // Temporary buffer that
 					// receives horizontally-filtered and resized image.
 
 					tbb::parallel_for(0, SrcHeight, [&](int i)
@@ -4860,7 +4858,7 @@ namespace avir {
 
 						for (m = 0; m < BuildModeCount; m++)
 						{
-							CDSPFracFilterBankLin< fptype > TmpBank;
+							CDSPFracFilterBankLin TmpBank;
 							TmpBank.copyInitParams(FltBank);
 							CFilterSteps TmpSteps;
 							TmpVars.k = ky;
@@ -4905,7 +4903,7 @@ namespace avir {
 					updateBufLenAndRPosPtrs(FltSteps, Vars, NewWidth);
 
 					if (IsOutFloat && sizeof(FltBuf[0]) == sizeof(uchar) &&
-						fpclass_def< float >::packmode == 0)
+						fpclass_def::packmode == 0)
 					{
 						// In-place output.
 						for (int i = 0; i < ThreadCount; i++)
@@ -4917,7 +4915,7 @@ namespace avir {
 						tbb::parallel_for(0, NewWidth, [&](int i)
 							{
 								td[i % ThreadCount].addScanlineToQueue(
-									&FltBuf[i * ElCount], (fptype*)&NewBuf[i * ElCount], i);
+									&FltBuf[i * ElCount], (float*)&NewBuf[i * ElCount], i);
 							});
 						td[0].addQueueLen(NewWidth);
 
@@ -4929,8 +4927,8 @@ namespace avir {
 						return;
 					}
 
-					CBuffer< fptype, size_t > ResBuf((size_t)NewWidthE *
-						(size_t)NewHeight, fpclass_def< float >::fpalign);
+					CBuffer< float, size_t > ResBuf((size_t)NewWidthE *
+						(size_t)NewHeight, fpclass_def::fpalign);
 
 					for (int i = 0; i < ThreadCount; i++)
 					{
@@ -4938,7 +4936,7 @@ namespace avir {
 							SrcHeight, NewWidthE, NewWidthE);
 					}
 
-					const int im = (fpclass_def< float >::packmode == 0 ? ElCount : 1);
+					const int im = (fpclass_def::packmode == 0 ? ElCount : 1);
 
 					tbb::parallel_for(0, NewWidth, [&](int i)
 						{
@@ -5003,7 +5001,7 @@ namespace avir {
 
 						tbb::parallel_for(0, NewHeight, [&](int i)
 							{
-								fptype* const ResScanline =
+								float* const ResScanline =
 									&ResBuf[(size_t)i * (size_t)NewWidthE];
 
 								if (Vars.UseSRGBGamma)
@@ -5047,17 +5045,14 @@ namespace avir {
 				}
 
 			private:
-				typedef typename fpclass_def< float >::fptype fptype; ///< Floaucharg-point type to use
-				///< during processing.
-				typedef typename fpclass_def< float >::CFilterStep CFilterStep; ///< Filtering step
+				typedef fpclass_def::CFilterStep CFilterStep; ///< Filtering step
 				///< class to use during processing.
-				typedef typename fpclass_def< float >::CDitherer CDitherer; ///< Ditherer class to
+				typedef fpclass_def::CDitherer CDitherer; ///< Ditherer class to
 				///< use during processing.
 				CImageResizerParams Params; ///< Algorithm's parameters currently in use.
 				int SrcBitDepth; ///< Bit resolution of the source image.
 				int ResBitDepth; ///< Bit resolution of the resulucharg image.
-				CDSPFracFilterBankLin< fptype > FixedFilterBank; ///< Fractional delay
-				///< filter bank with fixed characteristics, mainly for upsizing
+				CDSPFracFilterBankLin FixedFilterBank;
 				///< cases.
 				
 				/**
@@ -5080,7 +5075,7 @@ namespace avir {
 				 * @param ExtFilter External filter to apply to interpolation filter.
 				 */
 
-				void initFilterBank(CDSPFracFilterBankLin< fptype >& FltBank,
+				void initFilterBank(CDSPFracFilterBankLin & FltBank,
 					const double CutoffMult, const bool ForceHiOrder,
 					const CFltBuffer& ExtFilter) const
 				{
@@ -5115,11 +5110,11 @@ namespace avir {
 
 					FltBank.init(FracCount, UseOrder, Params.IntFltLen / CutoffMult,
 						Params.IntFltCutoff * CutoffMult, Params.IntFltAlpha, ExtFilter,
-						fpclass_def< float >::fpalign, fpclass_def< float >::elalign);
+						fpclass_def::fpalign, fpclass_def::elalign);
 				}
 
 				/**
-				 * @brief Allocates filter buffer taking `fpclass_def< float >` alignments into
+				 * @brief Allocates filter buffer taking `fpclass_def` alignments into
 				 * account.
 				 *
 				 * The allocated buffer may be larger than the requested size: in this
@@ -5133,11 +5128,11 @@ namespace avir {
 				 * of elements the filter was extended by.
 				 */
 
-				static void allocFilter(CBuffer< fptype >& Flt, const int ReqCapacity,
+				static void allocFilter(CBuffer< float >& Flt, const int ReqCapacity,
 					const bool IsModel = false, int* const FltExt = nullptr)
 				{
-					int UseCapacity = (ReqCapacity + fpclass_def< float >::elalign - 1) &
-						~(fpclass_def< float >::elalign - 1);
+					int UseCapacity = (ReqCapacity + fpclass_def::elalign - 1) &
+						~(fpclass_def::elalign - 1);
 
 					int Ext = UseCapacity - ReqCapacity;
 
@@ -5152,7 +5147,7 @@ namespace avir {
 						return;
 					}
 
-					Flt.alloc(UseCapacity, fpclass_def< float >::fpalign);
+					Flt.alloc(UseCapacity, fpclass_def::fpalign);
 
 					while (Ext > 0)
 					{
@@ -5227,7 +5222,7 @@ namespace avir {
 					fs.ResampleFactor = ResampleFactor;
 					fs.FltLatency = w.fl2;
 
-					int FltExt; // Filter's extension due to fpclass_def< float > :: elalign.
+					int FltExt; // Filter's extension due to fpclass_def :: elalign.
 
 					if (IsModel)
 					{
@@ -5274,7 +5269,7 @@ namespace avir {
 
 						// Create prefix and suffix "tails" used during upsampling.
 
-						const fptype* ip = &fs.Flt[fs.FltLatency + ResampleFactor];
+						const float* ip = &fs.Flt[fs.FltLatency + ResampleFactor];
 						copyArray(ip, &fs.PrefixDC[0], l);
 
 						while (true)
@@ -5291,7 +5286,7 @@ namespace avir {
 						}
 
 						l = fs.FltLatency;
-						fptype* op = &fs.SuffixDC[0];
+						float* op = &fs.SuffixDC[0];
 						copyArray(&fs.Flt[0], op, l);
 
 						while (true)
@@ -5385,7 +5380,7 @@ namespace avir {
 							}
 						}
 
-						const fptype* Flt;
+						const float* Flt;
 						int FltLen;
 
 						if (fs.ResampleFactor == 0)
@@ -5569,7 +5564,7 @@ namespace avir {
 				 */
 
 				void buildFilterSteps(CFilterSteps& Steps, CImageResizerVars& Vars,
-					CDSPFracFilterBankLin< fptype >& FltBank, const double DCGain,
+					CDSPFracFilterBankLin& FltBank, const double DCGain,
 					const int ModeFlags, const bool IsModel) const
 				{
 					Steps.clear();
@@ -5755,7 +5750,7 @@ namespace avir {
 						const int SrcPosInt = (int)floor(SrcPos);
 						const double x = (SrcPos - SrcPosInt) * FracCount;
 						const int fti = (int)x;
-						rpos->x = (typename fpclass_def< float >::fptypeatom) (x - fti);
+						rpos->x = (float) (x - fti);
 						rpos->fti = fti;
 						rpos->SrcPosInt = SrcPosInt;
 						rpos++;
@@ -5880,7 +5875,7 @@ namespace avir {
 
 						if (Steps[upstep].ResampleFactor == 2 &&
 							Vars.ResizeStep == upstep + 1 &&
-							fpclass_def< float >::packmode == 0 &&
+							fpclass_def::packmode == 0 &&
 							Steps[upstep].FltOrig.getCapacity() > 0)
 						{
 							// Interpolation with preceeding 2x filterless upsample,
@@ -6017,7 +6012,7 @@ namespace avir {
 
 					CFilterStep& fs = Steps[Vars.ResizeStep];
 					typename CFilterStep::CResizePos* rpos = &(*fs.RPosBuf)[0];
-					const int em = (fpclass_def< float >::packmode == 0 ? Vars.ElCount : 1);
+					const int em = (fpclass_def::packmode == 0 ? Vars.ElCount : 1);
 					const int fl = (fs.FltBankDyn == nullptr ?
 						fs.FltBank->getFilterLen() : fs.FltBankDyn->getFilterLen());
 
@@ -6091,7 +6086,7 @@ namespace avir {
 
 				void modifyCorrFilterDCGain(CFilterSteps& Steps, const double m) const
 				{
-					CBuffer< fptype >* Flt;
+					CBuffer< float >* Flt;
 					const int z = Steps.getItemCount() - 1;
 
 					if (!Steps[z].IsUpsample && Steps[z].ResampleFactor == 1)
@@ -6107,7 +6102,7 @@ namespace avir {
 
 					for (i = 0; i < Flt->getCapacity(); i++)
 					{
-						(*Flt)[i] = (fptype)((double)(*Flt)[i] * m);
+						(*Flt)[i] = (float)((double)(*Flt)[i] * m);
 					}
 				}
 
@@ -6301,7 +6296,7 @@ namespace avir {
 
 						if (Bufs.getCapacity() < l)
 						{
-							Bufs.alloc(l, fpclass_def< float >::fpalign);
+							Bufs.alloc(l, fpclass_def::fpalign);
 						}
 
 						BufPtrs[0] = Bufs + Vars->BufOffs[0];
@@ -6321,7 +6316,7 @@ namespace avir {
 							}
 						}
 
-						TmpFltBuf.alloc(ml, fpclass_def< float >::fpalign);
+						TmpFltBuf.alloc(ml, fpclass_def::fpalign);
 						ScanlineOp = aOp;
 						SrcLen = aSrcLen;
 						SrcIncr = aSrcIncr;
@@ -6369,7 +6364,7 @@ namespace avir {
 							tbb::parallel_for(0, QueueLen, [&](int i)
 								{
 									resizeScanlineH((uchar*)Queue[i].SrcBuf,
-										(fptype*)Queue[i].ResBuf);
+										(float*)Queue[i].ResBuf);
 								});
 							break;
 						}
@@ -6378,8 +6373,8 @@ namespace avir {
 						{
 							tbb::parallel_for(0, QueueLen, [&](int i)
 								{
-									resizeScanlineV((fptype*)Queue[i].SrcBuf,
-										(fptype*)Queue[i].ResBuf);
+									resizeScanlineV((float*)Queue[i].SrcBuf,
+										(float*)Queue[i].ResBuf);
 								});
 
 							break;
@@ -6393,13 +6388,13 @@ namespace avir {
 									if (Vars->UseSRGBGamma)
 									{
 										CFilterStep::applySRGBGamma(
-											(fptype*)Queue[i].SrcBuf, SrcLen, *Vars);
+											(float*)Queue[i].SrcBuf, SrcLen, *Vars);
 									}
 
-									Ditherer.dither((fptype*)Queue[i].SrcBuf);
+									Ditherer.dither((float*)Queue[i].SrcBuf);
 
 									CFilterStep::unpackScanline(
-										(fptype*)Queue[i].SrcBuf,
+										(float*)Queue[i].SrcBuf,
 										(uchar*)Queue[i].ResBuf, SrcLen, *Vars);
 								});
 
@@ -6413,11 +6408,11 @@ namespace avir {
 									if (Vars->UseSRGBGamma)
 									{
 										CFilterStep::applySRGBGamma(
-											(fptype*)Queue[i].SrcBuf, SrcLen, *Vars);
+											(float*)Queue[i].SrcBuf, SrcLen, *Vars);
 									}
 
 									CFilterStep::unpackScanline(
-										(fptype*)Queue[i].SrcBuf,
+										(float*)Queue[i].SrcBuf,
 										(uchar*)Queue[i].ResBuf, SrcLen, *Vars);
 								});
 
@@ -6441,11 +6436,11 @@ namespace avir {
 					int ThreadCount; ///< Thread count.
 					const CFilterSteps* Steps; ///< Filtering steps.
 					const CImageResizerVars* Vars; ///< Image resizer variables.
-					CBuffer< fptype > Bufs; ///< Flip-flop intermediate buffers.
-					fptype* BufPtrs[3]; ///< Flip-flop buffer pointers (referenced by
+					CBuffer< float > Bufs; ///< Flip-flop intermediate buffers.
+					float* BufPtrs[3]; ///< Flip-flop buffer pointers (referenced by
 					///< filtering step's InBuf and OutBuf indices).
-					CBuffer< fptype > TmpFltBuf; ///< Temporary buffer used in the
-					///< doResize() function, aligned by fpclass_def< float > :: fpalign.
+					CBuffer< float > TmpFltBuf; ///< Temporary buffer used in the
+					///< doResize() function, aligned by fpclass_def :: fpalign.
 					EScanlineOperation ScanlineOp; ///< Operation to perform over
 					///< scanline.
 					int SrcLen; ///< Source scanline length in the last queue.
@@ -6463,9 +6458,9 @@ namespace avir {
 					struct CQueueItem
 					{
 						void* SrcBuf; ///< Source scanline buffer, will by typecasted to
-						///< `uchar` or `fptype*`.
+						///< `uchar` or `float*`.
 						void* ResBuf; ///< Resulucharg scanline buffer, will by typecasted
-						///< to `uchar` or `fptype*`.
+						///< to `uchar` or `float*`.
 					};
 
 					CBuffer< CQueueItem > Queue; ///< Scanline processing queue.
@@ -6479,15 +6474,15 @@ namespace avir {
 					 * @param ResBuf Resulucharg scanline buffer.
 					 */
 
-					void resizeScanlineH(const uchar* const SrcBuf, fptype* const ResBuf)
+					void resizeScanlineH(const uchar* const SrcBuf, float* const ResBuf)
 					{
 						const CFilterStep& fs0 = (*Steps)[0];
-						fptype* BufPtrs[3];
+						float* BufPtrs[3];
 						const int l = Vars->BufLen[0] + Vars->BufLen[1];
-						CBuffer< fptype > Bufs;
+						CBuffer< float > Bufs;
 						if (Bufs.getCapacity() < l)
 						{
-							Bufs.alloc(l, fpclass_def< float >::fpalign);
+							Bufs.alloc(l, fpclass_def::fpalign);
 						}
 
 						BufPtrs[0] = Bufs + Vars->BufOffs[0];
@@ -6542,16 +6537,16 @@ namespace avir {
 					 * @param ResBuf Resulucharg scanline buffer.
 					 */
 
-					void resizeScanlineV(const fptype* const SrcBuf,
-						fptype* const ResBuf)
+					void resizeScanlineV(const float* const SrcBuf,
+						float* const ResBuf)
 					{
 						const CFilterStep& fs0 = (*Steps)[0];
-						fptype* BufPtrs[3];
+						float* BufPtrs[3];
 						const int l = Vars->BufLen[0] + Vars->BufLen[1];
-						CBuffer< fptype > Bufs;
+						CBuffer< float > Bufs;
 						if (Bufs.getCapacity() < l)
 						{
-							Bufs.alloc(l, fpclass_def< float >::fpalign);
+							Bufs.alloc(l, fpclass_def::fpalign);
 						}
 
 						BufPtrs[0] = Bufs + Vars->BufOffs[0];
