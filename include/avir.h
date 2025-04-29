@@ -2697,6 +2697,7 @@ namespace avir {
 		 * @tparam uchar Input values' type.
 		 */
 
+
 		void packScanline(const uchar* ip, float* const op0, const int l0) const
 		{
 			const int ElCount = Vars->ElCount;
@@ -2909,58 +2910,102 @@ namespace avir {
 		  * @param l The number of pixels to de-linearize.
 		  * @param Vars0 Image resizing-related variables.
 		  */
-		static void applySRGBGamma(float* p, int l, const CImageResizerVars& Vars0)
+
+		  /**
+		   * @brief Applies Linear to sRGB gamma correction to the specified
+		   * scanline.
+		   *
+		   * @param p Scanline.
+		   * @param l The number of pixels to de-linearize.
+		   * @param Vars0 Image resizing-related variables.
+		   */
+		static void applySRGBGamma(float* p, int l,
+			const CImageResizerVars& Vars0)
 		{
 			const int ElCount = Vars0.ElCount;
 			const int ElCountIO = Vars0.ElCountIO;
 			const float gm = (float)Vars0.OutGammaMult;
 
-			tbb::parallel_for(0, l, [&](int i) {
-				float* pixel = p + i * ElCount;
-				float* v = (float*)pixel;
-
-				if (ElCountIO == 1)
+			if (ElCountIO == 1)
+			{
+				while (l > 0)
 				{
+					float* v = (float*)p;
 					v[0] = convertLin2SRGB(v[0]) * gm;
+					p += ElCount;
+					l--;
 				}
-				else if (ElCountIO == 4)
+			}
+			else
+				if (ElCountIO == 4)
 				{
 					if (Vars0.AlphaIndex == 0)
 					{
-						v[0] *= gm;
-						v[1] = convertLin2SRGB(v[1]) * gm;
-						v[2] = convertLin2SRGB(v[2]) * gm;
-						v[3] = convertLin2SRGB(v[3]) * gm;
-					}
-					else if (Vars0.AlphaIndex == 3)
-					{
-						v[0] = convertLin2SRGB(v[0]) * gm;
-						v[1] = convertLin2SRGB(v[1]) * gm;
-						v[2] = convertLin2SRGB(v[2]) * gm;
-						v[3] *= gm;
+						while (l > 0)
+						{
+							float* v = (float*)p;
+							v[0] *= gm;
+							v[1] = convertLin2SRGB(v[1]) * gm;
+							v[2] = convertLin2SRGB(v[2]) * gm;
+							v[3] = convertLin2SRGB(v[3]) * gm;
+							p += ElCount;
+							l--;
+						}
 					}
 					else
+						if (Vars0.AlphaIndex == 3)
+						{
+							while (l > 0)
+							{
+								float* v = (float*)p;
+								v[0] = convertLin2SRGB(v[0]) * gm;
+								v[1] = convertLin2SRGB(v[1]) * gm;
+								v[2] = convertLin2SRGB(v[2]) * gm;
+								v[3] *= gm;
+								p += ElCount;
+								l--;
+							}
+						}
+						else
+						{
+							while (l > 0)
+							{
+								float* v = (float*)p;
+								v[0] = convertLin2SRGB(v[0]) * gm;
+								v[1] = convertLin2SRGB(v[1]) * gm;
+								v[2] = convertLin2SRGB(v[2]) * gm;
+								v[3] = convertLin2SRGB(v[3]) * gm;
+								p += ElCount;
+								l--;
+							}
+						}
+				}
+				else
+					if (ElCountIO == 3)
 					{
-						v[0] = convertLin2SRGB(v[0]) * gm;
-						v[1] = convertLin2SRGB(v[1]) * gm;
-						v[2] = convertLin2SRGB(v[2]) * gm;
-						v[3] = convertLin2SRGB(v[3]) * gm;
+						while (l > 0)
+						{
+							float* v = (float*)p;
+							v[0] = convertLin2SRGB(v[0]) * gm;
+							v[1] = convertLin2SRGB(v[1]) * gm;
+							v[2] = convertLin2SRGB(v[2]) * gm;
+							p += ElCount;
+							l--;
+						}
 					}
-				}
-				else if (ElCountIO == 3)
-				{
-					v[0] = convertLin2SRGB(v[0]) * gm;
-					v[1] = convertLin2SRGB(v[1]) * gm;
-					v[2] = convertLin2SRGB(v[2]) * gm;
-				}
-				else if (ElCountIO == 2)
-				{
-					v[0] = convertLin2SRGB(v[0]) * gm;
-					v[1] = convertLin2SRGB(v[1]) * gm;
-				}
-				});
+					else
+						if (ElCountIO == 2)
+						{
+							while (l > 0)
+							{
+								float* v = (float*)p;
+								v[0] = convertLin2SRGB(v[0]) * gm;
+								v[1] = convertLin2SRGB(v[1]) * gm;
+								p += ElCount;
+								l--;
+							}
+						}
 		}
-
 
 		/**
 		 * @brief Converts vertical scanline to horizontal scanline.
@@ -2997,10 +3042,7 @@ namespace avir {
 				{
 					for (j = 0; j < SrcLen; j++)
 					{
-						op[0] = ip[0];
-						op[1] = ip[1];
-						op[2] = ip[2];
-						op[3] = ip[3];
+						memcpy(op, ip, sizeof(float) * 4);
 						ip += SrcIncr;
 						op += 4;
 					}
@@ -3159,481 +3201,35 @@ namespace avir {
 			const float* ip = Src;
 			const int opstep = ElCount * ResampleFactor;
 			int l;
+			op0 += (OutPrefix % ResampleFactor) * ElCount;
+			l = OutPrefix / ResampleFactor;
 
-			if (FltOrig.getCapacity() > 0)
+			while (l > 0)
 			{
-				// Do not perform filtering, only upsample.
-
-				op0 += (OutPrefix % ResampleFactor) * ElCount;
-				l = OutPrefix / ResampleFactor;
-
-				if (ElCount == 1)
-				{
-					while (l > 0)
-					{
-						op0[0] = ip[0];
-						op0 += opstep;
-						l--;
-					}
-
-					l = InLen - 1;
-
-					while (l > 0)
-					{
-						op0[0] = ip[0];
-						op0 += opstep;
-						ip += ElCount;
-						l--;
-					}
-
-					l = OutSuffix / ResampleFactor;
-
-					while (l >= 0)
-					{
-						op0[0] = ip[0];
-						op0 += opstep;
-						l--;
-					}
-				}
-				else
-					if (ElCount == 4)
-					{
-						while (l > 0)
-						{
-							op0[0] = ip[0];
-							op0[1] = ip[1];
-							op0[2] = ip[2];
-							op0[3] = ip[3];
-							op0 += opstep;
-							l--;
-						}
-
-						l = InLen - 1;
-
-						while (l > 0)
-						{
-							op0[0] = ip[0];
-							op0[1] = ip[1];
-							op0[2] = ip[2];
-							op0[3] = ip[3];
-							op0 += opstep;
-							ip += ElCount;
-							l--;
-						}
-
-						l = OutSuffix / ResampleFactor;
-
-						while (l >= 0)
-						{
-							op0[0] = ip[0];
-							op0[1] = ip[1];
-							op0[2] = ip[2];
-							op0[3] = ip[3];
-							op0 += opstep;
-							l--;
-						}
-					}
-					else
-						if (ElCount == 3)
-						{
-							while (l > 0)
-							{
-								op0[0] = ip[0];
-								op0[1] = ip[1];
-								op0[2] = ip[2];
-								op0 += opstep;
-								l--;
-							}
-
-							l = InLen - 1;
-
-							while (l > 0)
-							{
-								op0[0] = ip[0];
-								op0[1] = ip[1];
-								op0[2] = ip[2];
-								op0 += opstep;
-								ip += ElCount;
-								l--;
-							}
-
-							l = OutSuffix / ResampleFactor;
-
-							while (l >= 0)
-							{
-								op0[0] = ip[0];
-								op0[1] = ip[1];
-								op0[2] = ip[2];
-								op0 += opstep;
-								l--;
-							}
-						}
-						else
-							if (ElCount == 2)
-							{
-								while (l > 0)
-								{
-									op0[0] = ip[0];
-									op0[1] = ip[1];
-									op0 += opstep;
-									l--;
-								}
-
-								l = InLen - 1;
-
-								while (l > 0)
-								{
-									op0[0] = ip[0];
-									op0[1] = ip[1];
-									op0 += opstep;
-									ip += ElCount;
-									l--;
-								}
-
-								l = OutSuffix / ResampleFactor;
-
-								while (l >= 0)
-								{
-									op0[0] = ip[0];
-									op0[1] = ip[1];
-									op0 += opstep;
-									l--;
-								}
-							}
-
-				return;
+				memcpy(op0, ip, sizeof(float) * 4);
+				op0 += opstep;
+				l--;
 			}
 
-			const float* const f = Flt;
-			const int flen = Flt.getCapacity();
-			float* op;
-			int i;
+			l = InLen - 1;
 
-			if (ElCount == 1)
+			while (l > 0)
 			{
-				l = InPrefix;
-
-				while (l > 0)
-				{
-					op = op0;
-
-					for (i = 0; i < flen; i++)
-					{
-						op[i] += f[i] * ip[0];
-					}
-
-					op0 += opstep;
-					l--;
-				}
-
-				l = InLen - 1;
-
-				while (l > 0)
-				{
-					op = op0;
-
-					for (i = 0; i < flen; i++)
-					{
-						op[i] += f[i] * ip[0];
-					}
-
-					ip += ElCount;
-					op0 += opstep;
-					l--;
-				}
-
-				l = InSuffix;
-
-				while (l >= 0)
-				{
-					op = op0;
-
-					for (i = 0; i < flen; i++)
-					{
-						op[i] += f[i] * ip[0];
-					}
-
-					op0 += opstep;
-					l--;
-				}
+				memcpy(op0, ip, sizeof(float) * 4);
+				op0 += opstep;
+				ip += ElCount;
+				l--;
 			}
-			else
-				if (ElCount == 4)
-				{
-					l = InPrefix;
 
-					while (l > 0)
-					{
-						op = op0;
+			l = OutSuffix / ResampleFactor;
 
-						for (i = 0; i < flen; i++)
-						{
-							op[0] += f[i] * ip[0];
-							op[1] += f[i] * ip[1];
-							op[2] += f[i] * ip[2];
-							op[3] += f[i] * ip[3];
-							op += 4;
-						}
-
-						op0 += opstep;
-						l--;
-					}
-
-					l = InLen - 1;
-
-					while (l > 0)
-					{
-						op = op0;
-
-						for (i = 0; i < flen; i++)
-						{
-							op[0] += f[i] * ip[0];
-							op[1] += f[i] * ip[1];
-							op[2] += f[i] * ip[2];
-							op[3] += f[i] * ip[3];
-							op += 4;
-						}
-
-						ip += ElCount;
-						op0 += opstep;
-						l--;
-					}
-
-					l = InSuffix;
-
-					while (l >= 0)
-					{
-						op = op0;
-
-						for (i = 0; i < flen; i++)
-						{
-							op[0] += f[i] * ip[0];
-							op[1] += f[i] * ip[1];
-							op[2] += f[i] * ip[2];
-							op[3] += f[i] * ip[3];
-							op += 4;
-						}
-
-						op0 += opstep;
-						l--;
-					}
-				}
-				else
-					if (ElCount == 3)
-					{
-						l = InPrefix;
-
-						while (l > 0)
-						{
-							op = op0;
-
-							for (i = 0; i < flen; i++)
-							{
-								op[0] += f[i] * ip[0];
-								op[1] += f[i] * ip[1];
-								op[2] += f[i] * ip[2];
-								op += 3;
-							}
-
-							op0 += opstep;
-							l--;
-						}
-
-						l = InLen - 1;
-
-						while (l > 0)
-						{
-							op = op0;
-
-							for (i = 0; i < flen; i++)
-							{
-								op[0] += f[i] * ip[0];
-								op[1] += f[i] * ip[1];
-								op[2] += f[i] * ip[2];
-								op += 3;
-							}
-
-							ip += ElCount;
-							op0 += opstep;
-							l--;
-						}
-
-						l = InSuffix;
-
-						while (l >= 0)
-						{
-							op = op0;
-
-							for (i = 0; i < flen; i++)
-							{
-								op[0] += f[i] * ip[0];
-								op[1] += f[i] * ip[1];
-								op[2] += f[i] * ip[2];
-								op += 3;
-							}
-
-							op0 += opstep;
-							l--;
-						}
-					}
-					else
-						if (ElCount == 2)
-						{
-							l = InPrefix;
-
-							while (l > 0)
-							{
-								op = op0;
-
-								for (i = 0; i < flen; i++)
-								{
-									op[0] += f[i] * ip[0];
-									op[1] += f[i] * ip[1];
-									op += 2;
-								}
-
-								op0 += opstep;
-								l--;
-							}
-
-							l = InLen - 1;
-
-							while (l > 0)
-							{
-								op = op0;
-
-								for (i = 0; i < flen; i++)
-								{
-									op[0] += f[i] * ip[0];
-									op[1] += f[i] * ip[1];
-									op += 2;
-								}
-
-								ip += ElCount;
-								op0 += opstep;
-								l--;
-							}
-
-							l = InSuffix;
-
-							while (l >= 0)
-							{
-								op = op0;
-
-								for (i = 0; i < flen; i++)
-								{
-									op[0] += f[i] * ip[0];
-									op[1] += f[i] * ip[1];
-									op += 2;
-								}
-
-								op0 += opstep;
-								l--;
-							}
-						}
-
-			op = op0;
-			const float* dc = SuffixDC;
-			l = SuffixDC.getCapacity();
-
-			if (ElCount == 1)
+			while (l >= 0)
 			{
-				for (i = 0; i < l; i++)
-				{
-					op[i] += ip[0] * dc[i];
-				}
+				memcpy(op0, ip, sizeof(float) * 4);
+				op0 += opstep;
+				l--;
 			}
-			else
-				if (ElCount == 4)
-				{
-					while (l > 0)
-					{
-						op[0] += ip[0] * dc[0];
-						op[1] += ip[1] * dc[0];
-						op[2] += ip[2] * dc[0];
-						op[3] += ip[3] * dc[0];
-						dc++;
-						op += 4;
-						l--;
-					}
-				}
-				else
-					if (ElCount == 3)
-					{
-						while (l > 0)
-						{
-							op[0] += ip[0] * dc[0];
-							op[1] += ip[1] * dc[0];
-							op[2] += ip[2] * dc[0];
-							dc++;
-							op += 3;
-							l--;
-						}
-					}
-					else
-						if (ElCount == 2)
-						{
-							while (l > 0)
-							{
-								op[0] += ip[0] * dc[0];
-								op[1] += ip[1] * dc[0];
-								dc++;
-								op += 2;
-								l--;
-							}
-						}
-
-			ip = Src;
-			op = Dst - InPrefix * opstep;
-			dc = PrefixDC;
-			l = PrefixDC.getCapacity();
-
-			if (ElCount == 1)
-			{
-				for (i = 0; i < l; i++)
-				{
-					op[i] += ip[0] * dc[i];
-				}
-			}
-			else
-				if (ElCount == 4)
-				{
-					while (l > 0)
-					{
-						op[0] += ip[0] * dc[0];
-						op[1] += ip[1] * dc[0];
-						op[2] += ip[2] * dc[0];
-						op[3] += ip[3] * dc[0];
-						dc++;
-						op += 4;
-						l--;
-					}
-				}
-				else
-					if (ElCount == 3)
-					{
-						while (l > 0)
-						{
-							op[0] += ip[0] * dc[0];
-							op[1] += ip[1] * dc[0];
-							op[2] += ip[2] * dc[0];
-							dc++;
-							op += 3;
-							l--;
-						}
-					}
-					else
-						if (ElCount == 2)
-						{
-							while (l > 0)
-							{
-								op[0] += ip[0] * dc[0];
-								op[1] += ip[1] * dc[0];
-								dc++;
-								op += 2;
-								l--;
-							}
-						}
+			
 		}
 
 
@@ -3662,111 +3258,35 @@ namespace avir {
 			int l = OutLen;
 			int i;
 
-			if (ElCount == 1)
+			float sum[4] = { 0.0,0.0,0.0,0.0 };
+
+			while (l > 0)
 			{
-				while (l > 0)
+				sum[0] = f[0] * ip[0];
+				sum[1] = f[0] * ip[1];
+				sum[2] = f[0] * ip[2];
+				sum[3] = f[0] * ip[3];
+				ip1 = ip;
+				ip2 = ip;
+
+				for (i = 1; i < flen; i++)
 				{
-					float s = f[0] * ip[0];
-					ip1 = ip;
-					ip2 = ip;
-
-					for (i = 1; i < flen; i++)
-					{
-						ip1++;
-						ip2--;
-						s += f[i] * (ip1[0] + ip2[0]);
-					}
-
-					Dst[0] = s;
-					Dst += Dsucharcr;
-					ip += ipstep;
-					l--;
+					ip1 += 4;
+					ip2 -= 4;
+					sum[0] += f[i] * (ip1[0] + ip2[0]);
+					sum[1] += f[i] * (ip1[1] + ip2[1]);
+					sum[2] += f[i] * (ip1[2] + ip2[2]);
+					sum[3] += f[i] * (ip1[3] + ip2[3]);
 				}
+
+				memcpy(Dst, sum, sizeof(float) * 4);
+				Dst += Dsucharcr;
+				ip += ipstep;
+				l--;
 			}
-			else
-				if (ElCount == 4)
-				{
-					while (l > 0)
-					{
-						float s1 = f[0] * ip[0];
-						float s2 = f[0] * ip[1];
-						float s3 = f[0] * ip[2];
-						float s4 = f[0] * ip[3];
-						ip1 = ip;
-						ip2 = ip;
+				
 
-						for (i = 1; i < flen; i++)
-						{
-							ip1 += 4;
-							ip2 -= 4;
-							s1 += f[i] * (ip1[0] + ip2[0]);
-							s2 += f[i] * (ip1[1] + ip2[1]);
-							s3 += f[i] * (ip1[2] + ip2[2]);
-							s4 += f[i] * (ip1[3] + ip2[3]);
-						}
 
-						Dst[0] = s1;
-						Dst[1] = s2;
-						Dst[2] = s3;
-						Dst[3] = s4;
-						Dst += Dsucharcr;
-						ip += ipstep;
-						l--;
-					}
-				}
-				else
-					if (ElCount == 3)
-					{
-						while (l > 0)
-						{
-							float s1 = f[0] * ip[0];
-							float s2 = f[0] * ip[1];
-							float s3 = f[0] * ip[2];
-							ip1 = ip;
-							ip2 = ip;
-
-							for (i = 1; i < flen; i++)
-							{
-								ip1 += 3;
-								ip2 -= 3;
-								s1 += f[i] * (ip1[0] + ip2[0]);
-								s2 += f[i] * (ip1[1] + ip2[1]);
-								s3 += f[i] * (ip1[2] + ip2[2]);
-							}
-
-							Dst[0] = s1;
-							Dst[1] = s2;
-							Dst[2] = s3;
-							Dst += Dsucharcr;
-							ip += ipstep;
-							l--;
-						}
-					}
-					else
-						if (ElCount == 2)
-						{
-							while (l > 0)
-							{
-								float s1 = f[0] * ip[0];
-								float s2 = f[0] * ip[1];
-								ip1 = ip;
-								ip2 = ip;
-
-								for (i = 1; i < flen; i++)
-								{
-									ip1 += 2;
-									ip2 -= 2;
-									s1 += f[i] * (ip1[0] + ip2[0]);
-									s2 += f[i] * (ip1[1] + ip2[1]);
-								}
-
-								Dst[0] = s1;
-								Dst[1] = s2;
-								Dst += Dsucharcr;
-								ip += ipstep;
-								l--;
-							}
-						}
 		}
 
 
@@ -4003,19 +3523,6 @@ namespace avir {
 #undef AVIR_RESIZE_PART1nx
 #undef AVIR_RESIZE_PART1
 
-			/**
-			 * @brief Performs resizing of a single scanline assuming that the input
-			 * buffer consists of zero-padded elements (2X upsampling without
-			 * filtering).
-			 *
-			 * Similar to the doResize() function otherwise.
-			 *
-			 * @param SrcLine Source scanline buffer.
-			 * @param DstLine Desucharation (resized) scanline buffer.
-			 * @param DstLineIncr Desucharation scanline position increment, used for
-			 * horizontal or vertical scanline stepping.
-			 */
-
 			 /**
 			  * @brief Performs resizing of a single scanline assuming that the input
 			  * buffer consists of zero-padded elements (2X upsampling without
@@ -4029,20 +3536,6 @@ namespace avir {
 			  * horizontal or vertical scanline stepping.
 			  */
 
-
-			  /**
-			   * @brief Performs resizing of a single scanline assuming that the input
-			   * buffer consists of zero-padded elements (2X upsampling without
-			   * filtering).
-			   *
-			   * Similar to the doResize() function otherwise.
-			   *
-			   * @param SrcLine Source scanline buffer.
-			   * @param DstLine Desucharation (resized) scanline buffer.
-			   * @param DstLineIncr Desucharation scanline position increment, used for
-			   * horizontal or vertical scanline stepping.
-			   */
-
 			void doResize2(const float* SrcLine, float* DstLine,
 				const int DstLineIncr, float* const) const
 			{
@@ -4054,213 +3547,36 @@ namespace avir {
 				const typename CImageResizerFilterStep::
 					CResizePos* const rpose = rpos + OutLen;
 
-#define AVIR_RESIZE_PART1 \
-			while( rpos < rpose ) \
-			{ \
-				const float x = (float) rpos -> x; \
-				const float* const ftp = rpos -> ftp; \
-				const float* const ftp2 = ftp + IntFltLen0; \
-				const float* Src = SrcLine + rpos -> SrcOffs; \
-				const int IntFltLen = rpos -> fl; \
+				float sum[4] = { 0.0,0.0,0.0,0.0 };
 				int i;
 
-#define AVIR_RESIZE_PART1nx \
-			while( rpos < rpose ) \
-			{ \
-				const float* const ftp = rpos -> ftp; \
-				const float* Src = SrcLine + rpos -> SrcOffs; \
-				const int IntFltLen = rpos -> fl; \
-				int i;
-
-#define AVIR_RESIZE_PART2 \
-				DstLine += DstLineIncr; \
-				rpos++; \
-			}
-
-				if (FltBank->getOrder() == 1)
+				while (rpos < rpose)
 				{
-					if (ElCount == 1)
+					const float* const ftp = rpos->ftp;
+					const float* Src = SrcLine + rpos->SrcOffs;
+					const int IntFltLen = rpos->fl;
+					
+
+					memset(sum, 0, sizeof(float) * 4);
+					
+
+					for (i = 0; i < IntFltLen; i += 2)
 					{
-						AVIR_RESIZE_PART1
-
-							float sum0 = 0;
-
-						for (i = 0; i < IntFltLen; i += 2)
-						{
-							sum0 += (ftp[i] + ftp2[i] * x) * Src[i];
-						}
-
-						DstLine[0] = sum0;
-
-						AVIR_RESIZE_PART2
+						const float xx = ftp[i];
+						sum[0] += xx * Src[0];
+						sum[1] += xx * Src[1];
+						sum[2] += xx * Src[2];
+						sum[3] += xx * Src[3];
+						Src += 8;
 					}
-					else
-						if (ElCount == 4)
-						{
-							AVIR_RESIZE_PART1
 
-								float sum0 = 0;
-							float sum1 = 0;
-							float sum2 = 0;
-							float sum3 = 0;
+					memcpy(DstLine, sum, sizeof(float) * 4);
+					DstLine += DstLineIncr;
+					rpos++;
 
-							for (i = 0; i < IntFltLen; i += 2)
-							{
-								const float xx = ftp[i] + ftp2[i] * x;
-								sum0 += xx * Src[0];
-								sum1 += xx * Src[1];
-								sum2 += xx * Src[2];
-								sum3 += xx * Src[3];
-								Src += 4 * 2;
-							}
-
-							DstLine[0] = sum0;
-							DstLine[1] = sum1;
-							DstLine[2] = sum2;
-							DstLine[3] = sum3;
-
-							AVIR_RESIZE_PART2
-						}
-						else
-							if (ElCount == 3)
-							{
-								AVIR_RESIZE_PART1
-
-									float sum0 = 0;
-								float sum1 = 0;
-								float sum2 = 0;
-
-								for (i = 0; i < IntFltLen; i += 2)
-								{
-									const float xx = ftp[i] + ftp2[i] * x;
-									sum0 += xx * Src[0];
-									sum1 += xx * Src[1];
-									sum2 += xx * Src[2];
-									Src += 3 * 2;
-								}
-
-								DstLine[0] = sum0;
-								DstLine[1] = sum1;
-								DstLine[2] = sum2;
-
-								AVIR_RESIZE_PART2
-							}
-							else
-								if (ElCount == 2)
-								{
-									AVIR_RESIZE_PART1
-
-										float sum0 = 0;
-									float sum1 = 0;
-
-									for (i = 0; i < IntFltLen; i += 2)
-									{
-										const float xx = ftp[i] + ftp2[i] * x;
-										sum0 += xx * Src[0];
-										sum1 += xx * Src[1];
-										Src += 2 * 2;
-									}
-
-									DstLine[0] = sum0;
-									DstLine[1] = sum1;
-
-									AVIR_RESIZE_PART2
-								}
-				}
-				else
-				{
-					if (ElCount == 1)
-					{
-						AVIR_RESIZE_PART1nx
-
-						float sum0 = 0;
-
-						for (i = 0; i < IntFltLen; i += 2)
-						{
-							sum0 += ftp[i] * Src[i];
-						}
-
-						DstLine[0] = sum0;
-
-						AVIR_RESIZE_PART2
-					}
-					else
-						if (ElCount == 4)
-						{
-							AVIR_RESIZE_PART1nx
-
-								float sum0 = 0;
-							float sum1 = 0;
-							float sum2 = 0;
-							float sum3 = 0;
-
-							for (i = 0; i < IntFltLen; i += 2)
-							{
-								const float xx = ftp[i];
-								sum0 += xx * Src[0];
-								sum1 += xx * Src[1];
-								sum2 += xx * Src[2];
-								sum3 += xx * Src[3];
-								Src += 4 * 2;
-							}
-
-							DstLine[0] = sum0;
-							DstLine[1] = sum1;
-							DstLine[2] = sum2;
-							DstLine[3] = sum3;
-
-							AVIR_RESIZE_PART2
-						}
-						else
-							if (ElCount == 3)
-							{
-								AVIR_RESIZE_PART1nx
-
-									float sum0 = 0;
-								float sum1 = 0;
-								float sum2 = 0;
-
-								for (i = 0; i < IntFltLen; i += 2)
-								{
-									const float xx = ftp[i];
-									sum0 += xx * Src[0];
-									sum1 += xx * Src[1];
-									sum2 += xx * Src[2];
-									Src += 3 * 2;
-								}
-
-								DstLine[0] = sum0;
-								DstLine[1] = sum1;
-								DstLine[2] = sum2;
-
-								AVIR_RESIZE_PART2
-							}
-							else
-								if (ElCount == 2)
-								{
-									AVIR_RESIZE_PART1nx
-
-										float sum0 = 0;
-									float sum1 = 0;
-
-									for (i = 0; i < IntFltLen; i += 2)
-									{
-										const float xx = ftp[i];
-										sum0 += xx * Src[0];
-										sum1 += xx * Src[1];
-										Src += 2 * 2;
-									}
-
-									DstLine[0] = sum0;
-									DstLine[1] = sum1;
-
-									AVIR_RESIZE_PART2
-								}
 				}
 			}
-#undef AVIR_RESIZE_PART2
-#undef AVIR_RESIZE_PART1nx
-#undef AVIR_RESIZE_PART1
+
 
 };
 			/**
@@ -6348,10 +5664,12 @@ namespace avir {
 						case sopResizeV:
 						{
 							tbb::parallel_for(0, QueueLen, [&](int i)
-								{
-									resizeScanlineV((float*)Queue[i].SrcBuf,
-										(float*)Queue[i].ResBuf);
-								});
+							//for (int i = 0; i < QueueLen; i++)
+							{
+								resizeScanlineV((float*)Queue[i].SrcBuf,
+									(float*)Queue[i].ResBuf);
+							//}
+							});
 
 							break;
 						}
@@ -6452,6 +5770,7 @@ namespace avir {
 
 					void resizeScanlineH(const uchar* const SrcBuf, float* const ResBuf)
 					{
+
 						const CFilterStep& fs0 = (*Steps)[0];
 						float* BufPtrs[3];
 						const int l = Vars->BufLen[0] + Vars->BufLen[1];
@@ -6467,12 +5786,12 @@ namespace avir {
 						fs0.packScanline(SrcBuf, BufPtrs[0], SrcLen);
 						BufPtrs[2] = ResBuf;
 
+						/*
 						for (int j = 0; j < Steps->getItemCount(); j++)
 						{
 							const CFilterStep& fs = (*Steps)[j];
 							fs.prepareInBuf(BufPtrs[fs.InBuf]);
-							const int Dsucharcr =
-								(Vars->packmode == 0 ? Vars->ElCount : 1);
+							const int Dsucharcr = (Vars->packmode == 0 ? Vars->ElCount : 1);
 
 							if (fs.ResampleFactor != 0)
 							{
@@ -6499,6 +5818,142 @@ namespace avir {
 									fs.doResize(BufPtrs[fs.InBuf],
 										BufPtrs[fs.OutBuf], Dsucharcr, TmpFltBuf);
 								}
+							}
+						}
+						*/
+
+						const int Dsucharcr = (Vars->packmode == 0 ? Vars->ElCount : 1);
+						const int ElCount = Vars->ElCount;
+						{
+							const CFilterStep& fs = (*Steps)[0];
+							fs.prepareInBuf(BufPtrs[fs.InBuf]);
+							const float* const Src = BufPtrs[fs.InBuf];
+							float* const Dst = BufPtrs[fs.OutBuf];
+							//fs.doUpsample(BufPtrs[fs.InBuf], BufPtrs[fs.OutBuf]);
+							
+							float* op0 = &Dst[-fs.OutPrefix * ElCount];
+							memset(op0, 0, (size_t)(fs.OutPrefix + fs.OutLen + fs.OutSuffix) *
+								(size_t)ElCount * sizeof(float));
+
+							const float* ip = Src;
+							const int opstep = ElCount * fs.ResampleFactor;
+							int l;
+							op0 += (fs.OutPrefix % fs.ResampleFactor) * ElCount;
+							l = fs.OutPrefix / fs.ResampleFactor;
+
+							while (l > 0)
+							{
+								memcpy(op0, ip, sizeof(float) * 4);
+								op0 += opstep;
+								l--;
+							}
+
+							l = fs.InLen - 1;
+
+							while (l > 0)
+							{
+								memcpy(op0, ip, sizeof(float) * 4);
+								op0 += opstep;
+								ip += ElCount;
+								l--;
+							}
+
+							l = fs.OutSuffix / fs.ResampleFactor;
+
+							while (l >= 0)
+							{
+								memcpy(op0, ip, sizeof(float) * 4);
+								op0 += opstep;
+								l--;
+							}
+						}
+
+						{
+							const CFilterStep& fs = (*Steps)[1];
+							fs.prepareInBuf(BufPtrs[fs.InBuf]);
+							const float* SrcLine = BufPtrs[fs.InBuf];
+							float* DstLine = BufPtrs[fs.OutBuf];
+
+							const int IntFltLen0 = fs.FltBank->getFilterLen();
+
+							const typename CImageResizerFilterStep::
+								CResizePos* rpos = &(*fs.RPosBuf)[0];
+
+							const typename CImageResizerFilterStep::
+								CResizePos* const rpose = rpos + fs.OutLen;
+
+							float sum[4] = { 0.0,0.0,0.0,0.0 };
+							int i;
+
+							while (rpos < rpose)
+							{
+								const float* const ftp = rpos->ftp;
+								const float* Src = SrcLine + rpos->SrcOffs;
+								const int IntFltLen = rpos->fl;
+
+
+								memset(sum, 0, sizeof(float) * 4);
+
+
+								for (i = 0; i < IntFltLen; i += 2)
+								{
+									const float xx = ftp[i];
+									sum[0] += xx * Src[0];
+									sum[1] += xx * Src[1];
+									sum[2] += xx * Src[2];
+									sum[3] += xx * Src[3];
+									Src += 8;
+								}
+
+								memcpy(DstLine, sum, sizeof(float) * 4);
+								DstLine += Dsucharcr;
+								rpos++;
+
+							}
+
+						}
+
+						{
+							const CFilterStep& fs = (*Steps)[2];
+							fs.prepareInBuf(BufPtrs[fs.InBuf]);
+	
+							const float* Src = BufPtrs[fs.InBuf];
+							float* Dst = BufPtrs[fs.OutBuf];
+
+							const float* const f = &fs.Flt[fs.FltLatency];
+							const int flen = fs.FltLatency + 1;
+							const int ipstep = ElCount * fs.ResampleFactor;
+							const float* ip = Src - fs.EdgePixelCount * ipstep;
+							const float* ip1;
+							const float* ip2;
+							int l = fs.OutLen;
+							int i;
+
+							float sum[4] = { 0.0,0.0,0.0,0.0 };
+
+							while (l > 0)
+							{
+								sum[0] = f[0] * ip[0];
+								sum[1] = f[0] * ip[1];
+								sum[2] = f[0] * ip[2];
+								sum[3] = f[0] * ip[3];
+								ip1 = ip;
+								ip2 = ip;
+
+								for (i = 1; i < flen; i++)
+								{
+									ip1 += 4;
+									ip2 -= 4;
+									sum[0] += f[i] * (ip1[0] + ip2[0]);
+									sum[1] += f[i] * (ip1[1] + ip2[1]);
+									sum[2] += f[i] * (ip1[2] + ip2[2]);
+									sum[3] += f[i] * (ip1[3] + ip2[3]);
+								}
+
+								memcpy(Dst, sum, sizeof(float) * 4);
+								Dst += Dsucharcr;
+								ip += ipstep;
+								l--;
 							}
 						}
 
@@ -6529,7 +5984,150 @@ namespace avir {
 						BufPtrs[1] = Bufs + Vars->BufLen[0] + Vars->BufOffs[1];
 						fs0.convertVtoH(SrcBuf, BufPtrs[0], SrcLen, SrcIncr);
 						BufPtrs[2] = ResBuf;
+						const int ElCount = Vars->ElCount;
 
+						{
+							const CFilterStep& fs = (*Steps)[0];
+							fs.prepareInBuf(BufPtrs[fs.InBuf]);
+							const int Dsucharcr = (fs.OutBuf == 2 ? ResIncr :
+								(Vars->packmode == 0 ? Vars->ElCount : 1));
+							const float* const Src = BufPtrs[fs.InBuf];
+							float* const Dst = BufPtrs[fs.OutBuf];
+							//fs.doUpsample(BufPtrs[fs.InBuf], BufPtrs[fs.OutBuf]);
+
+							float* op0 = &Dst[-fs.OutPrefix * ElCount];
+							memset(op0, 0, (size_t)(fs.OutPrefix + fs.OutLen + fs.OutSuffix) *
+								(size_t)ElCount * sizeof(float));
+
+							const float* ip = Src;
+							const int opstep = ElCount * fs.ResampleFactor;
+							int l;
+							op0 += (fs.OutPrefix % fs.ResampleFactor) * ElCount;
+							l = fs.OutPrefix / fs.ResampleFactor;
+
+							while (l > 0)
+							{
+								memcpy(op0, ip, sizeof(float) * 4);
+								op0 += opstep;
+								l--;
+							}
+
+							l = fs.InLen - 1;
+
+							while (l > 0)
+							{
+								memcpy(op0, ip, sizeof(float) * 4);
+								op0 += opstep;
+								ip += ElCount;
+								l--;
+							}
+
+							l = fs.OutSuffix / fs.ResampleFactor;
+
+							while (l >= 0)
+							{
+								memcpy(op0, ip, sizeof(float) * 4);
+								op0 += opstep;
+								l--;
+							}
+						}
+
+						{
+							const CFilterStep& fs = (*Steps)[1];
+							fs.prepareInBuf(BufPtrs[fs.InBuf]);
+							const int Dsucharcr = (fs.OutBuf == 2 ? ResIncr :
+								(Vars->packmode == 0 ? Vars->ElCount : 1));
+							const float* SrcLine = BufPtrs[fs.InBuf];
+							float* DstLine = BufPtrs[fs.OutBuf];
+
+							const int IntFltLen0 = fs.FltBank->getFilterLen();
+
+							const typename CImageResizerFilterStep::
+								CResizePos* rpos = &(*fs.RPosBuf)[0];
+
+							const typename CImageResizerFilterStep::
+								CResizePos* const rpose = rpos + fs.OutLen;
+
+							float sum[4] = { 0.0,0.0,0.0,0.0 };
+							int i;
+
+							while (rpos < rpose)
+							{
+								const float* const ftp = rpos->ftp;
+								const float* Src = SrcLine + rpos->SrcOffs;
+								const int IntFltLen = rpos->fl;
+
+
+								memset(sum, 0, sizeof(float) * 4);
+
+
+								for (i = 0; i < IntFltLen; i += 2)
+								{
+									const float xx = ftp[i];
+									sum[0] += xx * Src[0];
+									sum[1] += xx * Src[1];
+									sum[2] += xx * Src[2];
+									sum[3] += xx * Src[3];
+									Src += 8;
+								}
+
+								memcpy(DstLine, sum, sizeof(float) * 4);
+								DstLine += Dsucharcr;
+								rpos++;
+
+							}
+
+						}
+
+						{
+
+							const CFilterStep& fs = (*Steps)[2];
+							fs.prepareInBuf(BufPtrs[fs.InBuf]);
+							const int Dsucharcr = (fs.OutBuf == 2 ? ResIncr :
+								(Vars->packmode == 0 ? Vars->ElCount : 1));
+
+							const float* Src = BufPtrs[fs.InBuf];
+							float* Dst = BufPtrs[fs.OutBuf];
+
+							const float* const f = &fs.Flt[fs.FltLatency];
+							const int flen = fs.FltLatency + 1;
+							const int ipstep = ElCount * fs.ResampleFactor;
+							const float* ip = Src - fs.EdgePixelCount * ipstep;
+							const float* ip1;
+							const float* ip2;
+							int l = fs.OutLen;
+							int i;
+
+							float sum[4] = { 0.0,0.0,0.0,0.0 };
+
+							while (l > 0)
+							{
+								sum[0] = f[0] * ip[0];
+								sum[1] = f[0] * ip[1];
+								sum[2] = f[0] * ip[2];
+								sum[3] = f[0] * ip[3];
+								ip1 = ip;
+								ip2 = ip;
+
+								for (i = 1; i < flen; i++)
+								{
+									ip1 += 4;
+									ip2 -= 4;
+									sum[0] += f[i] * (ip1[0] + ip2[0]);
+									sum[1] += f[i] * (ip1[1] + ip2[1]);
+									sum[2] += f[i] * (ip1[2] + ip2[2]);
+									sum[3] += f[i] * (ip1[3] + ip2[3]);
+								}
+
+								memcpy(Dst, sum, sizeof(float) * 4);
+								Dst += Dsucharcr;
+								ip += ipstep;
+								l--;
+							}
+						}
+						
+						
+						/*
 						for (int j = 0; j < Steps->getItemCount(); j++)
 						{
 							const CFilterStep& fs = (*Steps)[j];
@@ -6564,7 +6162,7 @@ namespace avir {
 								}
 							}
 						}
-
+						*/
 						Bufs.free();
 					}
 				};
