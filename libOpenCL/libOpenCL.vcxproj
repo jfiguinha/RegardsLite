@@ -284,7 +284,7 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>OPENCL_FILTRE;_CRT_SECURE_NO_WARNINGS;WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>..\libVideoEffect;..\libFiltre;..\libParameter;..\libPicture;..\libOpenGL;..\libUtility;..\libResource;..\libDataStructure;..\libFiltreInterface;..\include;..\libDeepLearning;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <UseIntelOptimizedHeaders>true</UseIntelOptimizedHeaders>
       <OpenMP>GenerateParallelCode</OpenMP>
@@ -601,6 +601,7 @@
     <ClInclude Include="OpenCLEffectVideo.h" />
     <ClInclude Include="OpenCLFilter.h" />
     <ClInclude Include="OpenCLParameter.h" />
+    <ClInclude Include="utility_opencl.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\include\header.cpp">
@@ -613,6 +614,7 @@
     <ClCompile Include="OpenCLEffectVideo.cpp" />
     <ClCompile Include="OpenCLFilter.cpp" />
     <ClCompile Include="OpenCLParameter.cpp" />
+    <ClCompile Include="utility_opencl.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

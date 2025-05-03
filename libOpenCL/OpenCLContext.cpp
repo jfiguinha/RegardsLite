@@ -29,6 +29,7 @@
 #include <utility.h>
 #include <ParamInit.h>
 #include <RegardsConfigParam.h>
+#include "utility_opencl.h"
 
 #if defined (__APPLE__) || defined(MACOSX)
 static const char* CL_GL_SHARING_EXT = "cl_APPLE_gl_sharing";
@@ -40,6 +41,8 @@ extern string platformName;
 extern cv::ocl::OpenCLExecutionContext clExecCtx;
 extern bool isOpenCLInitialized;
 using namespace Regards::OpenCL;
+
+
 
 
 wxString COpenCLContext::GetDeviceInfo(cl_device_id device, cl_device_info param_name)
@@ -490,7 +493,51 @@ void COpenCLContext::CreateDefaultOpenCLContext()
 		clExecCtx = cv::ocl::OpenCLExecutionContext::getCurrent();
 		platformName = clExecCtx.getDevice().vendorName();
 	}
+}
+
+cl_command_queue COpenCLContext::CreateCommandQueue(cl_command_queue_properties queue_properties)
+{
+	cl_int err = 0;
+	cl_command_queue queue = clCreateCommandQueue((cl_context)clExecCtx.getContext().ptr(), (cl_device_id)clExecCtx.getDevice().ptr(), queue_properties, &err);
+	Error::CheckError(err);
+	return queue;
+}
 
 
+void COpenCLContext::GetOutputData(cl_mem cl_output_buffer, void* dataOut, const int& sizeOutput, const int& flag)
+{
+	cl_int err = 0;
+	cl_command_queue queue = CreateCommandQueue();
 
+	if (flag == CL_MEM_USE_HOST_PTR)
+	{
+		
+
+		void* tmp_ptr = clEnqueueMapBuffer(queue, cl_output_buffer, true, CL_MAP_READ, 0, sizeOutput, 0, nullptr, nullptr, &err);
+		ErrorOpenCL::CheckError(err);
+		if (tmp_ptr != dataOut)
+		{// the pointer have to be same because CL_MEM_USE_HOST_PTR option was used in clCreateBuffer
+			throw ErrorOpenCL("clEnqueueMapBuffer failed to return original pointer");
+		}
+
+		err = clFinish(queue);
+		ErrorOpenCL::CheckError(err);
+
+		err = clEnqueueUnmapMemObject(queue, cl_output_buffer, tmp_ptr, 0, nullptr, nullptr);
+		ErrorOpenCL::CheckError(err);
+	}
+	else
+	{
+		err = clEnqueueReadBuffer(queue, cl_output_buffer, CL_TRUE, 0, sizeOutput, dataOut, 0, nullptr, nullptr);
+		ErrorOpenCL::CheckError(err);
+		err = clFinish(queue);
+		ErrorOpenCL::CheckError(err);
+	}
+
+
+	if (queue)
+	{
+		cl_int err = clReleaseCommandQueue(queue);
+		ErrorOpenCL::CheckError(err);
+	}
 }

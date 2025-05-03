@@ -9,6 +9,7 @@
 #include <RegardsConfigParam.h>
 #include <opencv2/core/ocl.hpp>
 #include <LibResource.h>
+
 #include <avir.h>
 
 using namespace Regards::OpenCL;
@@ -1548,9 +1549,10 @@ UMat COpenCLFilter::Interpolation(const int& widthOut, const int& heightOut, con
 		// Application des méthodes d'interpolation
 		if (method == 7)
 		{
+			cv::UMat src;
 			cv::Mat inBuf, outBuf(Size(widthOut, heightOut), CV_8UC4, Scalar(0, 0, 0));
 			cvtColor(cvImage, inBuf, cv::COLOR_BGR2BGRA);
-
+			//cvtColor(cvImage, src, cv::COLOR_BGR2BGRA);
 			avir::CImageResizer ImageResizer(8);
 			avir::CImageResizerVars Vars;
 			Vars.UseSRGBGamma = true;
