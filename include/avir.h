@@ -6441,6 +6441,103 @@ namespace avir {
 						return paramOutput;
 					}
 
+
+					UMat doResize2OpenCL2D(cv::UMat& src, const int& width, const int& height,
+						const std::vector<int>& PositionTab, const std::vector<float>& ftp, int IntFltLen)
+					{
+						UMat paramOutput(height, width, CV_32FC4);
+						cl_mem_flags flag;
+						{
+							bool useMemory = (cv::ocl::Device::getDefault().type() == CL_DEVICE_TYPE_GPU) ? false : true;
+							flag = useMemory ? CL_MEM_USE_HOST_PTR : CL_MEM_COPY_HOST_PTR;
+
+							vector<COpenCLParameter*> vecParam;
+							// Crée un UMat avec le type CV_8UC4
+
+							auto clBuffer = static_cast<cl_mem>(paramOutput.handle(ACCESS_WRITE));
+
+							auto clInputBuffer = static_cast<cl_mem>(src.handle(ACCESS_READ));
+							auto input = new COpenCLParameterClMem(true);
+							input->SetValue(clInputBuffer);
+							input->SetLibelle("input");
+							input->SetNoDelete(true);
+							vecParam.push_back(input);
+
+							auto paramWidth = new COpenCLParameterInt();
+							paramWidth->SetValue(width);
+							paramWidth->SetLibelle("width");
+							vecParam.push_back(paramWidth);
+
+							auto paramHeight = new COpenCLParameterInt();
+							paramHeight->SetValue(height);
+							paramHeight->SetLibelle("height");
+							vecParam.push_back(paramHeight);
+
+							COpenCLParameterIntArray* paramrPos = new COpenCLParameterIntArray();
+							paramrPos->SetLibelle("PositionTab");
+							paramrPos->SetValue((cl_context)clExecCtx.getContext().ptr(), (int*)&PositionTab.at(0), PositionTab.size(), flag);
+							vecParam.push_back(paramrPos);
+
+							COpenCLParameterFloatArray* paramrfltBank = new COpenCLParameterFloatArray();
+							paramrfltBank->SetLibelle("ftp");
+							paramrfltBank->SetValue((cl_context)clExecCtx.getContext().ptr(), (float*)&ftp.at(0), ftp.size(), flag);
+							vecParam.push_back(paramrfltBank);
+
+							auto paramIntFltLen = new COpenCLParameterInt();
+							paramIntFltLen->SetValue(IntFltLen);
+							paramIntFltLen->SetLibelle("IntFltLen");
+							vecParam.push_back(paramIntFltLen);
+
+							auto paramWidthInput = new COpenCLParameterInt();
+							paramWidthInput->SetValue(src.size().width);
+							paramWidthInput->SetLibelle("inputWidth");
+							vecParam.push_back(paramWidthInput);
+							// Récupération du code source du kernel
+							wxString kernelSource = CLibResource::GetOpenCLUcharProgram("IDR_OPENCL_AVIR");
+							cv::ocl::ProgramSource programSource(kernelSource);
+							ocl::Context context = clExecCtx.getContext();
+
+							// Compilation du kernel
+							String errmsg;
+							String buildopt = ""; // Options de compilation (vide par défaut)
+							ocl::Program program = context.getProg(programSource, buildopt, errmsg);
+
+							ocl::Kernel kernel("doResize22D", program);
+
+							// Définition du premier argument (outBuffer)
+							cl_int err = clSetKernelArg(static_cast<cl_kernel>(kernel.ptr()), 0, sizeof(cl_mem), &clBuffer);
+							if (err != CL_SUCCESS)
+							{
+								throw std::runtime_error("Failed to set kernel argument for outBuffer.");
+							}
+
+							// Ajout des autres arguments
+							int numArg = 1;
+							for (COpenCLParameter* parameter : vecParam)
+							{
+								parameter->Add(static_cast<cl_kernel>(kernel.ptr()), numArg++);
+							}
+
+							size_t global_work_size[1] = { static_cast<size_t>(width) };
+							bool success = kernel.run(1, global_work_size, nullptr, true);
+							if (!success)
+							{
+								throw std::runtime_error("Failed to execute OpenCL kernel.");
+							}
+
+							for (COpenCLParameter* parameter : vecParam)
+							{
+								if (!parameter->GetNoDelete())
+								{
+									delete parameter;
+									parameter = nullptr;
+								}
+							}
+						}
+						return paramOutput;
+					}
+
+
 					void doResize2OpenCL(cv::UMat& src, float*& dest, const int& width, const int& height, 
 						const std::vector<int>& PositionTab, const std::vector<float>& ftp, int IntFltLen)
 					{
@@ -7042,6 +7139,7 @@ namespace avir {
 						}
 					}
 
+
 					UMat doFilterOpenCL_UMat(cv::UMat& src, const int& width, const int& height,
 						const float* f, int flen)
 					{
@@ -7479,6 +7577,7 @@ namespace avir {
 
 						
 						UMat outMat;
+						UMat resize;
 						
 						{
 							const CFilterStep& fs = (*Steps)[0];
@@ -7488,14 +7587,60 @@ namespace avir {
 							int stop = fs.OutSuffix;
 							outMat = UpSample2D(src_cvt, widthOut, QueueLen, SrcLen, start, fs.OutLen, fs.ResampleFactor);
 						}
+
+						{
+							const CFilterStep& fs = (*Steps)[1];
+
+							int positionSrc = 0;
+							const int IntFltLen0 = fs.FltBank->getFilterLen();
+
+							const typename CImageResizerFilterStep::
+								CResizePos* rpos = &(*fs.RPosBuf)[0];
+
+							const typename CImageResizerFilterStep::
+								CResizePos* const rpose = rpos + fs.OutLen;
+							vector<int> PositionTab;
+							vector<float> ftpTab;
+							int oldPos = 0;
+							int i = 0;
+							while (rpos < rpose)
+							{
+								const float* const ftp = rpos->ftp;
+								//const float* Src = SrcLine + rpos->SrcOffs;
+								//const int IntFltLen = rpos->fl;
+
+								if (i > 0)
+								{
+									positionSrc = positionSrc + abs(abs(rpos->SrcOffs) - oldPos);
+									oldPos = abs(rpos->SrcOffs);
+									PositionTab.push_back(positionSrc);
+								}
+								else
+									PositionTab.push_back(positionSrc);
+
+								for (int k = 0; k < IntFltLen0; k += 2)
+								{
+									const float xx = ftp[k];
+									ftpTab.push_back(xx);
+								}
+								rpos++; i++;
+							}
+
+							resize = doResize2OpenCL2D(outMat, fs.OutLen, QueueLen, PositionTab, ftpTab, IntFltLen0);
+
+							printf("toot");
+
+
+						}
 						
 						//tbb::parallel_for(0, QueueLen, [&](int i)
 						for (int iPos = 0; iPos < QueueLen; iPos++)
 						{
-							UMat outMat_dest = GetDataOpenUMat(outMat, iPos);
+							//UMat outMat_dest = GetDataOpenUMat(outMat, iPos);
 							UMat outMatResize;
 							cv::UMat filter;
 
+							/*
 							{
 								const CFilterStep& fs = (*Steps)[1];
 
@@ -7540,6 +7685,10 @@ namespace avir {
 
 
 							}
+							*/
+
+							outMatResize = GetDataOpenUMat(resize, iPos);
+
 							{
 								const CFilterStep& fs = (*Steps)[2];
 
@@ -7553,10 +7702,11 @@ namespace avir {
 
 							}
 
-							outMat_dest.release();
+							//
 							outMatResize.release();
 							filter.release();
 						}
+						resize.release();
 						outMat.release();
 					}
 #endif
