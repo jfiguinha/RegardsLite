@@ -6151,7 +6151,7 @@ namespace avir {
 					}
 
 
-					UMat UpSample2D(cv::UMat& src, const int& width, const int& height, int widthSrc, int start, int ResampleFactor)
+					UMat UpSample2D(cv::UMat& src, const int& width, const int& height, int widthSrc, int start, int outLen, int ResampleFactor)
 					{
 						UMat paramSrc(height, width, CV_32FC4);
 						cl_mem_flags flag;
@@ -6193,6 +6193,11 @@ namespace avir {
 							paramStart->SetLibelle("start");
 							vecParam.push_back(paramStart);
 
+							auto paramOutLen = new COpenCLParameterInt();
+							paramOutLen->SetValue(outLen);
+							paramOutLen->SetLibelle("outLen");
+							vecParam.push_back(paramOutLen);
+
 							auto paramsrcResampleFactor = new COpenCLParameterInt();
 							paramsrcResampleFactor->SetValue(ResampleFactor);
 							paramsrcResampleFactor->SetLibelle("ResampleFactor");
@@ -6224,8 +6229,8 @@ namespace avir {
 								parameter->Add(static_cast<cl_kernel>(kernel.ptr()), numArg++);
 							}
 
-							size_t global_work_size[2] = { static_cast<size_t>(width), static_cast<size_t>(height) };
-							bool success = kernel.run(2, global_work_size, nullptr, true);
+							size_t global_work_size[1] = { static_cast<size_t>(width) };
+							bool success = kernel.run(1, global_work_size, nullptr, true);
 							if (!success)
 							{
 								throw std::runtime_error("Failed to execute OpenCL kernel.");
@@ -6659,7 +6664,7 @@ namespace avir {
 
 							auto paramIntFltLen = new COpenCLParameterInt();
 							paramIntFltLen->SetValue(iPos);
-							paramIntFltLen->SetLibelle("xPos");
+							paramIntFltLen->SetLibelle("yPos");
 							vecParam.push_back(paramIntFltLen);
 
 							// Récupération du code source du kernel
@@ -7472,6 +7477,18 @@ namespace avir {
 
 						UMat src_cvt = ConvertToFloat(src, SrcLen, QueueLen);
 
+						
+						UMat outMat;
+						
+						{
+							const CFilterStep& fs = (*Steps)[0];
+
+							int widthOut = fs.OutPrefix + fs.OutLen + fs.OutSuffix;
+							int start = fs.OutPrefix;
+							int stop = fs.OutSuffix;
+							outMat = UpSample2D(src_cvt, widthOut, QueueLen, SrcLen, start, fs.OutLen, fs.ResampleFactor);
+						}
+						
 						//tbb::parallel_for(0, QueueLen, [&](int i)
 						for (int iPos = 0; iPos < QueueLen; iPos++)
 						{
@@ -7480,23 +7497,64 @@ namespace avir {
 
 							//const CFilterStep& fs0 = (*Steps)[0];
 							//const int l = Vars->BufLen[0] + Vars->BufLen[1];
-							UMat srcFloat = GetDataOpenUMat(src_cvt, iPos);
-							
-							UMat outMat;
-							UMat outMatResize;
-							cv::UMat filter;
 
-							//const int Dsucharcr = (Vars->packmode == 0 ? Vars->ElCount : 1);
-							//const int ElCount = Vars->ElCount;
+							/*
+							UMat srcFloat_src = GetDataOpenUMat(src_cvt, iPos);
+							
+							UMat outMat_dest;
 							{
 								const CFilterStep& fs = (*Steps)[0];
 
 								int widthOut = fs.OutPrefix + fs.OutLen + fs.OutSuffix;
 								int start = fs.OutPrefix;
 								int stop = fs.OutSuffix;
-								outMat = UpSampleUMat(srcFloat, widthOut, 1, SrcLen, start, fs.ResampleFactor);
+								outMat_dest = UpSampleUMat(srcFloat_src, widthOut, 1, SrcLen, start, fs.ResampleFactor);
 
 							}
+							*/
+
+							UMat outMat_dest = GetDataOpenUMat(outMat, iPos);
+
+							/*
+							cv::Mat test1;
+							cv::Mat test2;
+
+							outMat_dest.copyTo(test1);
+							outMat_rel.copyTo(test2);
+
+							float* ptr1 = test1.ptr<float>(0);
+							float* ptr2 = test2.ptr<float>(0);
+
+							for (int u = 0; u < outMat_dest.size().width; u++)
+							{
+
+								if (ptr2[0] != ptr1[0])
+								{
+									printf("toto");
+								}
+								if (ptr2[1] != ptr1[1])
+								{
+									printf("toto");
+								}
+								if (ptr2[2] != ptr1[2])
+								{
+									printf("toto");
+								}
+								if (ptr2[3] != ptr1[3])
+								{
+									printf("toto");
+								}
+
+								ptr1 += 4;
+								ptr2 += 4;
+							}
+							*/
+							UMat outMatResize;
+							cv::UMat filter;
+
+							//const int Dsucharcr = (Vars->packmode == 0 ? Vars->ElCount : 1);
+							//const int ElCount = Vars->ElCount;
+
 
 							{
 								const CFilterStep& fs = (*Steps)[1];
@@ -7538,7 +7596,7 @@ namespace avir {
 
 								//doResize2OpenCL(outMat, DstLine, fs.OutLen, 1, PositionTab, ftpTab, IntFltLen0);
 
-								outMatResize = doResize2OpenCL(outMat, fs.OutLen, 1, PositionTab, ftpTab, IntFltLen0);
+								outMatResize = doResize2OpenCL(outMat_dest, fs.OutLen, 1, PositionTab, ftpTab, IntFltLen0);
 
 								printf("toot");
 
@@ -7559,12 +7617,12 @@ namespace avir {
 
 							}
 
-							srcFloat.release();
-							outMat.release();
+							//srcFloat.release();
+							
 							outMatResize.release();
 							filter.release();
 						}
-
+						//outMat.release();
 					}
 #endif
 					void resizeScanlineH(const uchar* const SrcBuf, float* const ResBuf)
