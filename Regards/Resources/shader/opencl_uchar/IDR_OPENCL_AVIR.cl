@@ -74,14 +74,14 @@ __kernel void ConvertToFloat(__global float4 * output, const __global uchar4 *in
     }
 }
 
-__kernel void ConvertToFloatPos(__global float4 * output, const __global uchar4 *input, int width, int height, int yPosition, int widthInput)
+__kernel void ConvertToFloatPos(__global float4 * output, const __global uchar4 *input, int width, int height, int yPosition)
 {
     int x = get_global_id(0);
 	int y = get_global_id(1);
 	if(x < width && y < height && y >= 0 && x >= 0)	
     {    
 	    int position = x + y * width;
-		int position_input = x + yPosition * widthInput;
+		int position_input = x + yPosition * width;
 	    output[position].x = convertSRGB2Lin(input[position_input].x);
 		output[position].y = convertSRGB2Lin(input[position_input].y);
 		output[position].z = convertSRGB2Lin(input[position_input].z);

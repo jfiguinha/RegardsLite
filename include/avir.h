@@ -3975,11 +3975,17 @@ namespace avir {
 				 * treated as `uint16_t`. Signed integer types are unsupported.
 				 */
 
-
+#ifdef OPENCL_FILTRE
+				void resizeImage(cv::UMat src, const uchar* const SrcBuf, const int SrcWidth,
+					const int SrcHeight, int SrcScanlineSize, uchar* const NewBuf,
+					const int NewWidth, const int NewHeight, const int ElCountIO,
+					const double k, CImageResizerVars* const aVars = nullptr) const
+#else
 				void resizeImage(const uchar* const SrcBuf, const int SrcWidth,
 					const int SrcHeight, int SrcScanlineSize, uchar* const NewBuf,
 					const int NewWidth, const int NewHeight, const int ElCountIO,
 					const double k, CImageResizerVars* const aVars = nullptr) const
+#endif
 				{
 					int UseBuildMode = 1;
 					static CThreadData td;
@@ -4146,9 +4152,11 @@ namespace avir {
 
 						updateBufLenAndRPosPtrs(FltSteps, Vars, NewWidth);
 
-
+#ifdef OPENCL_FILTRE
+						td.init(src, i, 1, FltSteps, Vars);
+#else
 						td.init(i, 1, FltSteps, Vars);
-
+#endif
 						td.initScanlineQueue(td.sopResizeH, SrcHeight,
 							SrcWidth);
 					}
@@ -5567,14 +5575,19 @@ namespace avir {
 					 * @param aSteps Filtering steps.
 					 * @param aVars Image resizer variables.
 					 */
-
-					void init(const int aThreadIndex, const int aThreadCount,
+#ifdef OPENCL_FILTRE
+					void init(cv::UMat src, const int aThreadIndex, const int aThreadCount,
 						const CFilterSteps& aSteps, const CImageResizerVars * aVars)
+#else
+					void init(const int aThreadIndex, const int aThreadCount,
+						const CFilterSteps& aSteps, const CImageResizerVars* aVars)
+#endif
 					{
 						ThreadIndex = aThreadIndex;
 						ThreadCount = aThreadCount;
 						Steps = &aSteps;
 						Vars = aVars;
+						this->src = src;
 					}
 
 					/**
@@ -5659,25 +5672,33 @@ namespace avir {
 					void processScanlineQueue()
 					{
 						int i;
-
+						
 						switch (ScanlineOp)
 						{
 						case sopResizeH:
 						{
-							resizeScanlineH();
-							/*
+#ifdef OPENCL_FILTRE
+							resizeScanlineH_OpenCL();
+#else
+							//resizeScanlineH();
+							
 							tbb::parallel_for(0, QueueLen, [&](int i)
 								{
 									resizeScanlineH((uchar*)Queue[i].SrcBuf,
 										(float*)Queue[i].ResBuf);
 								});
-							*/
+#endif
 							break;
 						}
 
 						case sopResizeV:
 						{
+#ifdef OPENCL_FILTRE
+							resizeScanlineV_OpenCL();
+							//resizeScanlineV();
+#else
 							resizeScanlineV();
+#endif
 							/*
 							tbb::parallel_for(0, QueueLen, [&](int i)
 							{
@@ -5756,7 +5777,10 @@ namespace avir {
 					int ResIncr; ///< Resulucharg scanline buffer increment in the last
 					///< queue.
 					CDitherer Ditherer; ///< Ditherer object to use.
-
+#ifdef OPENCL_FILTRE
+					cv::UMat src;
+					cv::UMat output;
+#endif
 					/**
 					 * @brief Scanline processing queue item.
 					 *
@@ -5783,6 +5807,176 @@ namespace avir {
 					 */
 
 #ifdef OPENCL_FILTRE
+
+					UMat ConvertToFloat(cv::UMat & src, const int& width, const int& height, const int & yPosition)
+					{
+						cl_mem_flags flag;
+						{
+							bool useMemory = (cv::ocl::Device::getDefault().type() == CL_DEVICE_TYPE_GPU) ? false : true;
+							flag = useMemory ? CL_MEM_USE_HOST_PTR : CL_MEM_COPY_HOST_PTR;
+
+							//cv::Mat  paramDest(height, width, CV_32FC4, dest);
+							// Crée un UMat avec le type CV_8UC4
+							UMat paramSrc(height, width, CV_32FC4);
+							auto clBuffer = static_cast<cl_mem>(paramSrc.handle(ACCESS_WRITE));
+
+
+							vector<COpenCLParameter*> vecParam;
+
+							auto clInputBuffer = static_cast<cl_mem>(src.handle(ACCESS_READ));
+							auto input = new COpenCLParameterClMem(true);
+							input->SetValue(clInputBuffer);
+							input->SetLibelle("input");
+							input->SetNoDelete(true);
+							vecParam.push_back(input);
+
+							auto paramWidth = new COpenCLParameterInt();
+							paramWidth->SetValue(width);
+							paramWidth->SetLibelle("width");
+							vecParam.push_back(paramWidth);
+
+							auto paramHeight = new COpenCLParameterInt();
+							paramHeight->SetValue(height);
+							paramHeight->SetLibelle("height");
+							vecParam.push_back(paramHeight);
+
+							auto paramyPosition = new COpenCLParameterInt();
+							paramyPosition->SetValue(yPosition);
+							paramyPosition->SetLibelle("yPosition");
+							vecParam.push_back(paramyPosition);
+
+							// Récupération du code source du kernel
+							wxString kernelSource = CLibResource::GetOpenCLUcharProgram("IDR_OPENCL_AVIR");
+							cv::ocl::ProgramSource programSource(kernelSource);
+							ocl::Context context = clExecCtx.getContext();
+
+							// Compilation du kernel
+							String errmsg;
+							String buildopt = ""; // Options de compilation (vide par défaut)
+							ocl::Program program = context.getProg(programSource, buildopt, errmsg);
+
+							ocl::Kernel kernel("ConvertToFloatPos", program);
+
+							// Définition du premier argument (outBuffer)
+							cl_int err = clSetKernelArg(static_cast<cl_kernel>(kernel.ptr()), 0, sizeof(cl_mem), &clBuffer);
+							if (err != CL_SUCCESS)
+							{
+								throw std::runtime_error("Failed to set kernel argument for outBuffer.");
+							}
+
+							// Ajout des autres arguments
+							int numArg = 1;
+							for (COpenCLParameter* parameter : vecParam)
+							{
+								parameter->Add(static_cast<cl_kernel>(kernel.ptr()), numArg++);
+							}
+
+							// Configuration et exécution du kernel
+							size_t global_work_size[2] = { static_cast<size_t>(width), static_cast<size_t>(height) };
+							bool success = kernel.run(2, global_work_size, nullptr, true);
+							if (!success)
+							{
+								throw std::runtime_error("Failed to execute OpenCL kernel.");
+							}
+
+							//COpenCLContext::GetOutputData(clBuffer, dest, width * height * sizeof(float) * 4, flag);
+
+							for (COpenCLParameter* parameter : vecParam)
+							{
+								if (!parameter->GetNoDelete())
+								{
+									delete parameter;
+									parameter = nullptr;
+								}
+							}
+
+							//paramSrc.copyTo(paramDest);
+							//memcpy(dest, paramDest.data, width * height * 4 * sizeof(float));
+							return paramSrc;
+						}
+					}
+
+					UMat ConvertToFloat(cv::UMat& src, const int& width, const int& height)
+					{
+						cl_mem_flags flag;
+						{
+							bool useMemory = (cv::ocl::Device::getDefault().type() == CL_DEVICE_TYPE_GPU) ? false : true;
+							flag = useMemory ? CL_MEM_USE_HOST_PTR : CL_MEM_COPY_HOST_PTR;
+
+							//cv::Mat  paramDest(height, width, CV_32FC4, dest);
+							// Crée un UMat avec le type CV_8UC4
+							UMat paramSrc(height, width, CV_32FC4);
+							auto clBuffer = static_cast<cl_mem>(paramSrc.handle(ACCESS_WRITE));
+
+
+							vector<COpenCLParameter*> vecParam;
+
+							auto clInputBuffer = static_cast<cl_mem>(src.handle(ACCESS_READ));
+							auto input = new COpenCLParameterClMem(true);
+							input->SetValue(clInputBuffer);
+							input->SetLibelle("input");
+							input->SetNoDelete(true);
+							vecParam.push_back(input);
+
+							auto paramWidth = new COpenCLParameterInt();
+							paramWidth->SetValue(width);
+							paramWidth->SetLibelle("width");
+							vecParam.push_back(paramWidth);
+
+							auto paramHeight = new COpenCLParameterInt();
+							paramHeight->SetValue(height);
+							paramHeight->SetLibelle("height");
+							vecParam.push_back(paramHeight);
+
+							// Récupération du code source du kernel
+							wxString kernelSource = CLibResource::GetOpenCLUcharProgram("IDR_OPENCL_AVIR");
+							cv::ocl::ProgramSource programSource(kernelSource);
+							ocl::Context context = clExecCtx.getContext();
+
+							// Compilation du kernel
+							String errmsg;
+							String buildopt = ""; // Options de compilation (vide par défaut)
+							ocl::Program program = context.getProg(programSource, buildopt, errmsg);
+
+							ocl::Kernel kernel("ConvertToFloat", program);
+
+							// Définition du premier argument (outBuffer)
+							cl_int err = clSetKernelArg(static_cast<cl_kernel>(kernel.ptr()), 0, sizeof(cl_mem), &clBuffer);
+							if (err != CL_SUCCESS)
+							{
+								throw std::runtime_error("Failed to set kernel argument for outBuffer.");
+							}
+
+							// Ajout des autres arguments
+							int numArg = 1;
+							for (COpenCLParameter* parameter : vecParam)
+							{
+								parameter->Add(static_cast<cl_kernel>(kernel.ptr()), numArg++);
+							}
+
+							// Configuration et exécution du kernel
+							size_t global_work_size[2] = { static_cast<size_t>(width), static_cast<size_t>(height) };
+							bool success = kernel.run(2, global_work_size, nullptr, true);
+							if (!success)
+							{
+								throw std::runtime_error("Failed to execute OpenCL kernel.");
+							}
+
+							//COpenCLContext::GetOutputData(clBuffer, dest, width * height * sizeof(float) * 4, flag);
+
+							for (COpenCLParameter* parameter : vecParam)
+							{
+								if (!parameter->GetNoDelete())
+								{
+									delete parameter;
+									parameter = nullptr;
+								}
+							}
+
+							return paramSrc;
+						}
+					}
+
 					UMat ConvertToFloat(const uchar * data, const int& width, const int& height)
 					{
 						cl_mem_flags flag;
@@ -5863,14 +6057,202 @@ namespace avir {
 						}
 					}
 
-					void UpSample(cv::UMat & src, float*& dest, const int& width, const int& height, int widthSrc, int start, int ResampleFactor)
+					UMat UpSampleUMat(cv::UMat& src, const int& width, const int& height, int widthSrc, int start, int ResampleFactor)
 					{
+						UMat paramSrc(height, width, CV_32FC4);
 						cl_mem_flags flag;
 						{
 							bool useMemory = (cv::ocl::Device::getDefault().type() == CL_DEVICE_TYPE_GPU) ? false : true;
 							flag = useMemory ? CL_MEM_USE_HOST_PTR : CL_MEM_COPY_HOST_PTR;
 
-							cv::Mat  paramDest(height, width, CV_32FC4, dest);
+
+							// Crée un UMat avec le type CV_8UC4
+							
+							auto clBuffer = static_cast<cl_mem>(paramSrc.handle(ACCESS_WRITE));
+
+							vector<COpenCLParameter*> vecParam;
+
+							auto clInputBuffer = static_cast<cl_mem>(src.handle(ACCESS_READ));
+							auto input = new COpenCLParameterClMem(true);
+							input->SetValue(clInputBuffer);
+							input->SetLibelle("input");
+							input->SetNoDelete(true);
+							vecParam.push_back(input);
+
+							auto paramWidth = new COpenCLParameterInt();
+							paramWidth->SetValue(width);
+							paramWidth->SetLibelle("width");
+							vecParam.push_back(paramWidth);
+
+							auto paramHeight = new COpenCLParameterInt();
+							paramHeight->SetValue(height);
+							paramHeight->SetLibelle("height");
+							vecParam.push_back(paramHeight);
+
+							auto paramWidthSrc = new COpenCLParameterInt();
+							paramWidthSrc->SetValue(widthSrc);
+							paramWidthSrc->SetLibelle("widthSrc");
+							vecParam.push_back(paramWidthSrc);
+
+							auto paramStart = new COpenCLParameterInt();
+							paramStart->SetValue(start);
+							paramStart->SetLibelle("start");
+							vecParam.push_back(paramStart);
+
+							auto paramsrcResampleFactor = new COpenCLParameterInt();
+							paramsrcResampleFactor->SetValue(ResampleFactor);
+							paramsrcResampleFactor->SetLibelle("ResampleFactor");
+							vecParam.push_back(paramsrcResampleFactor);
+
+							// Récupération du code source du kernel
+							wxString kernelSource = CLibResource::GetOpenCLUcharProgram("IDR_OPENCL_AVIR");
+							cv::ocl::ProgramSource programSource(kernelSource);
+							ocl::Context context = clExecCtx.getContext();
+
+							// Compilation du kernel
+							String errmsg;
+							String buildopt = ""; // Options de compilation (vide par défaut)
+							ocl::Program program = context.getProg(programSource, buildopt, errmsg);
+
+							ocl::Kernel kernel("UpSample", program);
+
+							// Définition du premier argument (outBuffer)
+							cl_int err = clSetKernelArg(static_cast<cl_kernel>(kernel.ptr()), 0, sizeof(cl_mem), &clBuffer);
+							if (err != CL_SUCCESS)
+							{
+								throw std::runtime_error("Failed to set kernel argument for outBuffer.");
+							}
+
+							// Ajout des autres arguments
+							int numArg = 1;
+							for (COpenCLParameter* parameter : vecParam)
+							{
+								parameter->Add(static_cast<cl_kernel>(kernel.ptr()), numArg++);
+							}
+
+							size_t global_work_size[1] = { static_cast<size_t>(width) };
+							bool success = kernel.run(1, global_work_size, nullptr, true);
+							if (!success)
+							{
+								throw std::runtime_error("Failed to execute OpenCL kernel.");
+							}
+
+							for (COpenCLParameter* parameter : vecParam)
+							{
+								if (!parameter->GetNoDelete())
+								{
+									delete parameter;
+									parameter = nullptr;
+								}
+							}
+
+						}
+						return paramSrc;
+					}
+
+
+					UMat UpSample2D(cv::UMat& src, const int& width, const int& height, int widthSrc, int start, int ResampleFactor)
+					{
+						UMat paramSrc(height, width, CV_32FC4);
+						cl_mem_flags flag;
+						{
+							bool useMemory = (cv::ocl::Device::getDefault().type() == CL_DEVICE_TYPE_GPU) ? false : true;
+							flag = useMemory ? CL_MEM_USE_HOST_PTR : CL_MEM_COPY_HOST_PTR;
+
+
+							// Crée un UMat avec le type CV_8UC4
+
+							auto clBuffer = static_cast<cl_mem>(paramSrc.handle(ACCESS_WRITE));
+
+							vector<COpenCLParameter*> vecParam;
+
+							auto clInputBuffer = static_cast<cl_mem>(src.handle(ACCESS_READ));
+							auto input = new COpenCLParameterClMem(true);
+							input->SetValue(clInputBuffer);
+							input->SetLibelle("input");
+							input->SetNoDelete(true);
+							vecParam.push_back(input);
+
+							auto paramWidth = new COpenCLParameterInt();
+							paramWidth->SetValue(width);
+							paramWidth->SetLibelle("width");
+							vecParam.push_back(paramWidth);
+
+							auto paramHeight = new COpenCLParameterInt();
+							paramHeight->SetValue(height);
+							paramHeight->SetLibelle("height");
+							vecParam.push_back(paramHeight);
+
+							auto paramWidthSrc = new COpenCLParameterInt();
+							paramWidthSrc->SetValue(widthSrc);
+							paramWidthSrc->SetLibelle("widthSrc");
+							vecParam.push_back(paramWidthSrc);
+
+							auto paramStart = new COpenCLParameterInt();
+							paramStart->SetValue(start);
+							paramStart->SetLibelle("start");
+							vecParam.push_back(paramStart);
+
+							auto paramsrcResampleFactor = new COpenCLParameterInt();
+							paramsrcResampleFactor->SetValue(ResampleFactor);
+							paramsrcResampleFactor->SetLibelle("ResampleFactor");
+							vecParam.push_back(paramsrcResampleFactor);
+
+							// Récupération du code source du kernel
+							wxString kernelSource = CLibResource::GetOpenCLUcharProgram("IDR_OPENCL_AVIR");
+							cv::ocl::ProgramSource programSource(kernelSource);
+							ocl::Context context = clExecCtx.getContext();
+
+							// Compilation du kernel
+							String errmsg;
+							String buildopt = ""; // Options de compilation (vide par défaut)
+							ocl::Program program = context.getProg(programSource, buildopt, errmsg);
+
+							ocl::Kernel kernel("UpSample2D", program);
+
+							// Définition du premier argument (outBuffer)
+							cl_int err = clSetKernelArg(static_cast<cl_kernel>(kernel.ptr()), 0, sizeof(cl_mem), &clBuffer);
+							if (err != CL_SUCCESS)
+							{
+								throw std::runtime_error("Failed to set kernel argument for outBuffer.");
+							}
+
+							// Ajout des autres arguments
+							int numArg = 1;
+							for (COpenCLParameter* parameter : vecParam)
+							{
+								parameter->Add(static_cast<cl_kernel>(kernel.ptr()), numArg++);
+							}
+
+							size_t global_work_size[2] = { static_cast<size_t>(width), static_cast<size_t>(height) };
+							bool success = kernel.run(2, global_work_size, nullptr, true);
+							if (!success)
+							{
+								throw std::runtime_error("Failed to execute OpenCL kernel.");
+							}
+
+							for (COpenCLParameter* parameter : vecParam)
+							{
+								if (!parameter->GetNoDelete())
+								{
+									delete parameter;
+									parameter = nullptr;
+								}
+							}
+
+						}
+						return paramSrc;
+					}
+
+					float* UpSample(cv::UMat & src, float*& dest, const int& width, const int& height, int widthSrc, int start, int ResampleFactor)
+					{
+						cv::Mat  paramDest(height, width, CV_32FC4, dest);
+						cl_mem_flags flag;
+						{
+							bool useMemory = (cv::ocl::Device::getDefault().type() == CL_DEVICE_TYPE_GPU) ? false : true;
+							flag = useMemory ? CL_MEM_USE_HOST_PTR : CL_MEM_COPY_HOST_PTR;
+
+							
 							// Crée un UMat avec le type CV_8UC4
 							UMat paramSrc(height, width, CV_32FC4);
 							auto clBuffer = static_cast<cl_mem>(paramSrc.handle(ACCESS_WRITE));
@@ -5956,31 +6338,23 @@ namespace avir {
 							//return paramDest;
 							//memcpy(dest, paramDest.data, width * height * 4 * sizeof(float));
 						}
+						return dest;
 					}
 
-					void doResizeOpenCL(cv::UMat& src, float*& dest, int heightOut, const int& width, const int& height, 
-						const std::vector<float>& rposBuf, const std::vector<float>& fltBank, int IntFltLen, int ElCount, 
-						int OutLen, int DstLineIncr, int FltOrder)
+					UMat doResize2OpenCL(cv::UMat& src,const int& width, const int& height,
+						const std::vector<int>& PositionTab, const std::vector<float>& ftp, int IntFltLen)
 					{
+						UMat paramOutput(height, width, CV_32FC4);
 						cl_mem_flags flag;
 						{
 							bool useMemory = (cv::ocl::Device::getDefault().type() == CL_DEVICE_TYPE_GPU) ? false : true;
 							flag = useMemory ? CL_MEM_USE_HOST_PTR : CL_MEM_COPY_HOST_PTR;
 
-							cv::Mat  paramDest(heightOut, width, CV_32FC4, dest);
-							// Crée un UMat avec le type CV_8UC4
-							UMat paramSrc(heightOut, width, CV_32FC4);
-							auto clBuffer = static_cast<cl_mem>(paramSrc.handle(ACCESS_WRITE));
-
 							vector<COpenCLParameter*> vecParam;
+							// Crée un UMat avec le type CV_8UC4
+							
+							auto clBuffer = static_cast<cl_mem>(paramOutput.handle(ACCESS_WRITE));
 
-							/*
-
-							COpenCLParameterFloatArray* input = new COpenCLParameterFloatArray();
-							input->SetLibelle("input");
-							input->SetValue((cl_context)clExecCtx.getContext().ptr(), (float*)data, width * height * 4 * sizeof(float), flag);
-							vecParam.push_back(input);
-							*/
 							auto clInputBuffer = static_cast<cl_mem>(src.handle(ACCESS_READ));
 							auto input = new COpenCLParameterClMem(true);
 							input->SetValue(clInputBuffer);
@@ -5998,14 +6372,14 @@ namespace avir {
 							paramHeight->SetLibelle("height");
 							vecParam.push_back(paramHeight);
 
-							COpenCLParameterFloatArray* paramrPos = new COpenCLParameterFloatArray();
-							paramrPos->SetLibelle("rposBuf");
-							paramrPos->SetValue((cl_context)clExecCtx.getContext().ptr(), (float*)&rposBuf.at(0), rposBuf.size() * sizeof(float), flag);
+							COpenCLParameterIntArray* paramrPos = new COpenCLParameterIntArray();
+							paramrPos->SetLibelle("PositionTab");
+							paramrPos->SetValue((cl_context)clExecCtx.getContext().ptr(), (int*)&PositionTab.at(0), PositionTab.size(), flag);
 							vecParam.push_back(paramrPos);
 
 							COpenCLParameterFloatArray* paramrfltBank = new COpenCLParameterFloatArray();
-							paramrfltBank->SetLibelle("fltBank");
-							paramrfltBank->SetValue((cl_context)clExecCtx.getContext().ptr(), (float*)&fltBank.at(0), rposBuf.size() * sizeof(float), flag);
+							paramrfltBank->SetLibelle("ftp");
+							paramrfltBank->SetValue((cl_context)clExecCtx.getContext().ptr(), (float*)&ftp.at(0), ftp.size(), flag);
 							vecParam.push_back(paramrfltBank);
 
 							auto paramIntFltLen = new COpenCLParameterInt();
@@ -6013,27 +6387,10 @@ namespace avir {
 							paramIntFltLen->SetLibelle("IntFltLen");
 							vecParam.push_back(paramIntFltLen);
 
-							auto paramsrcElCount = new COpenCLParameterInt();
-							paramsrcElCount->SetValue(ElCount);
-							paramsrcElCount->SetLibelle("ElCount");
-							vecParam.push_back(paramsrcElCount);
-
-							auto paramsrcOutLen = new COpenCLParameterInt();
-							paramsrcOutLen->SetValue(OutLen);
-							paramsrcOutLen->SetLibelle("OutLen");
-							vecParam.push_back(paramsrcOutLen);
-
-							auto paramsrcDstLineIncr = new COpenCLParameterInt();
-							paramsrcDstLineIncr->SetValue(DstLineIncr);
-							paramsrcDstLineIncr->SetLibelle("DstLineIncr");
-							vecParam.push_back(paramsrcDstLineIncr);
-
-
-							auto paramsrcFltOrder = new COpenCLParameterInt();
-							paramsrcFltOrder->SetValue(FltOrder);
-							paramsrcFltOrder->SetLibelle("FltOrder");
-							vecParam.push_back(paramsrcFltOrder);
-
+							auto paramWidthInput = new COpenCLParameterInt();
+							paramWidthInput->SetValue(src.size().width);
+							paramWidthInput->SetLibelle("inputWidth");
+							vecParam.push_back(paramWidthInput);
 							// Récupération du code source du kernel
 							wxString kernelSource = CLibResource::GetOpenCLUcharProgram("IDR_OPENCL_AVIR");
 							cv::ocl::ProgramSource programSource(kernelSource);
@@ -6044,7 +6401,7 @@ namespace avir {
 							String buildopt = ""; // Options de compilation (vide par défaut)
 							ocl::Program program = context.getProg(programSource, buildopt, errmsg);
 
-							ocl::Kernel kernel("UpSample", program);
+							ocl::Kernel kernel("doResize2", program);
 
 							// Définition du premier argument (outBuffer)
 							cl_int err = clSetKernelArg(static_cast<cl_kernel>(kernel.ptr()), 0, sizeof(cl_mem), &clBuffer);
@@ -6060,7 +6417,102 @@ namespace avir {
 								parameter->Add(static_cast<cl_kernel>(kernel.ptr()), numArg++);
 							}
 
-							size_t global_work_size[1] = { static_cast<size_t>(OutLen) };
+							size_t global_work_size[1] = { static_cast<size_t>(width) };
+							bool success = kernel.run(1, global_work_size, nullptr, true);
+							if (!success)
+							{
+								throw std::runtime_error("Failed to execute OpenCL kernel.");
+							}
+
+							for (COpenCLParameter* parameter : vecParam)
+							{
+								if (!parameter->GetNoDelete())
+								{
+									delete parameter;
+									parameter = nullptr;
+								}
+							}
+						}
+						return paramOutput;
+					}
+
+					void doResize2OpenCL(cv::UMat& src, float*& dest, const int& width, const int& height, 
+						const std::vector<int>& PositionTab, const std::vector<float>& ftp, int IntFltLen)
+					{
+						cl_mem_flags flag;
+						{
+							bool useMemory = (cv::ocl::Device::getDefault().type() == CL_DEVICE_TYPE_GPU) ? false : true;
+							flag = useMemory ? CL_MEM_USE_HOST_PTR : CL_MEM_COPY_HOST_PTR;
+
+							cv::Mat paramDest(height, width, CV_32FC4, dest);
+							vector<COpenCLParameter*> vecParam;
+							// Crée un UMat avec le type CV_8UC4
+							UMat paramOutput(height, width, CV_32FC4);
+							auto clBuffer = static_cast<cl_mem>(paramOutput.handle(ACCESS_WRITE));
+
+							auto clInputBuffer = static_cast<cl_mem>(src.handle(ACCESS_READ));
+							auto input = new COpenCLParameterClMem(true);
+							input->SetValue(clInputBuffer);
+							input->SetLibelle("input");
+							input->SetNoDelete(true);
+							vecParam.push_back(input);
+
+							auto paramWidth = new COpenCLParameterInt();
+							paramWidth->SetValue(width);
+							paramWidth->SetLibelle("width");
+							vecParam.push_back(paramWidth);
+
+							auto paramHeight = new COpenCLParameterInt();
+							paramHeight->SetValue(height);
+							paramHeight->SetLibelle("height");
+							vecParam.push_back(paramHeight);
+
+							COpenCLParameterIntArray* paramrPos = new COpenCLParameterIntArray();
+							paramrPos->SetLibelle("PositionTab");
+							paramrPos->SetValue((cl_context)clExecCtx.getContext().ptr(), (int*)&PositionTab.at(0), PositionTab.size(), flag);
+							vecParam.push_back(paramrPos);
+
+							COpenCLParameterFloatArray* paramrfltBank = new COpenCLParameterFloatArray();
+							paramrfltBank->SetLibelle("ftp");
+							paramrfltBank->SetValue((cl_context)clExecCtx.getContext().ptr(), (float*)&ftp.at(0), ftp.size(), flag);
+							vecParam.push_back(paramrfltBank);
+
+							auto paramIntFltLen = new COpenCLParameterInt();
+							paramIntFltLen->SetValue(IntFltLen);
+							paramIntFltLen->SetLibelle("IntFltLen");
+							vecParam.push_back(paramIntFltLen);
+
+							auto paramWidthInput = new COpenCLParameterInt();
+							paramWidthInput->SetValue(src.size().width);
+							paramWidthInput->SetLibelle("inputWidth");
+							vecParam.push_back(paramWidthInput);
+							// Récupération du code source du kernel
+							wxString kernelSource = CLibResource::GetOpenCLUcharProgram("IDR_OPENCL_AVIR");
+							cv::ocl::ProgramSource programSource(kernelSource);
+							ocl::Context context = clExecCtx.getContext();
+
+							// Compilation du kernel
+							String errmsg;
+							String buildopt = ""; // Options de compilation (vide par défaut)
+							ocl::Program program = context.getProg(programSource, buildopt, errmsg);
+
+							ocl::Kernel kernel("doResize2", program);
+
+							// Définition du premier argument (outBuffer)
+							cl_int err = clSetKernelArg(static_cast<cl_kernel>(kernel.ptr()), 0, sizeof(cl_mem), &clBuffer);
+							if (err != CL_SUCCESS)
+							{
+								throw std::runtime_error("Failed to set kernel argument for outBuffer.");
+							}
+
+							// Ajout des autres arguments
+							int numArg = 1;
+							for (COpenCLParameter* parameter : vecParam)
+							{
+								parameter->Add(static_cast<cl_kernel>(kernel.ptr()), numArg++);
+							}
+
+							size_t global_work_size[1] = { static_cast<size_t>(width) };
 							bool success = kernel.run(1, global_work_size, nullptr, true);
 							if (!success)
 							{
@@ -6076,20 +6528,612 @@ namespace avir {
 								}
 							}
 
-							paramSrc.copyTo(paramDest);
+							paramOutput.copyTo(paramDest);
 							//return paramDest;
 							//memcpy(dest, paramDest.data, width * height * 4 * sizeof(float));
+						}
+					}
+
+
+					void doFilterOpenCL(cv::UMat& src, float*& dest, const int& width, const int& height,
+						const float* f, int flen)
+					{
+						cl_mem_flags flag;
+						{
+							bool useMemory = (cv::ocl::Device::getDefault().type() == CL_DEVICE_TYPE_GPU) ? false : true;
+							flag = useMemory ? CL_MEM_USE_HOST_PTR : CL_MEM_COPY_HOST_PTR;
+
+							cv::Mat paramDest(height, width, CV_32FC4, dest);
+							vector<COpenCLParameter*> vecParam;
+							// Crée un UMat avec le type CV_8UC4
+							UMat paramOutput(height, width, CV_32FC4);
+							auto clBuffer = static_cast<cl_mem>(paramOutput.handle(ACCESS_WRITE));
+
+							auto clInputBuffer = static_cast<cl_mem>(src.handle(ACCESS_READ));
+							auto input = new COpenCLParameterClMem(true);
+							input->SetValue(clInputBuffer);
+							input->SetLibelle("input");
+							input->SetNoDelete(true);
+							vecParam.push_back(input);
+
+							auto paramWidth = new COpenCLParameterInt();
+							paramWidth->SetValue(width);
+							paramWidth->SetLibelle("width");
+							vecParam.push_back(paramWidth);
+
+							auto paramHeight = new COpenCLParameterInt();
+							paramHeight->SetValue(height);
+							paramHeight->SetLibelle("height");
+							vecParam.push_back(paramHeight);
+
+							COpenCLParameterFloatArray* paramrfltBank = new COpenCLParameterFloatArray();
+							paramrfltBank->SetLibelle("f");
+							paramrfltBank->SetValue((cl_context)clExecCtx.getContext().ptr(), (float *)f, flen, flag);
+							vecParam.push_back(paramrfltBank);
+
+							auto paramIntFltLen = new COpenCLParameterInt();
+							paramIntFltLen->SetValue(flen);
+							paramIntFltLen->SetLibelle("flen");
+							vecParam.push_back(paramIntFltLen);
+
+							// Récupération du code source du kernel
+							wxString kernelSource = CLibResource::GetOpenCLUcharProgram("IDR_OPENCL_AVIR");
+							cv::ocl::ProgramSource programSource(kernelSource);
+							ocl::Context context = clExecCtx.getContext();
+
+							// Compilation du kernel
+							String errmsg;
+							String buildopt = ""; // Options de compilation (vide par défaut)
+							ocl::Program program = context.getProg(programSource, buildopt, errmsg);
+
+							ocl::Kernel kernel("doFilter", program);
+
+							// Définition du premier argument (outBuffer)
+							cl_int err = clSetKernelArg(static_cast<cl_kernel>(kernel.ptr()), 0, sizeof(cl_mem), &clBuffer);
+							if (err != CL_SUCCESS)
+							{
+								throw std::runtime_error("Failed to set kernel argument for outBuffer.");
+							}
+
+							// Ajout des autres arguments
+							int numArg = 1;
+							for (COpenCLParameter* parameter : vecParam)
+							{
+								parameter->Add(static_cast<cl_kernel>(kernel.ptr()), numArg++);
+							}
+
+							size_t global_work_size[1] = { static_cast<size_t>(width) };
+							bool success = kernel.run(1, global_work_size, nullptr, true);
+							if (!success)
+							{
+								throw std::runtime_error("Failed to execute OpenCL kernel.");
+							}
+
+							for (COpenCLParameter* parameter : vecParam)
+							{
+								if (!parameter->GetNoDelete())
+								{
+									delete parameter;
+									parameter = nullptr;
+								}
+							}
+
+							paramOutput.copyTo(paramDest);
+							//return paramDest;
+							//memcpy(dest, paramDest.data, width * height * 4 * sizeof(float));
+						}
+					}
+
+					cv::UMat GetDataOpenUMat(cv::UMat& src, const int& iPos)
+					{
+						UMat paramOutput(1, src.size().width, CV_32FC4);
+						cl_mem_flags flag;
+						{
+
+
+							bool useMemory = (cv::ocl::Device::getDefault().type() == CL_DEVICE_TYPE_GPU) ? false : true;
+							flag = useMemory ? CL_MEM_USE_HOST_PTR : CL_MEM_COPY_HOST_PTR;
+
+							vector<COpenCLParameter*> vecParam;
+							// Crée un UMat avec le type CV_8UC4
+							
+							auto clBuffer = static_cast<cl_mem>(paramOutput.handle(ACCESS_WRITE));
+
+							auto clInputBuffer = static_cast<cl_mem>(src.handle(ACCESS_READ));
+							auto input = new COpenCLParameterClMem(true);
+							input->SetValue(clInputBuffer);
+							input->SetLibelle("input");
+							input->SetNoDelete(true);
+							vecParam.push_back(input);
+
+
+							auto paramWidth = new COpenCLParameterInt();
+							paramWidth->SetValue(src.size().width);
+							paramWidth->SetLibelle("width");
+							vecParam.push_back(paramWidth);
+
+							auto paramHeight = new COpenCLParameterInt();
+							paramHeight->SetValue(src.size().height);
+							paramHeight->SetLibelle("height");
+							vecParam.push_back(paramHeight);
+
+							auto paramIntFltLen = new COpenCLParameterInt();
+							paramIntFltLen->SetValue(iPos);
+							paramIntFltLen->SetLibelle("xPos");
+							vecParam.push_back(paramIntFltLen);
+
+							// Récupération du code source du kernel
+							wxString kernelSource = CLibResource::GetOpenCLUcharProgram("IDR_OPENCL_AVIR");
+							cv::ocl::ProgramSource programSource(kernelSource);
+							ocl::Context context = clExecCtx.getContext();
+
+							// Compilation du kernel
+							String errmsg;
+							String buildopt = ""; // Options de compilation (vide par défaut)
+							ocl::Program program = context.getProg(programSource, buildopt, errmsg);
+
+							ocl::Kernel kernel("GetData", program);
+
+							// Définition du premier argument (outBuffer)
+							cl_int err = clSetKernelArg(static_cast<cl_kernel>(kernel.ptr()), 0, sizeof(cl_mem), &clBuffer);
+							if (err != CL_SUCCESS)
+							{
+								throw std::runtime_error("Failed to set kernel argument for outBuffer.");
+							}
+
+							// Ajout des autres arguments
+							int numArg = 1;
+							for (COpenCLParameter* parameter : vecParam)
+							{
+								parameter->Add(static_cast<cl_kernel>(kernel.ptr()), numArg++);
+							}
+
+							size_t global_work_size[1] = { static_cast<size_t>(src.size().width) };
+							bool success = kernel.run(1, global_work_size, nullptr, true);
+							if (!success)
+							{
+								throw std::runtime_error("Failed to execute OpenCL kernel.");
+							}
+
+							for (COpenCLParameter* parameter : vecParam)
+							{
+								if (!parameter->GetNoDelete())
+								{
+									delete parameter;
+									parameter = nullptr;
+								}
+							}
+						}
+						return paramOutput;
+					}
+
+					cv::Mat GetDataOpenCL(cv::UMat& src, const int& iPos)
+					{
+						cv::Mat paramDest(1, src.size().width, CV_32FC4);
+						cl_mem_flags flag;
+						{
+
+							
+							bool useMemory = (cv::ocl::Device::getDefault().type() == CL_DEVICE_TYPE_GPU) ? false : true;
+							flag = useMemory ? CL_MEM_USE_HOST_PTR : CL_MEM_COPY_HOST_PTR;
+
+							vector<COpenCLParameter*> vecParam;
+							// Crée un UMat avec le type CV_8UC4
+							UMat paramOutput(1, src.size().width, CV_32FC4);
+							auto clBuffer = static_cast<cl_mem>(paramOutput.handle(ACCESS_WRITE));
+
+							auto clInputBuffer = static_cast<cl_mem>(src.handle(ACCESS_READ));
+							auto input = new COpenCLParameterClMem(true);
+							input->SetValue(clInputBuffer);
+							input->SetLibelle("input");
+							input->SetNoDelete(true);
+							vecParam.push_back(input);
+
+
+							auto paramWidth = new COpenCLParameterInt();
+							paramWidth->SetValue(src.size().width);
+							paramWidth->SetLibelle("width");
+							vecParam.push_back(paramWidth);
+
+							auto paramHeight = new COpenCLParameterInt();
+							paramHeight->SetValue(src.size().height);
+							paramHeight->SetLibelle("height");
+							vecParam.push_back(paramHeight);
+
+							auto paramIntFltLen = new COpenCLParameterInt();
+							paramIntFltLen->SetValue(iPos);
+							paramIntFltLen->SetLibelle("xPos");
+							vecParam.push_back(paramIntFltLen);
+
+							// Récupération du code source du kernel
+							wxString kernelSource = CLibResource::GetOpenCLUcharProgram("IDR_OPENCL_AVIR");
+							cv::ocl::ProgramSource programSource(kernelSource);
+							ocl::Context context = clExecCtx.getContext();
+
+							// Compilation du kernel
+							String errmsg;
+							String buildopt = ""; // Options de compilation (vide par défaut)
+							ocl::Program program = context.getProg(programSource, buildopt, errmsg);
+
+							ocl::Kernel kernel("GetData", program);
+
+							// Définition du premier argument (outBuffer)
+							cl_int err = clSetKernelArg(static_cast<cl_kernel>(kernel.ptr()), 0, sizeof(cl_mem), &clBuffer);
+							if (err != CL_SUCCESS)
+							{
+								throw std::runtime_error("Failed to set kernel argument for outBuffer.");
+							}
+
+							// Ajout des autres arguments
+							int numArg = 1;
+							for (COpenCLParameter* parameter : vecParam)
+							{
+								parameter->Add(static_cast<cl_kernel>(kernel.ptr()), numArg++);
+							}
+
+							size_t global_work_size[1] = { static_cast<size_t>(src.size().width) };
+							bool success = kernel.run(1, global_work_size, nullptr, true);
+							if (!success)
+							{
+								throw std::runtime_error("Failed to execute OpenCL kernel.");
+							}
+
+							for (COpenCLParameter* parameter : vecParam)
+							{
+								if (!parameter->GetNoDelete())
+								{
+									delete parameter;
+									parameter = nullptr;
+								}
+							}
+
+							paramOutput.copyTo(paramDest);
+						}
+						return paramDest;
+					}
+
+
+					cv::Mat GetDataOpenCLHtoV(cv::UMat& src, const int& iPos)
+					{
+						cv::Mat paramDest(1, src.size().height, CV_32FC4);
+						cl_mem_flags flag;
+						{
+
+
+							bool useMemory = (cv::ocl::Device::getDefault().type() == CL_DEVICE_TYPE_GPU) ? false : true;
+							flag = useMemory ? CL_MEM_USE_HOST_PTR : CL_MEM_COPY_HOST_PTR;
+
+							vector<COpenCLParameter*> vecParam;
+							// Crée un UMat avec le type CV_8UC4
+							UMat paramOutput(1, src.size().height, CV_32FC4);
+							auto clBuffer = static_cast<cl_mem>(paramOutput.handle(ACCESS_WRITE));
+
+							auto clInputBuffer = static_cast<cl_mem>(src.handle(ACCESS_READ));
+							auto input = new COpenCLParameterClMem(true);
+							input->SetValue(clInputBuffer);
+							input->SetLibelle("input");
+							input->SetNoDelete(true);
+							vecParam.push_back(input);
+
+
+							auto paramWidth = new COpenCLParameterInt();
+							paramWidth->SetValue(src.size().width);
+							paramWidth->SetLibelle("width");
+							vecParam.push_back(paramWidth);
+
+							auto paramHeight = new COpenCLParameterInt();
+							paramHeight->SetValue(src.size().height);
+							paramHeight->SetLibelle("height");
+							vecParam.push_back(paramHeight);
+
+							auto paramIntFltLen = new COpenCLParameterInt();
+							paramIntFltLen->SetValue(iPos);
+							paramIntFltLen->SetLibelle("xPos");
+							vecParam.push_back(paramIntFltLen);
+
+							// Récupération du code source du kernel
+							wxString kernelSource = CLibResource::GetOpenCLUcharProgram("IDR_OPENCL_AVIR");
+							cv::ocl::ProgramSource programSource(kernelSource);
+							ocl::Context context = clExecCtx.getContext();
+
+							// Compilation du kernel
+							String errmsg;
+							String buildopt = ""; // Options de compilation (vide par défaut)
+							ocl::Program program = context.getProg(programSource, buildopt, errmsg);
+
+							ocl::Kernel kernel("GetDataHtoV", program);
+
+							// Définition du premier argument (outBuffer)
+							cl_int err = clSetKernelArg(static_cast<cl_kernel>(kernel.ptr()), 0, sizeof(cl_mem), &clBuffer);
+							if (err != CL_SUCCESS)
+							{
+								throw std::runtime_error("Failed to set kernel argument for outBuffer.");
+							}
+
+							// Ajout des autres arguments
+							int numArg = 1;
+							for (COpenCLParameter* parameter : vecParam)
+							{
+								parameter->Add(static_cast<cl_kernel>(kernel.ptr()), numArg++);
+							}
+
+							size_t global_work_size[1] = { static_cast<size_t>(src.size().height) };
+							bool success = kernel.run(1, global_work_size, nullptr, true);
+							if (!success)
+							{
+								throw std::runtime_error("Failed to execute OpenCL kernel.");
+							}
+
+							for (COpenCLParameter* parameter : vecParam)
+							{
+								if (!parameter->GetNoDelete())
+								{
+									delete parameter;
+									parameter = nullptr;
+								}
+							}
+
+							paramOutput.copyTo(paramDest);
+						}
+						return paramDest;
+					}
+
+
+					void GetDataOpenCLHtoV(cv::UMat& src, float * & dest, const int& iPos)
+					{
+						cv::Mat paramDest(1, src.size().height, CV_32FC4, dest);
+						cl_mem_flags flag;
+						{
+
+
+							bool useMemory = (cv::ocl::Device::getDefault().type() == CL_DEVICE_TYPE_GPU) ? false : true;
+							flag = useMemory ? CL_MEM_USE_HOST_PTR : CL_MEM_COPY_HOST_PTR;
+
+							vector<COpenCLParameter*> vecParam;
+							// Crée un UMat avec le type CV_8UC4
+							UMat paramOutput(1, src.size().height, CV_32FC4);
+							auto clBuffer = static_cast<cl_mem>(paramOutput.handle(ACCESS_WRITE));
+
+							auto clInputBuffer = static_cast<cl_mem>(src.handle(ACCESS_READ));
+							auto input = new COpenCLParameterClMem(true);
+							input->SetValue(clInputBuffer);
+							input->SetLibelle("input");
+							input->SetNoDelete(true);
+							vecParam.push_back(input);
+
+
+							auto paramWidth = new COpenCLParameterInt();
+							paramWidth->SetValue(src.size().width);
+							paramWidth->SetLibelle("width");
+							vecParam.push_back(paramWidth);
+
+							auto paramHeight = new COpenCLParameterInt();
+							paramHeight->SetValue(src.size().height);
+							paramHeight->SetLibelle("height");
+							vecParam.push_back(paramHeight);
+
+							auto paramIntFltLen = new COpenCLParameterInt();
+							paramIntFltLen->SetValue(iPos);
+							paramIntFltLen->SetLibelle("xPos");
+							vecParam.push_back(paramIntFltLen);
+
+							// Récupération du code source du kernel
+							wxString kernelSource = CLibResource::GetOpenCLUcharProgram("IDR_OPENCL_AVIR");
+							cv::ocl::ProgramSource programSource(kernelSource);
+							ocl::Context context = clExecCtx.getContext();
+
+							// Compilation du kernel
+							String errmsg;
+							String buildopt = ""; // Options de compilation (vide par défaut)
+							ocl::Program program = context.getProg(programSource, buildopt, errmsg);
+
+							ocl::Kernel kernel("GetDataHtoV", program);
+
+							// Définition du premier argument (outBuffer)
+							cl_int err = clSetKernelArg(static_cast<cl_kernel>(kernel.ptr()), 0, sizeof(cl_mem), &clBuffer);
+							if (err != CL_SUCCESS)
+							{
+								throw std::runtime_error("Failed to set kernel argument for outBuffer.");
+							}
+
+							// Ajout des autres arguments
+							int numArg = 1;
+							for (COpenCLParameter* parameter : vecParam)
+							{
+								parameter->Add(static_cast<cl_kernel>(kernel.ptr()), numArg++);
+							}
+
+							size_t global_work_size[1] = { static_cast<size_t>(src.size().height) };
+							bool success = kernel.run(1, global_work_size, nullptr, true);
+							if (!success)
+							{
+								throw std::runtime_error("Failed to execute OpenCL kernel.");
+							}
+
+							for (COpenCLParameter* parameter : vecParam)
+							{
+								if (!parameter->GetNoDelete())
+								{
+									delete parameter;
+									parameter = nullptr;
+								}
+							}
+
+							paramOutput.copyTo(paramDest);
+						}
+						//return paramDest;
+					}
+
+					void doCopyOpenCL_UMat(cv::UMat& output, cv::UMat& src, const int &iPos)
+					{
+						cl_mem_flags flag;
+						{
+							bool useMemory = (cv::ocl::Device::getDefault().type() == CL_DEVICE_TYPE_GPU) ? false : true;
+							flag = useMemory ? CL_MEM_USE_HOST_PTR : CL_MEM_COPY_HOST_PTR;
+
+							vector<COpenCLParameter*> vecParam;
+							// Crée un UMat avec le type CV_8UC4
+
+							auto clBuffer = static_cast<cl_mem>(output.handle(ACCESS_WRITE));
+
+							auto clInputBuffer = static_cast<cl_mem>(src.handle(ACCESS_READ));
+							auto input = new COpenCLParameterClMem(true);
+							input->SetValue(clInputBuffer);
+							input->SetLibelle("input");
+							input->SetNoDelete(true);
+							vecParam.push_back(input);
+
+							auto paramWidth = new COpenCLParameterInt();
+							paramWidth->SetValue(src.size().width);
+							paramWidth->SetLibelle("width");
+							vecParam.push_back(paramWidth);
+
+							auto paramIntFltLen = new COpenCLParameterInt();
+							paramIntFltLen->SetValue(iPos);
+							paramIntFltLen->SetLibelle("heightPosition");
+							vecParam.push_back(paramIntFltLen);
+
+							// Récupération du code source du kernel
+							wxString kernelSource = CLibResource::GetOpenCLUcharProgram("IDR_OPENCL_AVIR");
+							cv::ocl::ProgramSource programSource(kernelSource);
+							ocl::Context context = clExecCtx.getContext();
+
+							// Compilation du kernel
+							String errmsg;
+							String buildopt = ""; // Options de compilation (vide par défaut)
+							ocl::Program program = context.getProg(programSource, buildopt, errmsg);
+
+							ocl::Kernel kernel("doCopy", program);
+
+							// Définition du premier argument (outBuffer)
+							cl_int err = clSetKernelArg(static_cast<cl_kernel>(kernel.ptr()), 0, sizeof(cl_mem), &clBuffer);
+							if (err != CL_SUCCESS)
+							{
+								throw std::runtime_error("Failed to set kernel argument for outBuffer.");
+							}
+
+							// Ajout des autres arguments
+							int numArg = 1;
+							for (COpenCLParameter* parameter : vecParam)
+							{
+								parameter->Add(static_cast<cl_kernel>(kernel.ptr()), numArg++);
+							}
+
+							size_t global_work_size[1] = { static_cast<size_t>(src.size().width) };
+							bool success = kernel.run(1, global_work_size, nullptr, true);
+							if (!success)
+							{
+								throw std::runtime_error("Failed to execute OpenCL kernel.");
+							}
+
+							for (COpenCLParameter* parameter : vecParam)
+							{
+								if (!parameter->GetNoDelete())
+								{
+									delete parameter;
+									parameter = nullptr;
+								}
+							}
+						}
+					}
+
+					UMat doFilterOpenCL_UMat(cv::UMat& src, const int& width, const int& height,
+						const float* f, int flen)
+					{
+						UMat paramOutput(height, width, CV_32FC4);
+						cl_mem_flags flag;
+						{
+							bool useMemory = (cv::ocl::Device::getDefault().type() == CL_DEVICE_TYPE_GPU) ? false : true;
+							flag = useMemory ? CL_MEM_USE_HOST_PTR : CL_MEM_COPY_HOST_PTR;
+
+							vector<COpenCLParameter*> vecParam;
+							// Crée un UMat avec le type CV_8UC4
+							
+							auto clBuffer = static_cast<cl_mem>(paramOutput.handle(ACCESS_WRITE));
+
+							auto clInputBuffer = static_cast<cl_mem>(src.handle(ACCESS_READ));
+							auto input = new COpenCLParameterClMem(true);
+							input->SetValue(clInputBuffer);
+							input->SetLibelle("input");
+							input->SetNoDelete(true);
+							vecParam.push_back(input);
+
+							auto paramWidth = new COpenCLParameterInt();
+							paramWidth->SetValue(width);
+							paramWidth->SetLibelle("width");
+							vecParam.push_back(paramWidth);
+
+							auto paramHeight = new COpenCLParameterInt();
+							paramHeight->SetValue(height);
+							paramHeight->SetLibelle("height");
+							vecParam.push_back(paramHeight);
+
+							COpenCLParameterFloatArray* paramrfltBank = new COpenCLParameterFloatArray();
+							paramrfltBank->SetLibelle("f");
+							paramrfltBank->SetValue((cl_context)clExecCtx.getContext().ptr(), (float*)f, flen, flag);
+							vecParam.push_back(paramrfltBank);
+
+							auto paramIntFltLen = new COpenCLParameterInt();
+							paramIntFltLen->SetValue(flen);
+							paramIntFltLen->SetLibelle("flen");
+							vecParam.push_back(paramIntFltLen);
+
+							// Récupération du code source du kernel
+							wxString kernelSource = CLibResource::GetOpenCLUcharProgram("IDR_OPENCL_AVIR");
+							cv::ocl::ProgramSource programSource(kernelSource);
+							ocl::Context context = clExecCtx.getContext();
+
+							// Compilation du kernel
+							String errmsg;
+							String buildopt = ""; // Options de compilation (vide par défaut)
+							ocl::Program program = context.getProg(programSource, buildopt, errmsg);
+
+							ocl::Kernel kernel("doFilter", program);
+
+							// Définition du premier argument (outBuffer)
+							cl_int err = clSetKernelArg(static_cast<cl_kernel>(kernel.ptr()), 0, sizeof(cl_mem), &clBuffer);
+							if (err != CL_SUCCESS)
+							{
+								throw std::runtime_error("Failed to set kernel argument for outBuffer.");
+							}
+
+							// Ajout des autres arguments
+							int numArg = 1;
+							for (COpenCLParameter* parameter : vecParam)
+							{
+								parameter->Add(static_cast<cl_kernel>(kernel.ptr()), numArg++);
+							}
+
+							size_t global_work_size[1] = { static_cast<size_t>(width) };
+							bool success = kernel.run(1, global_work_size, nullptr, true);
+							if (!success)
+							{
+								throw std::runtime_error("Failed to execute OpenCL kernel.");
+							}
+
+							for (COpenCLParameter* parameter : vecParam)
+							{
+								if (!parameter->GetNoDelete())
+								{
+									delete parameter;
+									parameter = nullptr;
+								}
+							}
+
+							return paramOutput;
 						}
 					}
 #endif
 
 					void resizeScanlineH()
 					{
+						const CFilterStep& fs = (*Steps)[2];
+						output = UMat(QueueLen, fs.OutLen, CV_32FC4);
 						//tbb::parallel_for(0, QueueLen, [&](int i)
-						for (int i = 0;i < QueueLen; i++)
+						for (int iPos = 0;iPos < QueueLen; iPos++)
 						{
-							const uchar* const SrcBuf = (uchar*)Queue[i].SrcBuf;
-							float* const ResBuf = (float*)Queue[i].ResBuf;
+							const uchar* const SrcBuf = (uchar*)Queue[iPos].SrcBuf;
+							float* const ResBuf = (float*)Queue[iPos].ResBuf;
 
 							const CFilterStep& fs0 = (*Steps)[0];
 							float* BufPtrs[3];
@@ -6104,7 +7148,8 @@ namespace avir {
 							BufPtrs[1] = Bufs + Vars->BufLen[0] + Vars->BufOffs[1];
 #ifdef OPENCL_FILTRE
 							//float* op0 = BufPtrs[0];
-							UMat output = ConvertToFloat(SrcBuf, SrcLen, 1);
+							UMat srcFloat = ConvertToFloat(src, SrcLen, 1, iPos);
+							//UMat output = ConvertToFloat(SrcBuf, SrcLen, 1);
 
 #else
 							{
@@ -6134,7 +7179,9 @@ namespace avir {
 							BufPtrs[2] = ResBuf;
 
 
-
+							//float * outMat;
+							UMat outMat;
+							UMat outMatResize;
 							const int Dsucharcr = (Vars->packmode == 0 ? Vars->ElCount : 1);
 							const int ElCount = Vars->ElCount;
 							{
@@ -6155,7 +7202,8 @@ namespace avir {
 								int widthOut = fs.OutPrefix + fs.OutLen + fs.OutSuffix;
 								int start = fs.OutPrefix;
 								int stop = fs.OutSuffix;
-								UpSample(output, op0, widthOut, 1, SrcLen, start, fs.ResampleFactor);
+								//outMat = UpSample(output, op0, widthOut, 1, SrcLen, start, fs.ResampleFactor);
+								outMat = UpSampleUMat(srcFloat, widthOut, 1, SrcLen, start, fs.ResampleFactor);
 
 
 #else
@@ -6197,42 +7245,6 @@ namespace avir {
 
 								}
 
-								/*
-
-								int ii = 0;
-								while (l > 0)
-								{
-									memcpy(op0, ip, sizeof(float) * 4);
-									op0 += opstep;
-									l--;
-									ii++;
-								}
-
-								l = fs.InLen - 1;
-								ii = 0;
-								while (l > 0)
-								{
-									memcpy(op0, ip, sizeof(float) * 4);
-									op0 += opstep;
-									ip += ElCount;
-									l--;
-									ii++;
-								}
-
-								l = fs.OutSuffix / fs.ResampleFactor;
-
-								ii = 0;
-								while (l >= 0)
-								{
-									memcpy(op0, ip, sizeof(float) * 4);
-									op0 += opstep;
-									l--;
-									ii++;
-								}
-
-								printf("toto");
-								*/
-
 #endif
 							}
 
@@ -6241,12 +7253,49 @@ namespace avir {
 								fs.prepareInBuf(BufPtrs[fs.InBuf]);
 								const float* SrcLine = BufPtrs[fs.InBuf];
 								float* DstLine = BufPtrs[fs.OutBuf];
-#ifdef TOTO
+#ifdef OPENCL_FILTRE
 
-								int heightOut = fs.OutPrefix + fs.OutLen + fs.OutSuffix;
-								int start = fs.OutPrefix;
-								int stop = fs.OutSuffix;
-								//doResizeOpenCL(output, DstLine, 1, SrcLen, &(*fs.RPosBuf)[0], fs.FltBank, IntFltLen0, ElCount, OutLen, DstLineIncr, FltOrder);
+
+								int positionSrc = 24;// 0;
+								const int IntFltLen0 = fs.FltBank->getFilterLen();
+
+								const typename CImageResizerFilterStep::
+									CResizePos* rpos = &(*fs.RPosBuf)[0];
+
+								const typename CImageResizerFilterStep::
+									CResizePos* const rpose = rpos + fs.OutLen;
+								vector<int> PositionTab;
+								vector<float> ftpTab;
+								int oldPos = 0;
+								int i = 0;
+								while (rpos < rpose)
+								{
+									const float* const ftp = rpos->ftp;
+									//const float* Src = SrcLine + rpos->SrcOffs;
+									//const int IntFltLen = rpos->fl;
+
+									if (i > 0)
+									{
+										positionSrc = positionSrc + abs(abs(rpos->SrcOffs) - oldPos);
+										oldPos = abs(rpos->SrcOffs);
+										PositionTab.push_back(positionSrc);
+									}
+									else
+										PositionTab.push_back(positionSrc);
+
+									for (int k = 0; k < IntFltLen0; k += 2)
+									{
+										const float xx = ftp[k];
+										ftpTab.push_back(xx);
+									}
+									rpos++; i++;
+								}
+								
+								//doResize2OpenCL(outMat, DstLine, fs.OutLen, 1, PositionTab, ftpTab, IntFltLen0);
+
+								outMatResize = doResize2OpenCL(outMat, fs.OutLen, 1, PositionTab, ftpTab, IntFltLen0);
+
+								printf("toot");
 
 
 #else
@@ -6259,33 +7308,81 @@ namespace avir {
 									CResizePos* const rpose = rpos + fs.OutLen;
 
 								float sum[4] = { 0.0,0.0,0.0,0.0 };
+								float sumLocal[4] = { 0.0,0.0,0.0,0.0 };
+								int positionSrc = 24;
+								{
+									vector<int> PositionTab;
+									vector<float> ftpTab;
+									int oldPos = 0;
+									for (int i = 0; i < fs.OutLen; i++)
+									{
+										const float* const ftp = rpos->ftp;
+										//const float* Src = SrcLine + rpos->SrcOffs;
+										//const int IntFltLen = rpos->fl;
+										
+										if (i > 0)
+										{
+											positionSrc = positionSrc + abs(abs(rpos->SrcOffs) - oldPos);
+											PositionTab.push_back(positionSrc);
+										}
+										else
+											PositionTab.push_back(positionSrc);
 
+										for (int k = 0; k < IntFltLen0; k += 2)
+										{
+											const float xx = ftp[k];
+											ftpTab.push_back(xx);
+										}
+										rpos++;
+									}
+									printf("toot");
+								}
 
+								int posTab = 0;
+								
+								int oldPos = 0;
+								int xx = 0;
+								int posOut = 0;
 								while (rpos < rpose)
 								{
 									const float* const ftp = rpos->ftp;
 									const float* Src = SrcLine + rpos->SrcOffs;
 									const int IntFltLen = rpos->fl;
+									if(xx > 0)
+										positionSrc = positionSrc + abs(abs(rpos->SrcOffs) - oldPos);
 
+									oldPos = abs(rpos->SrcOffs);
 
+									memset(sumLocal, 0, sizeof(float) * 4);
 									memset(sum, 0, sizeof(float) * 4);
-
-
+									posTab = 0;
+									posOut = 0;
 									for (int i = 0; i < IntFltLen; i += 2)
 									{
 										const float xx = ftp[i];
+
+										sumLocal[0] += xx * outMat[posTab + positionSrc + 0];
+										sumLocal[1] += xx * outMat[posTab + positionSrc + 1];
+										sumLocal[2] += xx * outMat[posTab + positionSrc + 2];
+										sumLocal[3] += xx * outMat[posTab + positionSrc + 3];
+
 										sum[0] += xx * Src[0];
 										sum[1] += xx * Src[1];
 										sum[2] += xx * Src[2];
 										sum[3] += xx * Src[3];
 										Src += 8;
+										posTab += 8;
+										posOut += 8;
 									}
+
+									//positionSrc += 8;
 
 									memcpy(DstLine, sum, sizeof(float) * 4);
 									DstLine += Dsucharcr;
 									rpos++;
-
+									xx++;
 								}
+								printf("toto");
 #endif
 
 							}
@@ -6298,20 +7395,39 @@ namespace avir {
 
 								const float* const f = &fs.Flt[fs.FltLatency];
 								const int flen = fs.FltLatency + 1;
+
+#ifdef OPENCL_FILTRE
+								doFilterOpenCL(outMatResize, Dst, fs.OutLen, 1, f, flen);
+
+								cv::UMat filter = doFilterOpenCL_UMat(outMatResize, fs.OutLen, 1, f, flen);
+
+								doCopyOpenCL_UMat(output, filter, iPos);
+
+
+#else
+
 								const int ipstep = ElCount * fs.ResampleFactor;
 								const float* ip = Src - fs.EdgePixelCount * ipstep;
+								const float* srcData = Src - fs.EdgePixelCount * ipstep;
 								const float* ip1;
 								const float* ip2;
 								int l = fs.OutLen;
 
 								float sum[4] = { 0.0,0.0,0.0,0.0 };
 
+								int k = 0;
+
+								float value = 0.0;
+								float value2 = 0.0;
+								float value3 = 0.0;
 								while (l > 0)
 								{
 									sum[0] = f[0] * ip[0];
 									sum[1] = f[0] * ip[1];
 									sum[2] = f[0] * ip[2];
 									sum[3] = f[0] * ip[3];
+
+									value = srcData[k * 4];
 									ip1 = ip;
 									ip2 = ip;
 
@@ -6323,13 +7439,23 @@ namespace avir {
 										sum[1] += f[i] * (ip1[1] + ip2[1]);
 										sum[2] += f[i] * (ip1[2] + ip2[2]);
 										sum[3] += f[i] * (ip1[3] + ip2[3]);
+
+										int pos1 = k * 4 + i * 4;
+										int pos2 = (k * 4 - i * 4) < 0 ? 0 : (k * 4 - i * 4);
+
+										value2 = srcData[pos1];
+										value3 = srcData[pos2];
 									}
 
 									memcpy(Dst, sum, sizeof(float) * 4);
 									Dst += Dsucharcr;
 									ip += ipstep;
 									l--;
+									k++;
+									//k += 4;
 								}
+
+#endif
 							}
 
 							Bufs.free();
@@ -6337,6 +7463,110 @@ namespace avir {
 						//});
 					}
 
+#ifdef OPENCL_FILTRE
+					void resizeScanlineH_OpenCL()
+					{
+
+						const CFilterStep& fs = (*Steps)[2];
+						output = UMat(QueueLen, fs.OutLen, CV_32FC4);
+
+						UMat src_cvt = ConvertToFloat(src, SrcLen, QueueLen);
+
+						//tbb::parallel_for(0, QueueLen, [&](int i)
+						for (int iPos = 0; iPos < QueueLen; iPos++)
+						{
+							//const uchar* const SrcBuf = (uchar*)Queue[iPos].SrcBuf;
+							//float* const ResBuf = (float*)Queue[iPos].ResBuf;
+
+							//const CFilterStep& fs0 = (*Steps)[0];
+							//const int l = Vars->BufLen[0] + Vars->BufLen[1];
+							UMat srcFloat = GetDataOpenUMat(src_cvt, iPos);
+							
+							UMat outMat;
+							UMat outMatResize;
+							cv::UMat filter;
+
+							//const int Dsucharcr = (Vars->packmode == 0 ? Vars->ElCount : 1);
+							//const int ElCount = Vars->ElCount;
+							{
+								const CFilterStep& fs = (*Steps)[0];
+
+								int widthOut = fs.OutPrefix + fs.OutLen + fs.OutSuffix;
+								int start = fs.OutPrefix;
+								int stop = fs.OutSuffix;
+								outMat = UpSampleUMat(srcFloat, widthOut, 1, SrcLen, start, fs.ResampleFactor);
+
+							}
+
+							{
+								const CFilterStep& fs = (*Steps)[1];
+
+								int positionSrc = 24;// 0;
+								const int IntFltLen0 = fs.FltBank->getFilterLen();
+
+								const typename CImageResizerFilterStep::
+									CResizePos* rpos = &(*fs.RPosBuf)[0];
+
+								const typename CImageResizerFilterStep::
+									CResizePos* const rpose = rpos + fs.OutLen;
+								vector<int> PositionTab;
+								vector<float> ftpTab;
+								int oldPos = 0;
+								int i = 0;
+								while (rpos < rpose)
+								{
+									const float* const ftp = rpos->ftp;
+									//const float* Src = SrcLine + rpos->SrcOffs;
+									//const int IntFltLen = rpos->fl;
+
+									if (i > 0)
+									{
+										positionSrc = positionSrc + abs(abs(rpos->SrcOffs) - oldPos);
+										oldPos = abs(rpos->SrcOffs);
+										PositionTab.push_back(positionSrc);
+									}
+									else
+										PositionTab.push_back(positionSrc);
+
+									for (int k = 0; k < IntFltLen0; k += 2)
+									{
+										const float xx = ftp[k];
+										ftpTab.push_back(xx);
+									}
+									rpos++; i++;
+								}
+
+								//doResize2OpenCL(outMat, DstLine, fs.OutLen, 1, PositionTab, ftpTab, IntFltLen0);
+
+								outMatResize = doResize2OpenCL(outMat, fs.OutLen, 1, PositionTab, ftpTab, IntFltLen0);
+
+								printf("toot");
+
+
+							}
+							{
+								const CFilterStep& fs = (*Steps)[2];
+
+								const float* const f = &fs.Flt[fs.FltLatency];
+								const int flen = fs.FltLatency + 1;
+
+								//doFilterOpenCL(outMatResize, Dst, fs.OutLen, 1, f, flen);
+
+								cv::UMat filter = doFilterOpenCL_UMat(outMatResize, fs.OutLen, 1, f, flen);
+
+								doCopyOpenCL_UMat(output, filter, iPos);
+
+
+							}
+
+							srcFloat.release();
+							outMat.release();
+							outMatResize.release();
+							filter.release();
+						}
+
+					}
+#endif
 					void resizeScanlineH(const uchar* const SrcBuf, float* const ResBuf)
 					{
 
@@ -6400,10 +7630,217 @@ namespace avir {
 					 * vertical.
 					 * @param ResBuf Resulucharg scanline buffer.
 					 */
+#ifdef OPENCL_FILTRE
+
+					void resizeScanlineV_OpenCL()
+					{
+						//tbb::parallel_for(0, QueueLen, [&](int i)
+						//float* dest = new float[SrcLen];
+						for (int i = 0; i < QueueLen; i++)
+						{
+							float* const SrcBuf = (float*)Queue[i].SrcBuf;
+							float* const ResBuf = (float*)Queue[i].ResBuf;
+							const CFilterStep& fs0 = (*Steps)[0];
+							float* BufPtrs[3];
+							const int l = Vars->BufLen[0] + Vars->BufLen[1];
+							CBuffer< float > Bufs;
+							if (Bufs.getCapacity() < l)
+							{
+								Bufs.alloc(l, fpclass_def::fpalign);
+							}
+
+							BufPtrs[0] = Bufs + Vars->BufOffs[0];
+							BufPtrs[1] = Bufs + Vars->BufLen[0] + Vars->BufOffs[1];
+
+							float* dest = BufPtrs[0];
+							GetDataOpenCLHtoV(output, dest, i);
+							
+
+							/*
+							fs0.convertVtoH(SrcBuf, BufPtrs[0], SrcLen, SrcIncr);
+							
+							cv::Mat matFloat = GetDataOpenCLHtoV(output, i);
+
+							float* ptr = matFloat.ptr<float>(0);
+
+							for (int i = 0, k = 0; i < SrcLen; i++, k+=4)
+							{
+
+								if (Dst[k] == ptr[0])
+								{
+									printf("toto");
+								}
+								if (Dst[k+1] == ptr[1])
+								{
+									printf("toto");
+								}
+								if (Dst[k+2] == ptr[2])
+								{
+									printf("toto");
+								}
+								if (Dst[k+3] == ptr[3])
+								{
+									printf("toto");
+								}
+
+								ptr += 4;
+							}
+							*/
+
+							//delete[] SrcBuf;
+							BufPtrs[2] = ResBuf;
+							const int ElCount = Vars->ElCount;
+
+							{
+								const CFilterStep& fs = (*Steps)[0];
+								fs.prepareInBuf(BufPtrs[fs.InBuf]);
+								const int Dsucharcr = (fs.OutBuf == 2 ? ResIncr :
+									(Vars->packmode == 0 ? Vars->ElCount : 1));
+								const float* const Src = BufPtrs[fs.InBuf];
+								float* const Dst = BufPtrs[fs.OutBuf];
+								//fs.doUpsample(BufPtrs[fs.InBuf], BufPtrs[fs.OutBuf]);
+
+								float* op0 = &Dst[-fs.OutPrefix * ElCount];
+								memset(op0, 0, (size_t)(fs.OutPrefix + fs.OutLen + fs.OutSuffix) *
+									(size_t)ElCount * sizeof(float));
+
+								const float* ip = Src;
+								const int opstep = ElCount * fs.ResampleFactor;
+								int l;
+								op0 += (fs.OutPrefix % fs.ResampleFactor) * ElCount;
+								l = fs.OutPrefix / fs.ResampleFactor;
+
+								while (l > 0)
+								{
+									memcpy(op0, ip, sizeof(float) * 4);
+									op0 += opstep;
+									l--;
+								}
+
+								l = fs.InLen - 1;
+
+								while (l > 0)
+								{
+									memcpy(op0, ip, sizeof(float) * 4);
+									op0 += opstep;
+									ip += ElCount;
+									l--;
+								}
+
+								l = fs.OutSuffix / fs.ResampleFactor;
+
+								while (l >= 0)
+								{
+									memcpy(op0, ip, sizeof(float) * 4);
+									op0 += opstep;
+									l--;
+								}
+							}
+
+							{
+								const CFilterStep& fs = (*Steps)[1];
+								fs.prepareInBuf(BufPtrs[fs.InBuf]);
+								const int Dsucharcr = (fs.OutBuf == 2 ? ResIncr :
+									(Vars->packmode == 0 ? Vars->ElCount : 1));
+								const float* SrcLine = BufPtrs[fs.InBuf];
+								float* DstLine = BufPtrs[fs.OutBuf];
+
+								const int IntFltLen0 = fs.FltBank->getFilterLen();
+
+								const typename CImageResizerFilterStep::
+									CResizePos* rpos = &(*fs.RPosBuf)[0];
+
+								const typename CImageResizerFilterStep::
+									CResizePos* const rpose = rpos + fs.OutLen;
+
+								float sum[4] = { 0.0,0.0,0.0,0.0 };
+								int i;
+
+								while (rpos < rpose)
+								{
+									const float* const ftp = rpos->ftp;
+									const float* Src = SrcLine + rpos->SrcOffs;
+									const int IntFltLen = rpos->fl;
+
+
+									memset(sum, 0, sizeof(float) * 4);
+
+
+									for (i = 0; i < IntFltLen; i += 2)
+									{
+										const float xx = ftp[i];
+										sum[0] += xx * Src[0];
+										sum[1] += xx * Src[1];
+										sum[2] += xx * Src[2];
+										sum[3] += xx * Src[3];
+										Src += 8;
+									}
+
+									memcpy(DstLine, sum, sizeof(float) * 4);
+									DstLine += Dsucharcr;
+									rpos++;
+
+								}
+
+							}
+
+							{
+
+								const CFilterStep& fs = (*Steps)[2];
+								fs.prepareInBuf(BufPtrs[fs.InBuf]);
+								const int Dsucharcr = (fs.OutBuf == 2 ? ResIncr :
+									(Vars->packmode == 0 ? Vars->ElCount : 1));
+
+								const float* Src = BufPtrs[fs.InBuf];
+								float* Dst = BufPtrs[fs.OutBuf];
+
+								const float* const f = &fs.Flt[fs.FltLatency];
+								const int flen = fs.FltLatency + 1;
+								const int ipstep = ElCount * fs.ResampleFactor;
+								const float* ip = Src - fs.EdgePixelCount * ipstep;
+								const float* ip1;
+								const float* ip2;
+								int l = fs.OutLen;
+								int i;
+
+								float sum[4] = { 0.0,0.0,0.0,0.0 };
+
+								while (l > 0)
+								{
+									sum[0] = f[0] * ip[0];
+									sum[1] = f[0] * ip[1];
+									sum[2] = f[0] * ip[2];
+									sum[3] = f[0] * ip[3];
+									ip1 = ip;
+									ip2 = ip;
+
+									for (i = 1; i < flen; i++)
+									{
+										ip1 += 4;
+										ip2 -= 4;
+										sum[0] += f[i] * (ip1[0] + ip2[0]);
+										sum[1] += f[i] * (ip1[1] + ip2[1]);
+										sum[2] += f[i] * (ip1[2] + ip2[2]);
+										sum[3] += f[i] * (ip1[3] + ip2[3]);
+									}
+
+									memcpy(Dst, sum, sizeof(float) * 4);
+									Dst += Dsucharcr;
+									ip += ipstep;
+									l--;
+								}
+							}
+							Bufs.free();
+						}
+
+						//);
+					}
+#endif
 
 					void resizeScanlineV()
 					{
-						tbb::parallel_for(0, QueueLen, [&](int i)
+						//tbb::parallel_for(0, QueueLen, [&](int i)
+						for (int i = 0; i < QueueLen; i++)
 						{
 								const float* const SrcBuf = (float*)Queue[i].SrcBuf;
 								float* const ResBuf = (float*)Queue[i].ResBuf;
@@ -6564,7 +8001,7 @@ namespace avir {
 								Bufs.free();
 							}
 							
-						);
+						//);
 					}
 
 					void resizeScanlineV(const float* const SrcBuf,
