@@ -89,18 +89,21 @@ __kernel void ConvertToFloatPos(__global float4 * output, const __global uchar4 
     }
 }
 
+
 __kernel void UpSample(__global float4 * output, const __global float4 *input, int width, int height, int widthSrc, int start, int ResampleFactor)
 {
 	int k = get_global_id(0);  
 	if(k < width)	
     {    
+		
 		if (k < start)
 		{
 			output[k] = input[0];
 		}
 		else if(k >= start && k < (widthSrc * ResampleFactor + start))
 		{
-			int kInput = k / ResampleFactor - start / ResampleFactor;
+			//int kInput = k / ResampleFactor - start / ResampleFactor;
+			int kInput = (k - start) / ResampleFactor ;
 			output[k] = input[kInput];
 		}
 		else if(k >= (widthSrc * ResampleFactor + start))
@@ -110,3 +113,122 @@ __kernel void UpSample(__global float4 * output, const __global float4 *input, i
     }
 }
 
+__kernel void UpSample2D(__global float4 * output, const __global float4 *input, int width, int height, int widthSrc, int start, int outLen, int ResampleFactor)
+{
+	int k = get_global_id(0);  
+	if(k < width)	
+    {    
+		for(int i = 0;i < height;i++)
+		{
+			int pos = k + i * width;
+			output[pos] = (float4)0.0;
+			if (k < start)
+			{
+				int posSrc = i * widthSrc;
+				output[pos] = input[posSrc];
+			}
+			else if(k >= start && k < (widthSrc * ResampleFactor + start))
+			{
+				int kInput = (k - start) / ResampleFactor + i * widthSrc;
+				output[pos] = input[kInput];
+			}
+			else if(k >= (widthSrc * ResampleFactor + start))
+			{
+				output[pos] = input[widthSrc - 1 + i * widthSrc];
+			}
+		}
+    }
+}
+
+__kernel void doResize2(__global float4 * output, const __global float4 *input, int width, int height, __global const int * PositionTab, __global const float* ftp,
+    const int IntFltLen0, int inputWidth)
+{
+    int k = get_global_id(0); // Index global
+    if (k >= width) 
+		return;
+
+    float4 sum = {0.0f, 0.0f, 0.0f, 0.0f};
+	int positionSrc = PositionTab[k] / 4;
+
+	for (int i = 0; i < IntFltLen0 / 2;i++)
+	{
+		const float xx = ftp[i + k * IntFltLen0 / 2];
+		if(positionSrc < inputWidth)
+		{
+			//float4 toto =  input[positionSrc];
+			sum.x += xx * input[positionSrc].x;
+			sum.y += xx * input[positionSrc].y;
+			sum.z += xx * input[positionSrc].z;
+			sum.w += xx * input[positionSrc].w;
+		}
+		positionSrc += 2;
+		/*
+		sum.x += xx * input[positionSrc].x;
+		sum.y += xx * input[positionSrc].y;
+		sum.z += xx * input[positionSrc].z;
+		sum.w += xx * input[positionSrc].w;
+		positionSrc += 2;
+		*/
+	}
+	output[k] = sum;
+}
+
+__kernel void doFilter(__global float4 * output, const __global float4 *input, int width, int height, __global const float* f, const int flen)
+{
+    int k = get_global_id(0); // Index global
+    if (k >= width) 
+		return;
+	float4 sum = {0.0f, 0.0f, 0.0f, 0.0f};
+	sum.x = f[0] * input[k].x;
+	sum.y = f[0] * input[k].y;
+	sum.z = f[0] * input[k].z;
+	sum.w = f[0] * input[k].w;
+	
+	for (int i = 1; i < flen; i++)
+	{
+		int pos1 = k + i;
+		int pos2 = (k - i) < 0 ? 0 : (k - i);
+
+		float4 ip1 = input[pos1];
+		float4 ip2 = input[pos2];
+		
+		sum.x += f[i] * (ip1.x + ip2.x);
+		sum.y += f[i] * (ip1.y + ip2.y);
+		sum.z += f[i] * (ip1.z + ip2.z);
+		sum.w += f[i] * (ip1.w + ip2.w);
+	}
+	
+	output[k] = sum;
+}
+
+__kernel void doCopy(__global float4 * output, const __global float4 *input, int width, int heightPosition)
+{
+    int k = get_global_id(0); // Index global
+    if (k >= width) 
+		return;
+
+	int position = k + heightPosition * width;
+	output[position] = input[k];
+}
+
+__kernel void GetData(__global float4 * output, const __global float4 *input, int width, int height, int yPos)
+{
+    int k = get_global_id(0); // Index global
+    if (k >= width) 
+		return;
+
+	int position = k + yPos * width;
+	output[k] = input[position];
+
+}
+
+__kernel void GetDataHtoV(__global float4 * output, const __global float4 *input, int width, int height, int xPos)
+{
+    int k = get_global_id(0); // Index global
+    if (k >= height) 
+		return;
+
+	int position = xPos + k * width;
+	output[k] = input[position];
+
+}

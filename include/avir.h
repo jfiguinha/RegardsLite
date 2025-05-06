@@ -7492,69 +7492,9 @@ namespace avir {
 						//tbb::parallel_for(0, QueueLen, [&](int i)
 						for (int iPos = 0; iPos < QueueLen; iPos++)
 						{
-							//const uchar* const SrcBuf = (uchar*)Queue[iPos].SrcBuf;
-							//float* const ResBuf = (float*)Queue[iPos].ResBuf;
-
-							//const CFilterStep& fs0 = (*Steps)[0];
-							//const int l = Vars->BufLen[0] + Vars->BufLen[1];
-
-							/*
-							UMat srcFloat_src = GetDataOpenUMat(src_cvt, iPos);
-							
-							UMat outMat_dest;
-							{
-								const CFilterStep& fs = (*Steps)[0];
-
-								int widthOut = fs.OutPrefix + fs.OutLen + fs.OutSuffix;
-								int start = fs.OutPrefix;
-								int stop = fs.OutSuffix;
-								outMat_dest = UpSampleUMat(srcFloat_src, widthOut, 1, SrcLen, start, fs.ResampleFactor);
-
-							}
-							*/
-
 							UMat outMat_dest = GetDataOpenUMat(outMat, iPos);
-
-							/*
-							cv::Mat test1;
-							cv::Mat test2;
-
-							outMat_dest.copyTo(test1);
-							outMat_rel.copyTo(test2);
-
-							float* ptr1 = test1.ptr<float>(0);
-							float* ptr2 = test2.ptr<float>(0);
-
-							for (int u = 0; u < outMat_dest.size().width; u++)
-							{
-
-								if (ptr2[0] != ptr1[0])
-								{
-									printf("toto");
-								}
-								if (ptr2[1] != ptr1[1])
-								{
-									printf("toto");
-								}
-								if (ptr2[2] != ptr1[2])
-								{
-									printf("toto");
-								}
-								if (ptr2[3] != ptr1[3])
-								{
-									printf("toto");
-								}
-
-								ptr1 += 4;
-								ptr2 += 4;
-							}
-							*/
 							UMat outMatResize;
 							cv::UMat filter;
-
-							//const int Dsucharcr = (Vars->packmode == 0 ? Vars->ElCount : 1);
-							//const int ElCount = Vars->ElCount;
-
 
 							{
 								const CFilterStep& fs = (*Steps)[1];
@@ -7594,8 +7534,6 @@ namespace avir {
 									rpos++; i++;
 								}
 
-								//doResize2OpenCL(outMat, DstLine, fs.OutLen, 1, PositionTab, ftpTab, IntFltLen0);
-
 								outMatResize = doResize2OpenCL(outMat_dest, fs.OutLen, 1, PositionTab, ftpTab, IntFltLen0);
 
 								printf("toot");
@@ -7608,8 +7546,6 @@ namespace avir {
 								const float* const f = &fs.Flt[fs.FltLatency];
 								const int flen = fs.FltLatency + 1;
 
-								//doFilterOpenCL(outMatResize, Dst, fs.OutLen, 1, f, flen);
-
 								cv::UMat filter = doFilterOpenCL_UMat(outMatResize, fs.OutLen, 1, f, flen);
 
 								doCopyOpenCL_UMat(output, filter, iPos);
@@ -7617,12 +7553,11 @@ namespace avir {
 
 							}
 
-							//srcFloat.release();
-							
+							outMat_dest.release();
 							outMatResize.release();
 							filter.release();
 						}
-						//outMat.release();
+						outMat.release();
 					}
 #endif
 					void resizeScanlineH(const uchar* const SrcBuf, float* const ResBuf)
