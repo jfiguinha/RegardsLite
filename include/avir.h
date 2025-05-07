@@ -3978,16 +3978,335 @@ namespace avir {
 				 */
 
 #ifdef OPENCL_FILTRE
-				cv::UMat resizeImage(cv::UMat src, const uchar* const SrcBuf, const int SrcWidth,
-					const int SrcHeight, int SrcScanlineSize, uchar* const NewBuf,
+				cv::UMat resizeImage(cv::UMat src,
 					const int NewWidth, const int NewHeight, const int ElCountIO,
 					const double k, CImageResizerVars* const aVars = nullptr) const
+				{
+					int UseBuildMode = 1;
+					static CThreadData td;
+					int i = 0;
+
+					if (src.size().width == 0 || src.size().height == 0)
+					{
+						return td.output;
+					}
+					else
+						if (NewWidth == 0 || NewHeight == 0)
+						{
+							return td.output;
+						}
+
+
+
+
+					// Define resizing steps, also optionally modify offsets so that
+					// resizing produces a "centered" image.
+
+					//if (oldWith != SrcWidth || oldHeight != src.size().height || oldOutWidth != NewWidth || oldOutHeight != NewHeight)
+					{
+						Vars = (aVars == nullptr ? &DefVars : aVars);
+						ThreadPool = (Vars->ThreadPool == nullptr ?
+							&DefThreadPool : Vars->ThreadPool);
+
+						ox = Vars->ox;
+						oy = Vars->oy;
+
+						if (k == 0.0)
+						{
+							kx = (double)src.size().width / NewWidth;
+							ox += (kx - 1.0) * 0.5;
+
+							ky = (double)src.size().height / NewHeight;
+							oy += (ky - 1.0) * 0.5;
+						}
+						else
+							if (k > 0.0)
+							{
+								kx = k;
+								ky = k;
+
+								const double ko = (k - 1.0) * 0.5;
+								ox += ko;
+								oy += ko;
+							}
+							else
+							{
+								kx = -k;
+								ky = -k;
+							}
+
+						IsInFloat = ((uchar)0.25 != 0);
+						IsOutFloat = ((uchar)0.25 != 0);
+
+						if (Vars->UseSRGBGamma)
+						{
+							if (IsInFloat)
+							{
+								Vars->InGammaMult = 1.0;
+							}
+							else
+							{
+								Vars->InGammaMult =
+									1.0 / (sizeof(uchar) == 1 ? 255.0 : 65535.0);
+							}
+
+							if (IsOutFloat)
+							{
+								Vars->OutGammaMult = 1.0;
+							}
+							else
+							{
+								Vars->OutGammaMult = (sizeof(uchar) == 1 ? 255.0 : 65535.0);
+							}
+
+							OutMul = 1.0;
+						}
+						else
+						{
+							if (IsOutFloat)
+							{
+								OutMul = 1.0;
+							}
+							else
+							{
+								OutMul = (sizeof(uchar) == 1 ? 255.0 : 65535.0);
+							}
+
+							if (!IsInFloat)
+							{
+								OutMul /= (sizeof(uchar) == 1 ? 255.0 : 65535.0);
+							}
+						}
+
+						// Fill widely-used variables.
+
+						ElCount = (ElCountIO + fpclass_def::fppack - 1) /
+							fpclass_def::fppack;
+
+						NewWidthE = NewWidth * ElCount;
+
+
+						Vars->ElCount = ElCount;
+						Vars->ElCountIO = ElCountIO;
+						Vars->fppack = fpclass_def::fppack;
+						Vars->fpalign = fpclass_def::fpalign;
+						Vars->elalign = fpclass_def::elalign;
+						Vars->packmode = fpclass_def::packmode;
+
+						// Horizontal scanline filtering and resizing.
+
+						BuildModeCount =
+							(FixedFilterBank.getOrder() == 0 ? 4 : 2);
+
+						if (Vars->BuildMode >= 0)
+						{
+							UseBuildMode = Vars->BuildMode;
+						}
+						else
+						{
+							int BestScore = 0x7FFFFFFF;
+
+							for (int m = 0; m < BuildModeCount; m++)
+							{
+								CDSPFracFilterBankLin TmpBank;
+								CFilterSteps TmpSteps;
+								Vars->k = kx;
+								Vars->o = ox;
+								buildFilterSteps(TmpSteps, Vars, TmpBank, OutMul, m, true);
+								updateFilterStepBuffers(TmpSteps, Vars, RPosBufArray,
+									src.size().width, NewWidth);
+
+								fillUsedFracMap(TmpSteps[Vars->ResizeStep], UsedFracMap);
+								const int c = calcComplexity(TmpSteps, Vars, UsedFracMap,
+									src.size().height);
+
+								if (c < BestScore)
+								{
+									UseBuildMode = m;
+									BestScore = c;
+								}
+							}
+						}
+
+						// Perform the actual filtering steps building.
+
+						Vars->k = kx;
+						Vars->o = ox;
+						buildFilterSteps(FltSteps, Vars, FltBank, OutMul, UseBuildMode,
+							false);
+
+						updateFilterStepBuffers(FltSteps, Vars, RPosBufArray, src.size().width,
+							NewWidth);
+
+						updateBufLenAndRPosPtrs(FltSteps, Vars, NewWidth);
+
+						td.init(src, i, 1, FltSteps, Vars);
+
+						td.initScanlineQueue(td.sopResizeH, src.size().height,
+							src.size().width);
+					}
+
+					FltBuf.increaseCapacity((size_t)NewWidthE *
+						(size_t)src.size().height, fpclass_def::fpalign);
+
+					td.addQueueLen(src.size().height);
+					td.processScanlineQueue();
+
+					// Vertical scanline filtering and resizing, reuse previously defined
+					// filtering steps if possible.
+
+					const int PrevUseBuildMode = UseBuildMode;
+					//if (oldWith != src.size().width || oldHeight != src.size().height || oldOutWidth != NewWidth || oldOutHeight != NewHeight)
+					{
+						if (Vars->BuildMode >= 0)
+						{
+							UseBuildMode = Vars->BuildMode;
+						}
+						else
+						{
+							CImageResizerVars TmpVars(*Vars);
+							int BestScore = 0x7FFFFFFF;
+
+							for (int m = 0; m < BuildModeCount; m++)
+							{
+								CDSPFracFilterBankLin TmpBank;
+								TmpBank.copyInitParams(FltBank);
+								CFilterSteps TmpSteps;
+								TmpVars.k = ky;
+								TmpVars.o = oy;
+								buildFilterSteps(TmpSteps, &TmpVars, TmpBank, 1.0, m, true);
+								updateFilterStepBuffers(TmpSteps, &TmpVars, RPosBufArray,
+									src.size().height, NewHeight);
+
+								fillUsedFracMap(TmpSteps[TmpVars.ResizeStep],
+									UsedFracMap);
+
+								const int c = calcComplexity(TmpSteps, &TmpVars, UsedFracMap,
+									NewWidth);
+
+								if (c < BestScore)
+								{
+									UseBuildMode = m;
+									BestScore = c;
+								}
+							}
+						}
+
+						Vars->k = ky;
+						Vars->o = oy;
+
+						if (UseBuildMode == PrevUseBuildMode && ky == kx)
+						{
+							if (OutMul != 1.0)
+							{
+								modifyCorrFilterDCGain(FltSteps, 1.0 / OutMul);
+							}
+						}
+						else
+						{
+							buildFilterSteps(FltSteps, Vars, FltBank, 1.0, UseBuildMode,
+								false);
+						}
+
+						updateFilterStepBuffers(FltSteps, Vars, RPosBufArray, src.size().height,
+							NewHeight);
+
+						updateBufLenAndRPosPtrs(FltSteps, Vars, NewWidth);
+					}
+
+
+					if (IsOutFloat && sizeof(FltBuf[0]) == sizeof(uchar) &&
+						fpclass_def::packmode == 0)
+					{
+						td.initScanlineQueue(td.sopResizeV, NewWidth,
+							src.size().height, NewWidthE, NewWidthE);
+
+						td.addQueueLen(NewWidth);
+
+						td.processScanlineQueue();
+						return td.output;
+					}
+
+
+					ResBuf.increaseCapacity((size_t)NewWidthE *
+						(size_t)NewHeight, fpclass_def::fpalign);
+
+					td.initScanlineQueue(td.sopResizeV, NewWidth,
+						src.size().height, NewWidthE, NewWidthE);
+
+					const int im = (fpclass_def::packmode == 0 ? ElCount : 1);
+
+					tbb::parallel_for(0, NewWidth, [&](int i)
+						{
+							td.addScanlineToQueue(
+								&FltBuf[i * im], &ResBuf[i * im], i);
+						});
+					td.addQueueLen(NewWidth);
+					td.processScanlineQueue();
+
+					if (IsOutFloat)
+					{
+						td.initScanlineQueue(td.sopUnpackH,
+							NewHeight, NewWidth);
+
+
+						td.addQueueLen(NewHeight);
+						td.processScanlineQueue();
+						return td.output;
+					}
+
+					// Perform output with dithering (for integer output only).
+
+					int TruncBits; // The number of lower bits to truncate and dither.
+					int OutRange; // Output range.
+
+					if (sizeof(uchar) == 1)
+					{
+						TruncBits = 8 - ResBitDepth;
+						OutRange = 255;
+					}
+					else
+					{
+						TruncBits = 16 - ResBitDepth;
+						OutRange = 65535;
+					}
+
+					const double PkOut = OutRange;
+					const double TrMul = (TruncBits > 0 ?
+						PkOut / (OutRange >> TruncBits) : 1.0);
+
+					if (CDitherer::isRecursive())
+					{
+						td.getDitherer().init(NewWidth, *Vars, TrMul, PkOut);
+
+						const float gm = (float)Vars->OutGammaMult;
+						UMat out = td.GetDataOpenCLHtoV_dither2D(td.output, gm);
+						td.output = td.DitherOpenCL2D(out, PkOut, TrMul);
+					}
+					else
+					{
+						td.initScanlineQueue(td.sopDitherAndUnpackH,
+							NewHeight, NewWidth);
+
+						td.getDitherer().init(NewWidth, *Vars, TrMul, PkOut);
+
+						td.addQueueLen(NewHeight);
+						td.processScanlineQueue();
+					}
+
+
+					oldWith = src.size().width;
+					oldHeight = src.size().height;
+					oldOutWidth = NewWidth;
+					oldOutHeight = NewHeight;
+
+					return td.output;
+				}
 #else
 				void resizeImage(const uchar* const SrcBuf, const int SrcWidth,
 					const int SrcHeight, int SrcScanlineSize, uchar* const NewBuf,
 					const int NewWidth, const int NewHeight, const int ElCountIO,
 					const double k, CImageResizerVars* const aVars = nullptr) const
-#endif
 				{
 					int UseBuildMode = 1;
 					static CThreadData td;
@@ -4154,11 +4473,8 @@ namespace avir {
 
 						updateBufLenAndRPosPtrs(FltSteps, Vars, NewWidth);
 
-#ifdef OPENCL_FILTRE
-						td.init(src, i, 1, FltSteps, Vars);
-#else
 						td.init(i, 1, FltSteps, Vars);
-#endif
+
 						td.initScanlineQueue(td.sopResizeH, SrcHeight,
 							SrcWidth);
 					}
@@ -4253,7 +4569,7 @@ namespace avir {
 						td.addQueueLen(NewWidth);
 
 						td.processScanlineQueue();
-						return td.output;
+						return;
 					}
 
 					
@@ -4287,7 +4603,7 @@ namespace avir {
 
 						td.addQueueLen(NewHeight);
 						td.processScanlineQueue();
-						return td.output;
+						return;
 					}
 
 					// Perform output with dithering (for integer output only).
@@ -4357,9 +4673,8 @@ namespace avir {
 					oldOutWidth = NewWidth;
 					oldOutHeight = NewHeight;
 
-					return td.output;
 				}
-
+#endif
 			private:
 
 				///< use during processing.
@@ -5718,35 +6033,7 @@ namespace avir {
 							UMat out = GetDataOpenCLHtoV_dither2D(output, gm);
 							output = DitherOpenCL2D(out, Ditherer.PkOut0, Ditherer.TrMul0);
 
-							/*
-							for (int i = 0; i < QueueLen; i++)
-							{
-								float* Dst = (float*)Queue[i].SrcBuf;
-								const float gm = (float)Vars->OutGammaMult;
-								//GetDataOpenCLHtoV(output, Dst, i);
-
-								//GetDataOpenCLHtoV_dither(output, Dst, i, gm);
-
-								UMat out = GetDataOpenCLHtoV_dither(output, i, gm);
-
-								DitherOpenCL(out, Dst, SrcLen, Ditherer.PkOut0, Ditherer.TrMul0);
-
-								/*
-								if (Vars->UseSRGBGamma)
-								{
-									CFilterStep::applySRGBGamma(
-										(float*)Queue[i].SrcBuf, SrcLen, *Vars);
-								}
-								*/
-
-								//Ditherer.dither((float*)Queue[i].SrcBuf);
-
-								/*
-								CFilterStep::unpackScanline(
-									(float*)Queue[i].SrcBuf,
-									(uchar*)Queue[i].ResBuf, SrcLen, *Vars);
-							}
-							*/
+							
 #else
 							tbb::parallel_for(0, QueueLen, [&](int i)
 							{
@@ -5770,8 +6057,8 @@ namespace avir {
 
 						case sopUnpackH:
 						{
-							//tbb::parallel_for(0, QueueLen, [&](int i)
-							for (int i = 0; i < QueueLen; i++)
+							tbb::parallel_for(0, QueueLen, [&](int i)
+							//for (int i = 0; i < QueueLen; i++)
 							{
 								if (Vars->UseSRGBGamma)
 								{
@@ -5782,8 +6069,8 @@ namespace avir {
 								CFilterStep::unpackScanline(
 									(float*)Queue[i].SrcBuf,
 									(uchar*)Queue[i].ResBuf, SrcLen, *Vars);
-								//});
-							}
+								});
+							//}
 
 							break;
 						}
@@ -5849,7 +6136,7 @@ namespace avir {
 					 */
 
 #ifdef OPENCL_FILTRE
-
+public:
 					UMat ConvertToFloat(cv::UMat & src, const int& width, const int& height, const int & yPosition)
 					{
 						cl_mem_flags flag;
