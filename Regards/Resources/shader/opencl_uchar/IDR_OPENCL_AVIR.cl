@@ -162,15 +162,37 @@ __kernel void doResize2(__global float4 * output, const __global float4 *input, 
 			sum.w += xx * input[positionSrc].w;
 		}
 		positionSrc += 2;
-		/*
-		sum.x += xx * input[positionSrc].x;
-		sum.y += xx * input[positionSrc].y;
-		sum.z += xx * input[positionSrc].z;
-		sum.w += xx * input[positionSrc].w;
-		positionSrc += 2;
-		*/
 	}
 	output[k] = sum;
+}
+
+__kernel void doResize22D(__global float4 * output, const __global float4 *input, int width, int height, __global const int * PositionTab, __global const float* ftp,
+    const int IntFltLen0, int inputWidth)
+{
+    int k = get_global_id(0); // Index global
+    if (k >= width) 
+		return;
+		
+	for(int j = 0;j < height;j++)
+	{
+		float4 sum = {0.0f, 0.0f, 0.0f, 0.0f};
+		int positionSrc = PositionTab[k] / 4;
+
+		for (int i = 0; i < IntFltLen0 / 2;i++)
+		{
+			const float xx = ftp[i + k * IntFltLen0 / 2];
+			if(positionSrc < inputWidth)
+			{
+				int localPos = positionSrc + j * inputWidth;
+				sum.x += xx * input[localPos].x;
+				sum.y += xx * input[localPos].y;
+				sum.z += xx * input[localPos].z;
+				sum.w += xx * input[localPos].w;
+			}
+			positionSrc += 2;
+		}
+		output[k+ j * width] = sum;
+	}
 }
 
 __kernel void doFilter(__global float4 * output, const __global float4 *input, int width, int height, __global const float* f, const int flen)
@@ -199,6 +221,41 @@ __kernel void doFilter(__global float4 * output, const __global float4 *input, i
 	}
 	
 	output[k] = sum;
+}
+
+__kernel void doFilter2D(__global float4 * output, const __global float4 *input, int width, int height, __global const float* f, const int flen)
+{
+    int k = get_global_id(0); // Index global
+    if (k >= width) 
+		return;
+		
+	for(int j = 0;j < height;j++)
+	{
+		float4 sum = {0.0f, 0.0f, 0.0f, 0.0f};
+		sum.x = f[0] * input[k+ j * width].x;
+		sum.y = f[0] * input[k+ j * width].y;
+		sum.z = f[0] * input[k+ j * width].z;
+		sum.w = f[0] * input[k+ j * width].w;
+		
+		for (int i = 1; i < flen; i++)
+		{
+			int pos1 = k + i;
+			int pos2 = (k - i) < 0 ? 0 : (k - i);
+
+			pos1 = pos1 + j * width;
+			pos2 = pos2 + j * width;
+
+			float4 ip1 = input[pos1];
+			float4 ip2 = input[pos2];
+			
+			sum.x += f[i] * (ip1.x + ip2.x);
+			sum.y += f[i] * (ip1.y + ip2.y);
+			sum.z += f[i] * (ip1.z + ip2.z);
+			sum.w += f[i] * (ip1.w + ip2.w);
+		}
+		
+		output[k+ j * width] = sum;
+	}
 }
 
 __kernel void doCopy(__global float4 * output, const __global float4 *input, int width, int heightPosition)

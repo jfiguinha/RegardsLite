@@ -7226,6 +7226,94 @@ namespace avir {
 							return paramOutput;
 						}
 					}
+
+
+					UMat doFilterOpenCL2D(cv::UMat& src, const int& width, const int& height,
+						const float* f, int flen)
+					{
+						UMat paramOutput(height, width, CV_32FC4);
+						cl_mem_flags flag;
+						{
+							bool useMemory = (cv::ocl::Device::getDefault().type() == CL_DEVICE_TYPE_GPU) ? false : true;
+							flag = useMemory ? CL_MEM_USE_HOST_PTR : CL_MEM_COPY_HOST_PTR;
+
+							vector<COpenCLParameter*> vecParam;
+							// Crée un UMat avec le type CV_8UC4
+
+							auto clBuffer = static_cast<cl_mem>(paramOutput.handle(ACCESS_WRITE));
+
+							auto clInputBuffer = static_cast<cl_mem>(src.handle(ACCESS_READ));
+							auto input = new COpenCLParameterClMem(true);
+							input->SetValue(clInputBuffer);
+							input->SetLibelle("input");
+							input->SetNoDelete(true);
+							vecParam.push_back(input);
+
+							auto paramWidth = new COpenCLParameterInt();
+							paramWidth->SetValue(width);
+							paramWidth->SetLibelle("width");
+							vecParam.push_back(paramWidth);
+
+							auto paramHeight = new COpenCLParameterInt();
+							paramHeight->SetValue(height);
+							paramHeight->SetLibelle("height");
+							vecParam.push_back(paramHeight);
+
+							COpenCLParameterFloatArray* paramrfltBank = new COpenCLParameterFloatArray();
+							paramrfltBank->SetLibelle("f");
+							paramrfltBank->SetValue((cl_context)clExecCtx.getContext().ptr(), (float*)f, flen, flag);
+							vecParam.push_back(paramrfltBank);
+
+							auto paramIntFltLen = new COpenCLParameterInt();
+							paramIntFltLen->SetValue(flen);
+							paramIntFltLen->SetLibelle("flen");
+							vecParam.push_back(paramIntFltLen);
+
+							// Récupération du code source du kernel
+							wxString kernelSource = CLibResource::GetOpenCLUcharProgram("IDR_OPENCL_AVIR");
+							cv::ocl::ProgramSource programSource(kernelSource);
+							ocl::Context context = clExecCtx.getContext();
+
+							// Compilation du kernel
+							String errmsg;
+							String buildopt = ""; // Options de compilation (vide par défaut)
+							ocl::Program program = context.getProg(programSource, buildopt, errmsg);
+
+							ocl::Kernel kernel("doFilter2D", program);
+
+							// Définition du premier argument (outBuffer)
+							cl_int err = clSetKernelArg(static_cast<cl_kernel>(kernel.ptr()), 0, sizeof(cl_mem), &clBuffer);
+							if (err != CL_SUCCESS)
+							{
+								throw std::runtime_error("Failed to set kernel argument for outBuffer.");
+							}
+
+							// Ajout des autres arguments
+							int numArg = 1;
+							for (COpenCLParameter* parameter : vecParam)
+							{
+								parameter->Add(static_cast<cl_kernel>(kernel.ptr()), numArg++);
+							}
+
+							size_t global_work_size[1] = { static_cast<size_t>(width) };
+							bool success = kernel.run(1, global_work_size, nullptr, true);
+							if (!success)
+							{
+								throw std::runtime_error("Failed to execute OpenCL kernel.");
+							}
+
+							for (COpenCLParameter* parameter : vecParam)
+							{
+								if (!parameter->GetNoDelete())
+								{
+									delete parameter;
+									parameter = nullptr;
+								}
+							}
+
+							return paramOutput;
+						}
+					}
 #endif
 
 					void resizeScanlineH()
@@ -7632,60 +7720,24 @@ namespace avir {
 
 
 						}
+
+						{
+							const CFilterStep& fs = (*Steps)[2];
+
+							const float* const f = &fs.Flt[fs.FltLatency];
+							const int flen = fs.FltLatency + 1;
+
+							output = doFilterOpenCL2D(resize, fs.OutLen, QueueLen, f, flen);
+
+						}
 						
+						/*
 						//tbb::parallel_for(0, QueueLen, [&](int i)
 						for (int iPos = 0; iPos < QueueLen; iPos++)
 						{
 							//UMat outMat_dest = GetDataOpenUMat(outMat, iPos);
 							UMat outMatResize;
 							cv::UMat filter;
-
-							/*
-							{
-								const CFilterStep& fs = (*Steps)[1];
-
-								int positionSrc = 24;// 0;
-								const int IntFltLen0 = fs.FltBank->getFilterLen();
-
-								const typename CImageResizerFilterStep::
-									CResizePos* rpos = &(*fs.RPosBuf)[0];
-
-								const typename CImageResizerFilterStep::
-									CResizePos* const rpose = rpos + fs.OutLen;
-								vector<int> PositionTab;
-								vector<float> ftpTab;
-								int oldPos = 0;
-								int i = 0;
-								while (rpos < rpose)
-								{
-									const float* const ftp = rpos->ftp;
-									//const float* Src = SrcLine + rpos->SrcOffs;
-									//const int IntFltLen = rpos->fl;
-
-									if (i > 0)
-									{
-										positionSrc = positionSrc + abs(abs(rpos->SrcOffs) - oldPos);
-										oldPos = abs(rpos->SrcOffs);
-										PositionTab.push_back(positionSrc);
-									}
-									else
-										PositionTab.push_back(positionSrc);
-
-									for (int k = 0; k < IntFltLen0; k += 2)
-									{
-										const float xx = ftp[k];
-										ftpTab.push_back(xx);
-									}
-									rpos++; i++;
-								}
-
-								outMatResize = doResize2OpenCL(outMat_dest, fs.OutLen, 1, PositionTab, ftpTab, IntFltLen0);
-
-								printf("toot");
-
-
-							}
-							*/
 
 							outMatResize = GetDataOpenUMat(resize, iPos);
 
@@ -7702,10 +7754,10 @@ namespace avir {
 
 							}
 
-							//
 							outMatResize.release();
 							filter.release();
-						}
+							
+						}*/
 						resize.release();
 						outMat.release();
 					}
