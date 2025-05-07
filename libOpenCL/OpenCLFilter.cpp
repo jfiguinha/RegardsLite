@@ -1556,13 +1556,13 @@ UMat COpenCLFilter::Interpolation(const int& widthOut, const int& heightOut, con
 			avir::CImageResizer ImageResizer(8);
 			avir::CImageResizerVars Vars;
 			Vars.UseSRGBGamma = true;
-			ImageResizer.resizeImage(src,
+			cv::UMat out = ImageResizer.resizeImage(src,
 				reinterpret_cast<uint8_t*>(inBuf.data), inBuf.cols, inBuf.rows, inBuf.step,
 				reinterpret_cast<uint8_t*>(outBuf.data), widthOut, heightOut, 4, 0, &Vars
 			);
 
 			//cv::imwrite("d:\\test.jpg", outBuf);
-			cvtColor(outBuf, cvImage, cv::COLOR_BGRA2BGR);
+			cvtColor(out, cvImage, cv::COLOR_BGRA2BGR);
 		}
 		else
 		{

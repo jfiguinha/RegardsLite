@@ -296,7 +296,6 @@ __kernel void GetDataHtoV2D(__global float4 * output, const __global float4 *inp
     if (k >= width) 
 		return;
 	
-/*	
 	int widthDest = height;
 	int heightDest = width;
 
@@ -306,5 +305,136 @@ __kernel void GetDataHtoV2D(__global float4 * output, const __global float4 *inp
 		int outpos = j + k * widthDest;
 		output[outpos] = input[position];
 	}
-*/
+
+}
+
+inline float pow24i_sRGB(float x0)
+{
+	const double x = (double)x0;
+	const double sx = sqrt(x);
+	const double ssx = sqrt(sx);
+	const double sssx = sqrt(ssx);
+
+	return((float)(0.000213364515060263 + 0.0149409239419218 * x +
+		0.433973412731747 * sx + ssx * (0.659628181609715 * sssx -
+			0.0380957908841466 - 0.0706476137208521 * sx)));
+}
+
+float convertLin2SRGB(float s)
+{
+	float a = (float)0.055;
+
+	if (s <= (float)0.0031308)
+	{
+		return((float)12.92 * s);
+	}
+
+	return(((float)1 + a) * pow24i_sRGB(s) - a);
+}
+
+__kernel void GetDataHtoV_dither(__global float4 * output, const __global float4 *input, int width, int height, int xPos, float gm)
+{
+    int k = get_global_id(0); // Index global
+    if (k >= height) 
+		return;
+		
+	int position = xPos + k * width;
+	
+	output[k].x = convertLin2SRGB(input[position].x) * gm;
+	output[k].y = convertLin2SRGB(input[position].y) * gm;
+	output[k].z = convertLin2SRGB(input[position].z) * gm;
+	output[k].w = convertLin2SRGB(input[position].w) * gm;
+
+}
+
+__kernel void GetDataHtoV_dither2D(__global float4 * output, const __global float4 *input, int width, int height, float gm)
+{
+    int k = get_global_id(0); // Index global
+    if (k >= height) 
+		return;
+
+	for(int xPos = 0;xPos < width;xPos++)
+	{
+		int position = xPos + k * width;
+		int outpos = k + xPos * height;
+		output[outpos].x = convertLin2SRGB(input[position].x) * gm;
+		output[outpos].y = convertLin2SRGB(input[position].y) * gm;
+		output[outpos].z = convertLin2SRGB(input[position].z) * gm;
+		output[outpos].w = convertLin2SRGB(input[position].w) * gm;
+	}
+
+}
+
+__kernel void Dither(__global float4 * output, const __global float4 *input, int width, int height, float PkOut, float TrMul0)
+{
+    int k = get_global_id(0); // Index global
+    if (k >= width) 
+		return;
+	
+	const float c0 = 0;
+
+	if (TrMul0 == 1.0)
+	{
+		output[k].x = clamp(round(input[k].x), c0, PkOut);
+		output[k].y = clamp(round(input[k].y), c0, PkOut);
+		output[k].z = clamp(round(input[k].z), c0, PkOut);
+		output[k].w = clamp(round(input[k].w), c0, PkOut);
+	}
+	else
+	{
+		const float TrMul = (float)TrMul0;
+		const float TrMulI = (float)(1.0 / TrMul0);
+
+		const float z0 = round(input[k].x * TrMulI) * TrMul;
+		output[k].x = clamp(z0, c0, PkOut);
+				
+		const float z1 = round(input[k].y * TrMulI) * TrMul;
+		output[k].y = clamp(z1, c0, PkOut);
+		
+		const float z2 = round(input[k].z * TrMulI) * TrMul;
+		output[k].z = clamp(z2, c0, PkOut);
+		
+		const float z3 = round(input[k].w * TrMulI) * TrMul;
+		output[k].w = clamp(z3, c0, PkOut);
+	}
+	
+}
+
+__kernel void Dither2D(__global uchar4 * output, const __global float4 *input, int width, int height, float PkOut, float TrMul0)
+{
+    int k = get_global_id(0); // Index global
+    if (k >= width) 
+		return;
+	
+	for(int yPos = 0;yPos < height;yPos++)
+	{
+		int position = k + yPos * width;
+		const float c0 = 0;
+
+		if (TrMul0 == 1.0)
+		{
+			output[position].x = (uchar)(clamp(round(input[position].x), c0, PkOut));
+			output[position].y = (uchar)(clamp(round(input[position].y), c0, PkOut));
+			output[position].z = (uchar)(clamp(round(input[position].z), c0, PkOut));
+			output[position].w = (uchar)(clamp(round(input[position].w), c0, PkOut));
+		}
+		else
+		{
+			const float TrMul = (float)TrMul0;
+			const float TrMulI = (float)(1.0 / TrMul0);
+
+			const float z0 = round(input[position].x * TrMulI) * TrMul;
+			output[position].x = (uchar)(clamp(z0, c0, PkOut));
+					
+			const float z1 = round(input[position].y * TrMulI) * TrMul;
+			output[position].y = (uchar)(clamp(z1, c0, PkOut));
+			
+			const float z2 = round(input[position].z * TrMulI) * TrMul;
+			output[position].z = (uchar)(clamp(z2, c0, PkOut));
+			
+			const float z3 = round(input[position].w * TrMulI) * TrMul;
+			output[position].w = (uchar)(clamp(z3, c0, PkOut));
+		}
+	}
+	
 }
