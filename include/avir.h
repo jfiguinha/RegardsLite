@@ -6895,6 +6895,91 @@ namespace avir {
 					}
 
 
+					void GetDataOpenCL(cv::UMat& src, float * & dest, const int& iPos)
+					{
+						cv::Mat paramDest(1, src.size().width, CV_32FC4, dest);
+						cl_mem_flags flag;
+						{
+
+
+							bool useMemory = (cv::ocl::Device::getDefault().type() == CL_DEVICE_TYPE_GPU) ? false : true;
+							flag = useMemory ? CL_MEM_USE_HOST_PTR : CL_MEM_COPY_HOST_PTR;
+
+							vector<COpenCLParameter*> vecParam;
+							// Crée un UMat avec le type CV_8UC4
+							UMat paramOutput(1, src.size().width, CV_32FC4);
+							auto clBuffer = static_cast<cl_mem>(paramOutput.handle(ACCESS_WRITE));
+
+							auto clInputBuffer = static_cast<cl_mem>(src.handle(ACCESS_READ));
+							auto input = new COpenCLParameterClMem(true);
+							input->SetValue(clInputBuffer);
+							input->SetLibelle("input");
+							input->SetNoDelete(true);
+							vecParam.push_back(input);
+
+
+							auto paramWidth = new COpenCLParameterInt();
+							paramWidth->SetValue(src.size().width);
+							paramWidth->SetLibelle("width");
+							vecParam.push_back(paramWidth);
+
+							auto paramHeight = new COpenCLParameterInt();
+							paramHeight->SetValue(src.size().height);
+							paramHeight->SetLibelle("height");
+							vecParam.push_back(paramHeight);
+
+							auto paramIntFltLen = new COpenCLParameterInt();
+							paramIntFltLen->SetValue(iPos);
+							paramIntFltLen->SetLibelle("xPos");
+							vecParam.push_back(paramIntFltLen);
+
+							// Récupération du code source du kernel
+							wxString kernelSource = CLibResource::GetOpenCLUcharProgram("IDR_OPENCL_AVIR");
+							cv::ocl::ProgramSource programSource(kernelSource);
+							ocl::Context context = clExecCtx.getContext();
+
+							// Compilation du kernel
+							String errmsg;
+							String buildopt = ""; // Options de compilation (vide par défaut)
+							ocl::Program program = context.getProg(programSource, buildopt, errmsg);
+
+							ocl::Kernel kernel("GetData", program);
+
+							// Définition du premier argument (outBuffer)
+							cl_int err = clSetKernelArg(static_cast<cl_kernel>(kernel.ptr()), 0, sizeof(cl_mem), &clBuffer);
+							if (err != CL_SUCCESS)
+							{
+								throw std::runtime_error("Failed to set kernel argument for outBuffer.");
+							}
+
+							// Ajout des autres arguments
+							int numArg = 1;
+							for (COpenCLParameter* parameter : vecParam)
+							{
+								parameter->Add(static_cast<cl_kernel>(kernel.ptr()), numArg++);
+							}
+
+							size_t global_work_size[1] = { static_cast<size_t>(src.size().width) };
+							bool success = kernel.run(1, global_work_size, nullptr, true);
+							if (!success)
+							{
+								throw std::runtime_error("Failed to execute OpenCL kernel.");
+							}
+
+							for (COpenCLParameter* parameter : vecParam)
+							{
+								if (!parameter->GetNoDelete())
+								{
+									delete parameter;
+									parameter = nullptr;
+								}
+							}
+
+							paramOutput.copyTo(paramDest);
+						}
+					}
+
+
 					cv::Mat GetDataOpenCLHtoV(cv::UMat& src, const int& iPos)
 					{
 						cv::Mat paramDest(1, src.size().height, CV_32FC4);
@@ -6978,6 +7063,86 @@ namespace avir {
 							paramOutput.copyTo(paramDest);
 						}
 						return paramDest;
+					}
+
+
+					cv::UMat GetDataOpenCLHtoV2D(cv::UMat& src)
+					{
+						UMat paramOutput(src.size().width, src.size().height, CV_32FC4);
+						cl_mem_flags flag;
+						{
+
+
+							bool useMemory = (cv::ocl::Device::getDefault().type() == CL_DEVICE_TYPE_GPU) ? false : true;
+							flag = useMemory ? CL_MEM_USE_HOST_PTR : CL_MEM_COPY_HOST_PTR;
+
+							vector<COpenCLParameter*> vecParam;
+							// Crée un UMat avec le type CV_8UC4
+							
+							auto clBuffer = static_cast<cl_mem>(paramOutput.handle(ACCESS_WRITE));
+
+							auto clInputBuffer = static_cast<cl_mem>(src.handle(ACCESS_READ));
+							auto input = new COpenCLParameterClMem(true);
+							input->SetValue(clInputBuffer);
+							input->SetLibelle("input");
+							input->SetNoDelete(true);
+							vecParam.push_back(input);
+
+
+							auto paramWidth = new COpenCLParameterInt();
+							paramWidth->SetValue(src.size().width);
+							paramWidth->SetLibelle("width");
+							vecParam.push_back(paramWidth);
+
+							auto paramHeight = new COpenCLParameterInt();
+							paramHeight->SetValue(src.size().height);
+							paramHeight->SetLibelle("height");
+							vecParam.push_back(paramHeight);
+
+
+							// Récupération du code source du kernel
+							wxString kernelSource = CLibResource::GetOpenCLUcharProgram("IDR_OPENCL_AVIR");
+							cv::ocl::ProgramSource programSource(kernelSource);
+							ocl::Context context = clExecCtx.getContext();
+
+							// Compilation du kernel
+							String errmsg;
+							String buildopt = ""; // Options de compilation (vide par défaut)
+							ocl::Program program = context.getProg(programSource, buildopt, errmsg);
+
+							ocl::Kernel kernel("GetDataHtoV2D", program);
+
+							// Définition du premier argument (outBuffer)
+							cl_int err = clSetKernelArg(static_cast<cl_kernel>(kernel.ptr()), 0, sizeof(cl_mem), &clBuffer);
+							if (err != CL_SUCCESS)
+							{
+								throw std::runtime_error("Failed to set kernel argument for outBuffer.");
+							}
+
+							// Ajout des autres arguments
+							int numArg = 1;
+							for (COpenCLParameter* parameter : vecParam)
+							{
+								parameter->Add(static_cast<cl_kernel>(kernel.ptr()), numArg++);
+							}
+
+							size_t global_work_size[1] = { static_cast<size_t>(src.size().width) };
+							bool success = kernel.run(1, global_work_size, nullptr, true);
+							if (!success)
+							{
+								throw std::runtime_error("Failed to execute OpenCL kernel.");
+							}
+
+							for (COpenCLParameter* parameter : vecParam)
+							{
+								if (!parameter->GetNoDelete())
+								{
+									delete parameter;
+									parameter = nullptr;
+								}
+							}
+						}
+						return paramOutput;
 					}
 
 
@@ -7655,113 +7820,141 @@ namespace avir {
 					}
 
 #ifdef OPENCL_FILTRE
+
+					UMat doUpsampleOpenCL(UMat src_cvt)
+					{
+						const CFilterStep& fs = (*Steps)[0];
+						int widthOut = fs.OutPrefix + fs.OutLen + fs.OutSuffix;
+						int start = fs.OutPrefix;
+						int stop = fs.OutSuffix;
+						return UpSample2D(src_cvt, widthOut, QueueLen, SrcLen, start, fs.OutLen, fs.ResampleFactor);
+					}
+
+					UMat doFilterOpenCL(UMat src)
+					{
+						const CFilterStep& fs = (*Steps)[2];
+
+						const float* const f = &fs.Flt[fs.FltLatency];
+						const int flen = fs.FltLatency + 1;
+
+						return doFilterOpenCL2D(src, fs.OutLen, QueueLen, f, flen);
+					}
+
+					UMat doResize2OpenCL(UMat src)
+					{
+						const CFilterStep& fs = (*Steps)[1];
+
+						int positionSrc = 0;
+						const int IntFltLen0 = fs.FltBank->getFilterLen();
+
+						const typename CImageResizerFilterStep::
+							CResizePos* rpos = &(*fs.RPosBuf)[0];
+
+						const typename CImageResizerFilterStep::
+							CResizePos* const rpose = rpos + fs.OutLen;
+						vector<int> PositionTab;
+						vector<float> ftpTab;
+						int oldPos = 0;
+						int i = 0;
+						while (rpos < rpose)
+						{
+							const float* const ftp = rpos->ftp;
+
+							if (i > 0)
+							{
+								positionSrc = positionSrc + abs(abs(rpos->SrcOffs) - oldPos);
+								oldPos = abs(rpos->SrcOffs);
+								PositionTab.push_back(positionSrc);
+							}
+							else
+								PositionTab.push_back(positionSrc);
+
+							for (int k = 0; k < IntFltLen0; k += 2)
+							{
+								const float xx = ftp[k];
+								ftpTab.push_back(xx);
+							}
+							rpos++; i++;
+						}
+
+						return doResize2OpenCL2D(src, fs.OutLen, QueueLen, PositionTab, ftpTab, IntFltLen0);
+					}
+
+
+					UMat doResizeOpenCL(UMat src)
+					{
+						const CFilterStep& fs = (*Steps)[1];
+
+						int positionSrc = 0;
+						const int IntFltLen0 = fs.FltBank->getFilterLen();
+
+						const typename CImageResizerFilterStep::
+							CResizePos* rpos = &(*fs.RPosBuf)[0];
+
+						const typename CImageResizerFilterStep::
+							CResizePos* const rpose = rpos + fs.OutLen;
+						vector<int> PositionTab;
+						vector<float> ftpTab;
+						int oldPos = 0;
+						int i = 0;
+						while (rpos < rpose)
+						{
+							const float* const ftp = rpos->ftp;
+
+							if (i > 0)
+							{
+								positionSrc = positionSrc + abs(abs(rpos->SrcOffs) - oldPos);
+								oldPos = abs(rpos->SrcOffs);
+								PositionTab.push_back(positionSrc);
+							}
+							else
+								PositionTab.push_back(positionSrc);
+
+							for (int k = 0; k < IntFltLen0; k += 2)
+							{
+								const float xx = ftp[k];
+								ftpTab.push_back(xx);
+							}
+							rpos++; i++;
+						}
+
+						return doResize2OpenCL2D(src, fs.OutLen, QueueLen, PositionTab, ftpTab, IntFltLen0);
+					}
+
 					void resizeScanlineH_OpenCL()
 					{
-
 						const CFilterStep& fs = (*Steps)[2];
-						output = UMat(QueueLen, fs.OutLen, CV_32FC4);
+						output = ConvertToFloat(src, SrcLen, QueueLen);
 
-						UMat src_cvt = ConvertToFloat(src, SrcLen, QueueLen);
-
-						
-						UMat outMat;
-						UMat resize;
-						
+						for (int j = 0; j < Steps->getItemCount(); j++)
 						{
-							const CFilterStep& fs = (*Steps)[0];
+							const CFilterStep& fs = (*Steps)[j];
 
-							int widthOut = fs.OutPrefix + fs.OutLen + fs.OutSuffix;
-							int start = fs.OutPrefix;
-							int stop = fs.OutSuffix;
-							outMat = UpSample2D(src_cvt, widthOut, QueueLen, SrcLen, start, fs.OutLen, fs.ResampleFactor);
-						}
-
-						{
-							const CFilterStep& fs = (*Steps)[1];
-
-							int positionSrc = 0;
-							const int IntFltLen0 = fs.FltBank->getFilterLen();
-
-							const typename CImageResizerFilterStep::
-								CResizePos* rpos = &(*fs.RPosBuf)[0];
-
-							const typename CImageResizerFilterStep::
-								CResizePos* const rpose = rpos + fs.OutLen;
-							vector<int> PositionTab;
-							vector<float> ftpTab;
-							int oldPos = 0;
-							int i = 0;
-							while (rpos < rpose)
+							if (fs.ResampleFactor != 0)
 							{
-								const float* const ftp = rpos->ftp;
-								//const float* Src = SrcLine + rpos->SrcOffs;
-								//const int IntFltLen = rpos->fl;
-
-								if (i > 0)
+								if (fs.IsUpsample)
 								{
-									positionSrc = positionSrc + abs(abs(rpos->SrcOffs) - oldPos);
-									oldPos = abs(rpos->SrcOffs);
-									PositionTab.push_back(positionSrc);
+									output = doUpsampleOpenCL(output);
 								}
 								else
-									PositionTab.push_back(positionSrc);
-
-								for (int k = 0; k < IntFltLen0; k += 2)
 								{
-									const float xx = ftp[k];
-									ftpTab.push_back(xx);
+									output = doFilterOpenCL(output);
 								}
-								rpos++; i++;
 							}
-
-							resize = doResize2OpenCL2D(outMat, fs.OutLen, QueueLen, PositionTab, ftpTab, IntFltLen0);
-
-							printf("toot");
-
-
-						}
-
-						{
-							const CFilterStep& fs = (*Steps)[2];
-
-							const float* const f = &fs.Flt[fs.FltLatency];
-							const int flen = fs.FltLatency + 1;
-
-							output = doFilterOpenCL2D(resize, fs.OutLen, QueueLen, f, flen);
-
-						}
-						
-						/*
-						//tbb::parallel_for(0, QueueLen, [&](int i)
-						for (int iPos = 0; iPos < QueueLen; iPos++)
-						{
-							//UMat outMat_dest = GetDataOpenUMat(outMat, iPos);
-							UMat outMatResize;
-							cv::UMat filter;
-
-							outMatResize = GetDataOpenUMat(resize, iPos);
-
+							else
 							{
-								const CFilterStep& fs = (*Steps)[2];
-
-								const float* const f = &fs.Flt[fs.FltLatency];
-								const int flen = fs.FltLatency + 1;
-
-								cv::UMat filter = doFilterOpenCL_UMat(outMatResize, fs.OutLen, 1, f, flen);
-
-								doCopyOpenCL_UMat(output, filter, iPos);
-
-
+								if (Vars->IsResize2)
+								{
+									output = doResize2OpenCL(output);
+								}
+								else
+								{
+									output = doResizeOpenCL(output);
+								}
 							}
-
-							outMatResize.release();
-							filter.release();
-							
-						}*/
-						resize.release();
-						outMat.release();
+						}
 					}
-#endif
+#else
 					void resizeScanlineH(const uchar* const SrcBuf, float* const ResBuf)
 					{
 
@@ -7817,7 +8010,7 @@ namespace avir {
 
 						Bufs.free();
 					}
-
+#endif
 					/**
 					 * @brief Resizes a single vertical scanline.
 					 *
@@ -7831,6 +8024,9 @@ namespace avir {
 					{
 						//tbb::parallel_for(0, QueueLen, [&](int i)
 						//float* dest = new float[SrcLen];
+
+						UMat src = GetDataOpenCLHtoV2D(output);
+
 						for (int i = 0; i < QueueLen; i++)
 						{
 							float* const SrcBuf = (float*)Queue[i].SrcBuf;
@@ -7848,39 +8044,9 @@ namespace avir {
 							BufPtrs[1] = Bufs + Vars->BufLen[0] + Vars->BufOffs[1];
 
 							float* dest = BufPtrs[0];
-							GetDataOpenCLHtoV(output, dest, i);
-							
+							//GetDataOpenCLHtoV(output, dest, i);
+							GetDataOpenCL(src, dest, i);
 
-							/*
-							fs0.convertVtoH(SrcBuf, BufPtrs[0], SrcLen, SrcIncr);
-							
-							cv::Mat matFloat = GetDataOpenCLHtoV(output, i);
-
-							float* ptr = matFloat.ptr<float>(0);
-
-							for (int i = 0, k = 0; i < SrcLen; i++, k+=4)
-							{
-
-								if (Dst[k] == ptr[0])
-								{
-									printf("toto");
-								}
-								if (Dst[k+1] == ptr[1])
-								{
-									printf("toto");
-								}
-								if (Dst[k+2] == ptr[2])
-								{
-									printf("toto");
-								}
-								if (Dst[k+3] == ptr[3])
-								{
-									printf("toto");
-								}
-
-								ptr += 4;
-							}
-							*/
 
 							//delete[] SrcBuf;
 							BufPtrs[2] = ResBuf;
@@ -8030,174 +8196,7 @@ namespace avir {
 
 						//);
 					}
-#endif
-
-					void resizeScanlineV()
-					{
-						//tbb::parallel_for(0, QueueLen, [&](int i)
-						for (int i = 0; i < QueueLen; i++)
-						{
-								const float* const SrcBuf = (float*)Queue[i].SrcBuf;
-								float* const ResBuf = (float*)Queue[i].ResBuf;
-								const CFilterStep& fs0 = (*Steps)[0];
-								float* BufPtrs[3];
-								const int l = Vars->BufLen[0] + Vars->BufLen[1];
-								CBuffer< float > Bufs;
-								if (Bufs.getCapacity() < l)
-								{
-									Bufs.alloc(l, fpclass_def::fpalign);
-								}
-
-								BufPtrs[0] = Bufs + Vars->BufOffs[0];
-								BufPtrs[1] = Bufs + Vars->BufLen[0] + Vars->BufOffs[1];
-								fs0.convertVtoH(SrcBuf, BufPtrs[0], SrcLen, SrcIncr);
-								BufPtrs[2] = ResBuf;
-								const int ElCount = Vars->ElCount;
-
-								{
-									const CFilterStep& fs = (*Steps)[0];
-									fs.prepareInBuf(BufPtrs[fs.InBuf]);
-									const int Dsucharcr = (fs.OutBuf == 2 ? ResIncr :
-										(Vars->packmode == 0 ? Vars->ElCount : 1));
-									const float* const Src = BufPtrs[fs.InBuf];
-									float* const Dst = BufPtrs[fs.OutBuf];
-									//fs.doUpsample(BufPtrs[fs.InBuf], BufPtrs[fs.OutBuf]);
-
-									float* op0 = &Dst[-fs.OutPrefix * ElCount];
-									memset(op0, 0, (size_t)(fs.OutPrefix + fs.OutLen + fs.OutSuffix) *
-										(size_t)ElCount * sizeof(float));
-
-									const float* ip = Src;
-									const int opstep = ElCount * fs.ResampleFactor;
-									int l;
-									op0 += (fs.OutPrefix % fs.ResampleFactor) * ElCount;
-									l = fs.OutPrefix / fs.ResampleFactor;
-
-									while (l > 0)
-									{
-										memcpy(op0, ip, sizeof(float) * 4);
-										op0 += opstep;
-										l--;
-									}
-
-									l = fs.InLen - 1;
-
-									while (l > 0)
-									{
-										memcpy(op0, ip, sizeof(float) * 4);
-										op0 += opstep;
-										ip += ElCount;
-										l--;
-									}
-
-									l = fs.OutSuffix / fs.ResampleFactor;
-
-									while (l >= 0)
-									{
-										memcpy(op0, ip, sizeof(float) * 4);
-										op0 += opstep;
-										l--;
-									}
-								}
-
-								{
-									const CFilterStep& fs = (*Steps)[1];
-									fs.prepareInBuf(BufPtrs[fs.InBuf]);
-									const int Dsucharcr = (fs.OutBuf == 2 ? ResIncr :
-										(Vars->packmode == 0 ? Vars->ElCount : 1));
-									const float* SrcLine = BufPtrs[fs.InBuf];
-									float* DstLine = BufPtrs[fs.OutBuf];
-
-									const int IntFltLen0 = fs.FltBank->getFilterLen();
-
-									const typename CImageResizerFilterStep::
-										CResizePos* rpos = &(*fs.RPosBuf)[0];
-
-									const typename CImageResizerFilterStep::
-										CResizePos* const rpose = rpos + fs.OutLen;
-
-									float sum[4] = { 0.0,0.0,0.0,0.0 };
-									int i;
-
-									while (rpos < rpose)
-									{
-										const float* const ftp = rpos->ftp;
-										const float* Src = SrcLine + rpos->SrcOffs;
-										const int IntFltLen = rpos->fl;
-
-
-										memset(sum, 0, sizeof(float) * 4);
-
-
-										for (i = 0; i < IntFltLen; i += 2)
-										{
-											const float xx = ftp[i];
-											sum[0] += xx * Src[0];
-											sum[1] += xx * Src[1];
-											sum[2] += xx * Src[2];
-											sum[3] += xx * Src[3];
-											Src += 8;
-										}
-
-										memcpy(DstLine, sum, sizeof(float) * 4);
-										DstLine += Dsucharcr;
-										rpos++;
-
-									}
-
-								}
-
-								{
-
-									const CFilterStep& fs = (*Steps)[2];
-									fs.prepareInBuf(BufPtrs[fs.InBuf]);
-									const int Dsucharcr = (fs.OutBuf == 2 ? ResIncr :
-										(Vars->packmode == 0 ? Vars->ElCount : 1));
-
-									const float* Src = BufPtrs[fs.InBuf];
-									float* Dst = BufPtrs[fs.OutBuf];
-
-									const float* const f = &fs.Flt[fs.FltLatency];
-									const int flen = fs.FltLatency + 1;
-									const int ipstep = ElCount * fs.ResampleFactor;
-									const float* ip = Src - fs.EdgePixelCount * ipstep;
-									const float* ip1;
-									const float* ip2;
-									int l = fs.OutLen;
-									int i;
-
-									float sum[4] = { 0.0,0.0,0.0,0.0 };
-
-									while (l > 0)
-									{
-										sum[0] = f[0] * ip[0];
-										sum[1] = f[0] * ip[1];
-										sum[2] = f[0] * ip[2];
-										sum[3] = f[0] * ip[3];
-										ip1 = ip;
-										ip2 = ip;
-
-										for (i = 1; i < flen; i++)
-										{
-											ip1 += 4;
-											ip2 -= 4;
-											sum[0] += f[i] * (ip1[0] + ip2[0]);
-											sum[1] += f[i] * (ip1[1] + ip2[1]);
-											sum[2] += f[i] * (ip1[2] + ip2[2]);
-											sum[3] += f[i] * (ip1[3] + ip2[3]);
-										}
-
-										memcpy(Dst, sum, sizeof(float) * 4);
-										Dst += Dsucharcr;
-										ip += ipstep;
-										l--;
-									}
-								}
-								Bufs.free();
-							}
-							
-						//);
-					}
+#else
 
 					void resizeScanlineV(const float* const SrcBuf,
 						float* const ResBuf)
@@ -8254,6 +8253,7 @@ namespace avir {
 						
 						Bufs.free();
 					}
+#endif
 				};
 			};
 

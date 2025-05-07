@@ -289,3 +289,22 @@ __kernel void GetDataHtoV(__global float4 * output, const __global float4 *input
 	output[k] = input[position];
 
 }
+
+__kernel void GetDataHtoV2D(__global float4 * output, const __global float4 *input, int width, int height)
+{
+    int k = get_global_id(0); // Index global
+    if (k >= width) 
+		return;
+	
+/*	
+	int widthDest = height;
+	int heightDest = width;
+
+	for(int j = 0;j < height;j++)
+	{
+		int position = k + j * width;
+		int outpos = j + k * widthDest;
+		output[outpos] = input[position];
+	}
+*/
+}
