@@ -435,8 +435,8 @@ UMat CAvirFilterOpenCL::UpSample2D(cv::UMat& src, const int& width, const int& h
 			parameter->Add(static_cast<cl_kernel>(kernel.ptr()), numArg++);
 		}
 
-		size_t global_work_size[1] = { static_cast<size_t>(width) };
-		bool success = kernel.run(1, global_work_size, nullptr, true);
+		size_t global_work_size[2] = { static_cast<size_t>(width), static_cast<size_t>(height) };
+		bool success = kernel.run(2, global_work_size, nullptr, true);
 		if (!success)
 		{
 			throw std::runtime_error("Failed to execute OpenCL kernel.");
@@ -724,8 +724,8 @@ UMat CAvirFilterOpenCL::doResize2OpenCL2D(cv::UMat& src, const int& width, const
 			parameter->Add(static_cast<cl_kernel>(kernel.ptr()), numArg++);
 		}
 
-		size_t global_work_size[1] = { static_cast<size_t>(width) };
-		bool success = kernel.run(1, global_work_size, nullptr, true);
+		size_t global_work_size[2] = { static_cast<size_t>(width), static_cast<size_t>(height) };
+		bool success = kernel.run(2, global_work_size, nullptr, true);
 		if (!success)
 		{
 			throw std::runtime_error("Failed to execute OpenCL kernel.");
@@ -917,8 +917,8 @@ UMat CAvirFilterOpenCL::doResizeOpenCL2D(cv::UMat& src, const int& width, const 
 			parameter->Add(static_cast<cl_kernel>(kernel.ptr()), numArg++);
 		}
 
-		size_t global_work_size[1] = { static_cast<size_t>(width) };
-		bool success = kernel.run(1, global_work_size, nullptr, true);
+		size_t global_work_size[2] = { static_cast<size_t>(width), static_cast<size_t>(height) };
+		bool success = kernel.run(2, global_work_size, nullptr, true);
 		if (!success)
 		{
 			throw std::runtime_error("Failed to execute OpenCL kernel.");
@@ -2317,8 +2317,8 @@ UMat CAvirFilterOpenCL::doFilterOpenCL2D(cv::UMat& src, const int& width, const 
 			parameter->Add(static_cast<cl_kernel>(kernel.ptr()), numArg++);
 		}
 
-		size_t global_work_size[1] = { static_cast<size_t>(width) };
-		bool success = kernel.run(1, global_work_size, nullptr, true);
+		size_t global_work_size[2] = { static_cast<size_t>(width), static_cast<size_t>(height) };
+		bool success = kernel.run(2, global_work_size, nullptr, true);
 		if (!success)
 		{
 			throw std::runtime_error("Failed to execute OpenCL kernel.");

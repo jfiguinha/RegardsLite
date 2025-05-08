@@ -115,27 +115,25 @@ __kernel void UpSample(__global float4 * output, const __global float4 *input, i
 
 __kernel void UpSample2D(__global float4 * output, const __global float4 *input, int width, int height, int widthSrc, int start, int outLen, int ResampleFactor, int opstep)
 {
-	int k = get_global_id(0);  
-	if(k < width)	
-	{    
-		for(int i = 0;i < height;i++)
+    int k = get_global_id(0);
+	int i = get_global_id(1);
+	if(k < width && i < height && i >= 0 && k >= 0)	
+	{
+		int pos = k + i * width;
+		output[pos] = (float4)0.0;
+		if (k < start)
 		{
-			int pos = k + i * width;
-			output[pos] = (float4)0.0;
-			if (k < start)
-			{
-				int posSrc = i * widthSrc;
-				output[pos] = input[posSrc];
-			}
-			else if(k >= start && k < (widthSrc * ResampleFactor + start))
-			{
-				int kInput = (k - start) / ResampleFactor + i * widthSrc;
-				output[pos] = input[kInput];
-			}
-			else if(k >= (widthSrc * ResampleFactor + start))
-			{
-				output[pos] = input[widthSrc - 1 + i * widthSrc];
-			}
+			int posSrc = i * widthSrc;
+			output[pos] = input[posSrc];
+		}
+		else if(k >= start && k < (widthSrc * ResampleFactor + start))
+		{
+			int kInput = (k - start) / ResampleFactor + i * widthSrc;
+			output[pos] = input[kInput];
+		}
+		else if(k >= (widthSrc * ResampleFactor + start))
+		{
+			output[pos] = input[widthSrc - 1 + i * widthSrc];
 		}
     }
 }
@@ -169,11 +167,9 @@ __kernel void doResize2(__global float4 * output, const __global float4 *input, 
 __kernel void doResize22D(__global float4 * output, const __global float4 *input, int width, int height, __global const int * PositionTab, __global const float* ftp,
     const int IntFltLen0, int inputWidth)
 {
-    int k = get_global_id(0); // Index global
-    if (k >= width) 
-		return;
-		
-	for(int j = 0;j < height;j++)
+    int k = get_global_id(0);
+	int j = get_global_id(1);
+	if(k < width && j < height && j >= 0 && k >= 0)	
 	{
 		float4 sum = {0.0f, 0.0f, 0.0f, 0.0f};
 		int positionSrc = PositionTab[k] / 4;
@@ -225,11 +221,9 @@ __kernel void doFilter(__global float4 * output, const __global float4 *input, i
 
 __kernel void doFilter2D(__global float4 * output, const __global float4 *input, int widthSrc, int heightSrc, int width, int height, __global const float* f, const int flen, const int step)
 {
-    int k = get_global_id(0); // Index global
-    if (k >= width) 
-		return;
-		
-	for(int j = 0;j < height;j++)
+    int k = get_global_id(0);
+	int j = get_global_id(1);
+	if(k < width && j < height && j >= 0 && k >= 0)	
 	{
 		float4 sum = {0.0f, 0.0f, 0.0f, 0.0f};
 		int position = k * step + j * widthSrc;
@@ -468,11 +462,9 @@ __kernel void doResize(__global float4 * output, const __global float4 *input, i
 __kernel void doResize2D(__global float4 * output, const __global float4 *input, int width, int height, __global const int * PositionTab, __global const float* ftp,
     const int IntFltLen0, int inputWidth)
 {
-    int k = get_global_id(0); // Index global
-    if (k >= width) 
-		return;
-		
-	for(int j = 0;j < height;j++)
+    int k = get_global_id(0);
+	int j = get_global_id(1);
+	if(k < width && j < height && j >= 0 && k >= 0)	
 	{
 		float4 sum = {0.0f, 0.0f, 0.0f, 0.0f};
 		int positionSrc = PositionTab[k] / 4;
