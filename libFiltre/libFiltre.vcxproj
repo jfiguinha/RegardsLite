@@ -654,6 +654,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="AudioVideoFilter.cpp" />
+    <ClCompile Include="avir_opencl.cpp" />
     <ClCompile Include="bilateralFilter.cpp" />
     <ClCompile Include="BlurFilter.cpp" />
     <ClCompile Include="BrightAndContrastFilter.cpp" />

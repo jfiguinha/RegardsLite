@@ -63,6 +63,9 @@
     <ClInclude Include="avir_float8_avx.h">
       <Filter>avir</Filter>
     </ClInclude>
+    <ClInclude Include="avir_opencl.h">
+      <Filter>avir</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="header.cpp">

@@ -17,7 +17,8 @@
 #include <ConvertUtility.h>
 #include <opencv2/xphoto/inpainting.hpp>
 #include "opencv2/fuzzy.hpp"
-//#include <avir.h>
+#include <OpenCLParameter.h>
+#include <avir.h>
 #include "InterpolationFilters.h"
 using namespace Regards::OpenCV;
 using namespace Regards::OpenGL;
@@ -1047,7 +1048,6 @@ Mat CFiltreEffetCPU::Interpolation(const Mat& inputData, const int& widthOut, co
 			cv::Mat inBuf, outBuf(Size(widthOut, heightOut), CV_8UC4, Scalar(0, 0, 0));
 			cvtColor(cvImage, inBuf, cv::COLOR_BGR2BGRA);
 
-			/*
 			avir::CImageResizer ImageResizer(8);
 			avir::CImageResizerVars Vars;
 			Vars.UseSRGBGamma = true;
@@ -1055,7 +1055,7 @@ Mat CFiltreEffetCPU::Interpolation(const Mat& inputData, const int& widthOut, co
 				reinterpret_cast<uint8_t*>(inBuf.data), inBuf.cols, inBuf.rows, inBuf.step,
 				reinterpret_cast<uint8_t*>(outBuf.data), widthOut, heightOut, 4, 0, &Vars
 			);
-			*/
+
 			cvtColor(outBuf, cvImage, cv::COLOR_BGRA2BGR);
 		}
 		else if (method > 7)

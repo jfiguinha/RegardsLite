@@ -438,3 +438,58 @@ __kernel void Dither2D(__global uchar4 * output, const __global float4 *input, i
 	}
 	
 }
+
+__kernel void doResize(__global float4 * output, const __global float4 *input, int width, int height, __global const int * PositionTab, __global const float* ftp,
+    const int IntFltLen0, int inputWidth)
+{
+    int k = get_global_id(0); // Index global
+    if (k >= width) 
+		return;
+
+    float4 sum = {0.0f, 0.0f, 0.0f, 0.0f};
+	int positionSrc = PositionTab[k] / 4;
+
+	for (int i = 0; i < IntFltLen0;i++)
+	{
+		const float xx = ftp[i + k * IntFltLen0];
+		if(positionSrc < inputWidth)
+		{
+			//float4 toto =  input[positionSrc];
+			sum.x += xx * input[positionSrc].x;
+			sum.y += xx * input[positionSrc].y;
+			sum.z += xx * input[positionSrc].z;
+			sum.w += xx * input[positionSrc].w;
+		}
+		positionSrc++;
+	}
+	output[k] = sum;
+}
+
+__kernel void doResize2D(__global float4 * output, const __global float4 *input, int width, int height, __global const int * PositionTab, __global const float* ftp,
+    const int IntFltLen0, int inputWidth)
+{
+    int k = get_global_id(0); // Index global
+    if (k >= width) 
+		return;
+		
+	for(int j = 0;j < height;j++)
+	{
+		float4 sum = {0.0f, 0.0f, 0.0f, 0.0f};
+		int positionSrc = PositionTab[k] / 4;
+
+		for (int i = 0; i < IntFltLen0;i++)
+		{
+			const float xx = ftp[i + k * IntFltLen0];
+			if(positionSrc < inputWidth)
+			{
+				int localPos = positionSrc + j * inputWidth;
+				sum.x += xx * input[localPos].x;
+				sum.y += xx * input[localPos].y;
+				sum.z += xx * input[localPos].z;
+				sum.w += xx * input[localPos].w;
+			}
+			positionSrc++;
+		}
+		output[k+ j * width] = sum;
+	}
+}

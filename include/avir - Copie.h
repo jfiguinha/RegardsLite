@@ -48,16 +48,13 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-#pragma once
+#ifndef AVIR_CIMAGERESIZER_INCLUDED
+#define AVIR_CIMAGERESIZER_INCLUDED
 
 #include <cstring>
 #include <cmath>
-#include "avir_opencl.h"
 
-extern cv::ocl::OpenCLExecutionContext clExecCtx;
-using namespace Regards::OpenCL;
 using namespace cv;
-
 
 #if __cplusplus >= 201103L
 
@@ -235,7 +232,8 @@ namespace avir {
 	 * @tparam T Output type.
 	 */
 
-	inline float convertSRGB2Lin(const unsigned char& s0, const float)
+	template< typename T >
+	inline T convertSRGB2Lin(const unsigned char& s0, const T)
 	{
 		static const float tbl[256] = {
 			0.0f, 0.000303527f, 0.000607054f, 0.000910581f, 0.001214108f,
@@ -3294,6 +3292,21 @@ namespace avir {
 		}
 
 
+		/**
+		 * @brief Performs resizing of a single scanline.
+		 *
+		 * This function does not "know" about the length of the source scanline
+		 * buffer. This buffer should be padded with enough pixels so that
+		 * `SrcPos - FilterLenD2` is always greater or equal to 0, and
+		 * `SrcPos + ( DstLineLen - 1 ) * k + FilterLenD2 + 1` does not exceed
+		 * source scanline's buffer length. `SrcLine` increment is assumed to be
+		 * equal to `ElCount`.
+		 *
+		 * @param SrcLine Source scanline buffer.
+		 * @param DstLine Desucharation (resized) scanline buffer.
+		 * @param DstLineIncr Desucharation scanline position increment, used for
+		 * horizontal or vertical scanline stepping.
+		 */
 
 		void doResize(const float* SrcLine, float* DstLine,
 			const int DstLineIncr, float* const) const
@@ -3528,7 +3541,6 @@ namespace avir {
 			void doResize2(const float* SrcLine, float* DstLine,
 				const int DstLineIncr, float* const) const
 			{
-
 				const int IntFltLen0 = FltBank->getFilterLen();
 				const int ElCount = Vars->ElCount;
 				const typename CImageResizerFilterStep::
@@ -3568,86 +3580,6 @@ namespace avir {
 			}
 
 
-			/**
-			 * @brief Performs resizing of a single scanline.
-			 *
-			 * This function does not "know" about the length of the source scanline
-			 * buffer. This buffer should be padded with enough pixels so that
-			 * `SrcPos - FilterLenD2` is always greater or equal to 0, and
-			 * `SrcPos + ( DstLineLen - 1 ) * k + FilterLenD2 + 1` does not exceed
-			 * source scanline's buffer length. `SrcLine` increment is assumed to be
-			 * equal to `ElCount`.
-			 *
-			 * @param SrcLine Source scanline buffer.
-			 * @param DstLine Desucharation (resized) scanline buffer.
-			 * @param DstLineIncr Desucharation scanline position increment, used for
-			 * horizontal or vertical scanline stepping.
-			 */
-
-			void doResizeCL(const float* SrcLine, float* DstLine,
-				const int DstLineIncr, float* const) const
-			{
-				const int IntFltLen = FltBank->getFilterLen();
-				const int ElCount = Vars->ElCount;
-				const typename CImageResizerFilterStep::
-					CResizePos* rpos = &(*RPosBuf)[0];
-
-				const typename CImageResizerFilterStep::
-					CResizePos* const rpose = rpos + OutLen;
-
-				/*
-				float sum[4] = { 0.0,0.0,0.0,0.0 };
-				while (rpos < rpose)
-				{
-					const float* const ftp = rpos->ftp;
-					const float* Src = SrcLine + rpos->SrcOffs;
-
-					memset(sum, 0, sizeof(float) * 4);
-
-					for (int i = 0; i < IntFltLen; i++)
-					{
-						const float xx = ftp[i];
-						sum[0] += xx * Src[0];
-						sum[1] += xx * Src[1];
-						sum[2] += xx * Src[2];
-						sum[3] += xx * Src[3];
-						Src += 4;
-					}
-
-					memcpy(DstLine, sum, sizeof(float) * 4);
-					DstLine += DstLineIncr;
-					rpos++;
-				}
-				*/
-
-				int positionSrc = 0;
-				vector<int> PositionTab;
-				vector<float> ftpTab;
-				int oldPos = 0;
-				int i = 0;
-				while (rpos < rpose)
-				{
-					const float* const ftp = rpos->ftp;
-
-					if (i > 0)
-					{
-						positionSrc = positionSrc + abs(abs(rpos->SrcOffs) - oldPos);
-						oldPos = abs(rpos->SrcOffs);
-						PositionTab.push_back(positionSrc);
-					}
-					else
-						PositionTab.push_back(positionSrc);
-
-					for (int i = 0; i < IntFltLen; i++)
-					{
-						const float xx = ftp[i];
-						ftpTab.push_back(xx);
-					}
-					rpos++; 
-					i++;
-				}
-
-			}
 };
 			/**
 			 * @brief Image resizer's default dithering class.
@@ -3736,14 +3668,12 @@ namespace avir {
 					}
 				}
 
-				double TrMul0; ///< Bit-depth truncation multiplier.
-				double PkOut0; ///< Peak output value allowed.
 			protected:
 				int Len; ///< Scanline's length in pixels.
 				const CImageResizerVars* Vars; ///< Image resizing-related variables.
 				int LenE; ///< = LenE * ElCount.
-				
-				
+				double TrMul0; ///< Bit-depth truncation multiplier.
+				double PkOut0; ///< Peak output value allowed.
 			};
 
 			/**
@@ -4036,308 +3966,6 @@ namespace avir {
 				 * treated as `uint16_t`. Signed integer types are unsupported.
 				 */
 
-				cv::UMat resizeImageOpenCL(cv::UMat src,
-					const int NewWidth, const int NewHeight, const int ElCountIO,
-					const double k, CImageResizerVars* const aVars = nullptr) const
-				{
-					int UseBuildMode = 1;
-					static CThreadData td;
-					int i = 0;
-
-					if (src.size().width == 0 || src.size().height == 0)
-					{
-						return td.output;
-					}
-					else
-						if (NewWidth == 0 || NewHeight == 0)
-						{
-							return td.output;
-						}
-
-					{
-						Vars = (aVars == nullptr ? &DefVars : aVars);
-						ThreadPool = (Vars->ThreadPool == nullptr ?
-							&DefThreadPool : Vars->ThreadPool);
-
-						ox = Vars->ox;
-						oy = Vars->oy;
-
-						if (k == 0.0)
-						{
-							kx = (double)src.size().width / NewWidth;
-							ox += (kx - 1.0) * 0.5;
-
-							ky = (double)src.size().height / NewHeight;
-							oy += (ky - 1.0) * 0.5;
-						}
-						else
-							if (k > 0.0)
-							{
-								kx = k;
-								ky = k;
-
-								const double ko = (k - 1.0) * 0.5;
-								ox += ko;
-								oy += ko;
-							}
-							else
-							{
-								kx = -k;
-								ky = -k;
-							}
-
-						IsInFloat = ((uchar)0.25 != 0);
-						IsOutFloat = ((uchar)0.25 != 0);
-
-						if (Vars->UseSRGBGamma)
-						{
-							if (IsInFloat)
-							{
-								Vars->InGammaMult = 1.0;
-							}
-							else
-							{
-								Vars->InGammaMult =
-									1.0 / (sizeof(uchar) == 1 ? 255.0 : 65535.0);
-							}
-
-							if (IsOutFloat)
-							{
-								Vars->OutGammaMult = 1.0;
-							}
-							else
-							{
-								Vars->OutGammaMult = (sizeof(uchar) == 1 ? 255.0 : 65535.0);
-							}
-
-							OutMul = 1.0;
-						}
-						else
-						{
-							if (IsOutFloat)
-							{
-								OutMul = 1.0;
-							}
-							else
-							{
-								OutMul = (sizeof(uchar) == 1 ? 255.0 : 65535.0);
-							}
-
-							if (!IsInFloat)
-							{
-								OutMul /= (sizeof(uchar) == 1 ? 255.0 : 65535.0);
-							}
-						}
-
-						// Fill widely-used variables.
-
-						ElCount = (ElCountIO + fpclass_def::fppack - 1) /
-							fpclass_def::fppack;
-
-						NewWidthE = NewWidth * ElCount;
-
-
-						Vars->ElCount = ElCount;
-						Vars->ElCountIO = ElCountIO;
-						Vars->fppack = fpclass_def::fppack;
-						Vars->fpalign = fpclass_def::fpalign;
-						Vars->elalign = fpclass_def::elalign;
-						Vars->packmode = fpclass_def::packmode;
-
-						// Horizontal scanline filtering and resizing.
-
-						BuildModeCount =
-							(FixedFilterBank.getOrder() == 0 ? 4 : 2);
-
-						if (Vars->BuildMode >= 0)
-						{
-							UseBuildMode = Vars->BuildMode;
-						}
-						else
-						{
-							int BestScore = 0x7FFFFFFF;
-
-							for (int m = 0; m < BuildModeCount; m++)
-							{
-								CDSPFracFilterBankLin TmpBank;
-								CFilterSteps TmpSteps;
-								Vars->k = kx;
-								Vars->o = ox;
-								buildFilterSteps(TmpSteps, Vars, TmpBank, OutMul, m, true);
-								updateFilterStepBuffers(TmpSteps, Vars, RPosBufArray,
-									src.size().width, NewWidth);
-
-								fillUsedFracMap(TmpSteps[Vars->ResizeStep], UsedFracMap);
-								const int c = calcComplexity(TmpSteps, Vars, UsedFracMap,
-									src.size().height);
-
-								if (c < BestScore)
-								{
-									UseBuildMode = m;
-									BestScore = c;
-								}
-							}
-						}
-
-						// Perform the actual filtering steps building.
-
-						Vars->k = kx;
-						Vars->o = ox;
-						buildFilterSteps(FltSteps, Vars, FltBank, OutMul, UseBuildMode,
-							false);
-
-						updateFilterStepBuffers(FltSteps, Vars, RPosBufArray, src.size().width,
-							NewWidth);
-
-						updateBufLenAndRPosPtrs(FltSteps, Vars, NewWidth);
-
-						td.initOpenCL(src, i, 1, FltSteps, Vars);
-
-						td.initScanlineQueue(td.sopResizeH, src.size().height,
-							src.size().width);
-					}
-
-					FltBuf.increaseCapacity((size_t)NewWidthE *
-						(size_t)src.size().height, fpclass_def::fpalign);
-
-					td.addQueueLen(src.size().height);
-					td.processScanlineQueueOpenCL();
-
-					// Vertical scanline filtering and resizing, reuse previously defined
-					// filtering steps if possible.
-
-					const int PrevUseBuildMode = UseBuildMode;
-					//if (oldWith != src.size().width || oldHeight != src.size().height || oldOutWidth != NewWidth || oldOutHeight != NewHeight)
-					{
-						if (Vars->BuildMode >= 0)
-						{
-							UseBuildMode = Vars->BuildMode;
-						}
-						else
-						{
-							CImageResizerVars TmpVars(*Vars);
-							int BestScore = 0x7FFFFFFF;
-
-							for (int m = 0; m < BuildModeCount; m++)
-							{
-								CDSPFracFilterBankLin TmpBank;
-								TmpBank.copyInitParams(FltBank);
-								CFilterSteps TmpSteps;
-								TmpVars.k = ky;
-								TmpVars.o = oy;
-								buildFilterSteps(TmpSteps, &TmpVars, TmpBank, 1.0, m, true);
-								updateFilterStepBuffers(TmpSteps, &TmpVars, RPosBufArray,
-									src.size().height, NewHeight);
-
-								fillUsedFracMap(TmpSteps[TmpVars.ResizeStep],
-									UsedFracMap);
-
-								const int c = calcComplexity(TmpSteps, &TmpVars, UsedFracMap,
-									NewWidth);
-
-								if (c < BestScore)
-								{
-									UseBuildMode = m;
-									BestScore = c;
-								}
-							}
-						}
-
-						Vars->k = ky;
-						Vars->o = oy;
-
-						if (UseBuildMode == PrevUseBuildMode && ky == kx)
-						{
-							if (OutMul != 1.0)
-							{
-								modifyCorrFilterDCGain(FltSteps, 1.0 / OutMul);
-							}
-						}
-						else
-						{
-							buildFilterSteps(FltSteps, Vars, FltBank, 1.0, UseBuildMode,
-								false);
-						}
-
-						updateFilterStepBuffers(FltSteps, Vars, RPosBufArray, src.size().height,
-							NewHeight);
-
-						updateBufLenAndRPosPtrs(FltSteps, Vars, NewWidth);
-					}
-
-
-					if (IsOutFloat && sizeof(FltBuf[0]) == sizeof(uchar) &&
-						fpclass_def::packmode == 0)
-					{
-						td.initScanlineQueue(td.sopResizeV, NewWidth,
-							src.size().height, NewWidthE, NewWidthE);
-
-						td.addQueueLen(NewWidth);
-
-						td.processScanlineQueueOpenCL();
-						return td.output;
-					}
-
-					td.initScanlineQueue(td.sopResizeV, NewWidth,
-						src.size().height, NewWidthE, NewWidthE);
-
-					td.addQueueLen(NewWidth);
-					td.processScanlineQueueOpenCL();
-
-					if (IsOutFloat)
-					{
-						td.initScanlineQueue(td.sopUnpackH,
-							NewHeight, NewWidth);
-
-
-						td.addQueueLen(NewHeight);
-						td.processScanlineQueueOpenCL();
-						return td.output;
-					}
-
-					// Perform output with dithering (for integer output only).
-
-					int TruncBits; // The number of lower bits to truncate and dither.
-					int OutRange; // Output range.
-
-					if (sizeof(uchar) == 1)
-					{
-						TruncBits = 8 - ResBitDepth;
-						OutRange = 255;
-					}
-					else
-					{
-						TruncBits = 16 - ResBitDepth;
-						OutRange = 65535;
-					}
-
-					const double PkOut = OutRange;
-					const double TrMul = (TruncBits > 0 ?
-						PkOut / (OutRange >> TruncBits) : 1.0);
-
-					if (CDitherer::isRecursive())
-					{
-						td.getDitherer().init(NewWidth, *Vars, TrMul, PkOut);
-
-						const float gm = (float)Vars->OutGammaMult;
-						UMat out = CAvirFilterOpenCL::GetDataOpenCLHtoV_dither2D(td.output, gm);
-						td.output = CAvirFilterOpenCL::DitherOpenCL2D(out, PkOut, TrMul);
-					}
-					else
-					{
-						td.initScanlineQueue(td.sopDitherAndUnpackH,
-							NewHeight, NewWidth);
-
-						td.getDitherer().init(NewWidth, *Vars, TrMul, PkOut);
-
-						td.addQueueLen(NewHeight);
-						td.processScanlineQueueOpenCL();
-					}
-
-
-					return td.output;
-				}
-
 
 				void resizeImage(const uchar* const SrcBuf, const int SrcWidth,
 					const int SrcHeight, int SrcScanlineSize, uchar* const NewBuf,
@@ -4508,6 +4136,7 @@ namespace avir {
 							NewWidth);
 
 						updateBufLenAndRPosPtrs(FltSteps, Vars, NewWidth);
+
 
 						td.init(i, 1, FltSteps, Vars);
 
@@ -4708,380 +4337,6 @@ namespace avir {
 					oldHeight = SrcHeight;
 					oldOutWidth = NewWidth;
 					oldOutHeight = NewHeight;
-
-				}
-				
-				void resizeImageCL(cv::UMat src, const uchar* const SrcBuf, const int SrcWidth,
-					const int SrcHeight, int SrcScanlineSize, uchar* const NewBuf,
-					const int NewWidth, const int NewHeight, const int ElCountIO,
-					const double k, CImageResizerVars* const aVars = nullptr) const
-				{
-					int UseBuildMode = 1;
-					static CThreadData td;
-					int i = 0;
-
-					if (SrcWidth == 0 || SrcHeight == 0)
-					{
-						memset(NewBuf, 0, (size_t)NewWidth * (size_t)NewHeight *
-							sizeof(uchar));
-
-						return;
-					}
-					else
-						if (NewWidth == 0 || NewHeight == 0)
-						{
-							return;
-						}
-
-
-
-
-					// Define resizing steps, also optionally modify offsets so that
-					// resizing produces a "centered" image.
-
-					//if (oldWith != SrcWidth || oldHeight != SrcHeight || oldOutWidth != NewWidth || oldOutHeight != NewHeight)
-					{
-						Vars = (aVars == nullptr ? &DefVars : aVars);
-						ThreadPool = (Vars->ThreadPool == nullptr ?
-							&DefThreadPool : Vars->ThreadPool);
-
-						ox = Vars->ox;
-						oy = Vars->oy;
-
-						if (k == 0.0)
-						{
-							kx = (double)SrcWidth / NewWidth;
-							ox += (kx - 1.0) * 0.5;
-
-							ky = (double)SrcHeight / NewHeight;
-							oy += (ky - 1.0) * 0.5;
-						}
-						else
-							if (k > 0.0)
-							{
-								kx = k;
-								ky = k;
-
-								const double ko = (k - 1.0) * 0.5;
-								ox += ko;
-								oy += ko;
-							}
-							else
-							{
-								kx = -k;
-								ky = -k;
-							}
-
-						IsInFloat = ((uchar)0.25 != 0);
-						IsOutFloat = ((uchar)0.25 != 0);
-
-						if (Vars->UseSRGBGamma)
-						{
-							if (IsInFloat)
-							{
-								Vars->InGammaMult = 1.0;
-							}
-							else
-							{
-								Vars->InGammaMult =
-									1.0 / (sizeof(uchar) == 1 ? 255.0 : 65535.0);
-							}
-
-							if (IsOutFloat)
-							{
-								Vars->OutGammaMult = 1.0;
-							}
-							else
-							{
-								Vars->OutGammaMult = (sizeof(uchar) == 1 ? 255.0 : 65535.0);
-							}
-
-							OutMul = 1.0;
-						}
-						else
-						{
-							if (IsOutFloat)
-							{
-								OutMul = 1.0;
-							}
-							else
-							{
-								OutMul = (sizeof(uchar) == 1 ? 255.0 : 65535.0);
-							}
-
-							if (!IsInFloat)
-							{
-								OutMul /= (sizeof(uchar) == 1 ? 255.0 : 65535.0);
-							}
-						}
-
-						// Fill widely-used variables.
-
-						ElCount = (ElCountIO + fpclass_def::fppack - 1) /
-							fpclass_def::fppack;
-
-						NewWidthE = NewWidth * ElCount;
-
-						if (SrcScanlineSize < 1)
-						{
-							SrcScanlineSize = SrcWidth * ElCountIO;
-						}
-
-						Vars->ElCount = ElCount;
-						Vars->ElCountIO = ElCountIO;
-						Vars->fppack = fpclass_def::fppack;
-						Vars->fpalign = fpclass_def::fpalign;
-						Vars->elalign = fpclass_def::elalign;
-						Vars->packmode = fpclass_def::packmode;
-
-						// Horizontal scanline filtering and resizing.
-
-						BuildModeCount =
-							(FixedFilterBank.getOrder() == 0 ? 4 : 2);
-
-						if (Vars->BuildMode >= 0)
-						{
-							UseBuildMode = Vars->BuildMode;
-						}
-						else
-						{
-							int BestScore = 0x7FFFFFFF;
-
-							for (int m = 0; m < BuildModeCount; m++)
-							{
-								CDSPFracFilterBankLin TmpBank;
-								CFilterSteps TmpSteps;
-								Vars->k = kx;
-								Vars->o = ox;
-								buildFilterSteps(TmpSteps, Vars, TmpBank, OutMul, m, true);
-								updateFilterStepBuffers(TmpSteps, Vars, RPosBufArray,
-									SrcWidth, NewWidth);
-
-								fillUsedFracMap(TmpSteps[Vars->ResizeStep], UsedFracMap);
-								const int c = calcComplexity(TmpSteps, Vars, UsedFracMap,
-									SrcHeight);
-
-								if (c < BestScore)
-								{
-									UseBuildMode = m;
-									BestScore = c;
-								}
-							}
-						}
-
-						// Perform the actual filtering steps building.
-
-						Vars->k = kx;
-						Vars->o = ox;
-						buildFilterSteps(FltSteps, Vars, FltBank, OutMul, UseBuildMode,
-							false);
-
-						updateFilterStepBuffers(FltSteps, Vars, RPosBufArray, SrcWidth,
-							NewWidth);
-
-						updateBufLenAndRPosPtrs(FltSteps, Vars, NewWidth);
-
-						td.initOpenCL(src, i, 1, FltSteps, Vars);
-
-						td.initScanlineQueue(td.sopResizeH, SrcHeight,
-							SrcWidth);
-					}
-
-					FltBuf.increaseCapacity((size_t)NewWidthE *
-						(size_t)SrcHeight, fpclass_def::fpalign);
-
-					tbb::parallel_for(0, SrcHeight, [&](int i)
-						{
-							td.addScanlineToQueue(
-								(void*)&SrcBuf[(size_t)i * (size_t)SrcScanlineSize],
-								&FltBuf[(size_t)i * (size_t)NewWidthE], i);
-						});
-
-					td.addQueueLen(SrcHeight);
-
-					td.processScanlineQueueCL();
-
-					// Vertical scanline filtering and resizing, reuse previously defined
-					// filtering steps if possible.
-
-					const int PrevUseBuildMode = UseBuildMode;
-					//if (oldWith != SrcWidth || oldHeight != SrcHeight || oldOutWidth != NewWidth || oldOutHeight != NewHeight)
-					{
-						if (Vars->BuildMode >= 0)
-						{
-							UseBuildMode = Vars->BuildMode;
-						}
-						else
-						{
-							CImageResizerVars TmpVars(*Vars);
-							int BestScore = 0x7FFFFFFF;
-
-							for (int m = 0; m < BuildModeCount; m++)
-							{
-								CDSPFracFilterBankLin TmpBank;
-								TmpBank.copyInitParams(FltBank);
-								CFilterSteps TmpSteps;
-								TmpVars.k = ky;
-								TmpVars.o = oy;
-								buildFilterSteps(TmpSteps, &TmpVars, TmpBank, 1.0, m, true);
-								updateFilterStepBuffers(TmpSteps, &TmpVars, RPosBufArray,
-									SrcHeight, NewHeight);
-
-								fillUsedFracMap(TmpSteps[TmpVars.ResizeStep],
-									UsedFracMap);
-
-								const int c = calcComplexity(TmpSteps, &TmpVars, UsedFracMap,
-									NewWidth);
-
-								if (c < BestScore)
-								{
-									UseBuildMode = m;
-									BestScore = c;
-								}
-							}
-						}
-
-						Vars->k = ky;
-						Vars->o = oy;
-
-						if (UseBuildMode == PrevUseBuildMode && ky == kx)
-						{
-							if (OutMul != 1.0)
-							{
-								modifyCorrFilterDCGain(FltSteps, 1.0 / OutMul);
-							}
-						}
-						else
-						{
-							buildFilterSteps(FltSteps, Vars, FltBank, 1.0, UseBuildMode,
-								false);
-						}
-
-						updateFilterStepBuffers(FltSteps, Vars, RPosBufArray, SrcHeight,
-							NewHeight);
-
-						updateBufLenAndRPosPtrs(FltSteps, Vars, NewWidth);
-					}
-
-
-					if (IsOutFloat && sizeof(FltBuf[0]) == sizeof(uchar) &&
-						fpclass_def::packmode == 0)
-					{
-						td.initScanlineQueue(td.sopResizeV, NewWidth,
-							SrcHeight, NewWidthE, NewWidthE);
-
-						tbb::parallel_for(0, NewWidth, [&](int i)
-							{
-								td.addScanlineToQueue(
-									&FltBuf[i * ElCount], (float*)&NewBuf[i * ElCount], i);
-							});
-						td.addQueueLen(NewWidth);
-
-						td.processScanlineQueueCL();
-						return;
-					}
-
-
-					ResBuf.increaseCapacity((size_t)NewWidthE *
-						(size_t)NewHeight, fpclass_def::fpalign);
-
-					td.initScanlineQueue(td.sopResizeV, NewWidth,
-						SrcHeight, NewWidthE, NewWidthE);
-
-					const int im = (fpclass_def::packmode == 0 ? ElCount : 1);
-
-					tbb::parallel_for(0, NewWidth, [&](int i)
-						{
-							td.addScanlineToQueue(
-								&FltBuf[i * im], &ResBuf[i * im], i);
-						});
-					td.addQueueLen(NewWidth);
-					td.processScanlineQueueCL();
-
-					if (IsOutFloat)
-					{
-						td.initScanlineQueue(td.sopUnpackH,
-							NewHeight, NewWidth);
-
-						tbb::parallel_for(0, NewHeight, [&](int i)
-							{
-								td.addScanlineToQueue(
-									&ResBuf[(size_t)i * (size_t)NewWidthE],
-									&NewBuf[(size_t)i * (size_t)(NewWidth * ElCountIO)], i);
-							});
-
-						td.addQueueLen(NewHeight);
-						td.processScanlineQueueCL();
-						return;
-					}
-
-					// Perform output with dithering (for integer output only).
-
-					int TruncBits; // The number of lower bits to truncate and dither.
-					int OutRange; // Output range.
-
-					if (sizeof(uchar) == 1)
-					{
-						TruncBits = 8 - ResBitDepth;
-						OutRange = 255;
-					}
-					else
-					{
-						TruncBits = 16 - ResBitDepth;
-						OutRange = 65535;
-					}
-
-					const double PkOut = OutRange;
-					const double TrMul = (TruncBits > 0 ?
-						PkOut / (OutRange >> TruncBits) : 1.0);
-
-					if (CDitherer::isRecursive())
-					{
-						td.getDitherer().init(NewWidth, *Vars, TrMul, PkOut);
-
-						tbb::parallel_for(0, NewHeight, [&](int i)
-							{
-								float* const ResScanline =
-									&ResBuf[(size_t)i * (size_t)NewWidthE];
-
-								if (Vars->UseSRGBGamma)
-								{
-									CFilterStep::applySRGBGamma(ResScanline, NewWidth,
-										*Vars);
-								}
-
-								td.getDitherer().dither(ResScanline);
-
-								CFilterStep::unpackScanline(ResScanline,
-									&NewBuf[(size_t)i * (size_t)(NewWidth * ElCountIO)],
-									NewWidth, *Vars);
-							});
-					}
-					else
-					{
-						td.initScanlineQueue(td.sopDitherAndUnpackH,
-							NewHeight, NewWidth);
-
-						td.getDitherer().init(NewWidth, *Vars, TrMul, PkOut);
-
-
-						tbb::parallel_for(0, NewHeight, [&](int i)
-							{
-								td.addScanlineToQueue(
-									&ResBuf[(size_t)i * (size_t)NewWidthE],
-									&NewBuf[(size_t)i * (size_t)(NewWidth * ElCountIO)], i);
-							});
-
-						td.addQueueLen(NewHeight);
-						td.processScanlineQueueCL();
-					}
-
-
-					oldWith = SrcWidth;
-					oldHeight = SrcHeight;
-					oldOutWidth = NewWidth;
-					oldOutHeight = NewHeight;
-
 				}
 
 			private:
@@ -6304,24 +5559,13 @@ namespace avir {
 					 * @param aVars Image resizer variables.
 					 */
 
-					void initOpenCL(cv::UMat src, const int aThreadIndex, const int aThreadCount,
+					void init(const int aThreadIndex, const int aThreadCount,
 						const CFilterSteps& aSteps, const CImageResizerVars * aVars)
 					{
 						ThreadIndex = aThreadIndex;
 						ThreadCount = aThreadCount;
 						Steps = &aSteps;
 						Vars = aVars;
-						this->src = src;
-					}
-
-					void init(const int aThreadIndex, const int aThreadCount,
-						const CFilterSteps& aSteps, const CImageResizerVars* aVars)
-					{
-						ThreadIndex = aThreadIndex;
-						ThreadCount = aThreadCount;
-						Steps = &aSteps;
-						Vars = aVars;
-						this->src = src;
 					}
 
 					/**
@@ -6403,97 +5647,41 @@ namespace avir {
 					 * @brief Processes all queued scanlines.
 					 */
 
-					void processScanlineQueueOpenCL()
+					void processScanlineQueue()
 					{
-						
-						switch (ScanlineOp)
-						{
-						case sopResizeH:
-						{
-							resizeScanlineH_OpenCL();
-							break;
-						}
-
-						case sopResizeV:
-						{
-							resizeScanlineV_OpenCL();
-							break;
-						}
-
-						case sopDitherAndUnpackH:
-						{
-							const float gm = (float)Vars->OutGammaMult;
-							UMat out = CAvirFilterOpenCL::GetDataOpenCLHtoV_dither2D(output, gm);
-							output = CAvirFilterOpenCL::DitherOpenCL2D(out, Ditherer.PkOut0, Ditherer.TrMul0);
-							break;
-						}
-
-						case sopUnpackH:
-						{
-							tbb::parallel_for(0, QueueLen, [&](int i)
-							{
-								if (Vars->UseSRGBGamma)
-								{
-									CFilterStep::applySRGBGamma(
-										(float*)Queue[i].SrcBuf, SrcLen, *Vars);
-								}
-
-								CFilterStep::unpackScanline(
-									(float*)Queue[i].SrcBuf,
-									(uchar*)Queue[i].ResBuf, SrcLen, *Vars);
-							});
-
-							break;
-						}
-						}
-					}
-
-
-					void processScanlineQueueCL()
-					{
+						int i;
 
 						switch (ScanlineOp)
 						{
 						case sopResizeH:
 						{
-							output = CAvirFilterOpenCL::ConvertToFloat(src, SrcLen, QueueLen);
-#ifdef _DEBUG
-							for (int i = 0; i < QueueLen; i++)
-							{
-								resizeScanlineH((uchar*)Queue[i].SrcBuf,
-									(float*)Queue[i].ResBuf);
-							}
-#else
+							/*
 							tbb::parallel_for(0, QueueLen, [&](int i)
 								{
 									resizeScanlineH((uchar*)Queue[i].SrcBuf,
 										(float*)Queue[i].ResBuf);
-								});
-#endif
+								});*/
+
+							resizeScanlineH();
 							break;
 						}
 
 						case sopResizeV:
 						{
-#ifdef _DEBUG
-							for (int i = 0; i < QueueLen; i++)
+							/*
+							tbb::parallel_for(0, QueueLen, [&](int i)
 							{
 								resizeScanlineV((float*)Queue[i].SrcBuf,
 									(float*)Queue[i].ResBuf);
-							}
-#else
-							tbb::parallel_for(0, QueueLen, [&](int i)
-								{
-									resizeScanlineV((float*)Queue[i].SrcBuf,
-										(float*)Queue[i].ResBuf);
-								});
-#endif
-
+							});
+							*/
+							resizeScanlineV();
 							break;
 						}
 
 						case sopDitherAndUnpackH:
 						{
+
 							tbb::parallel_for(0, QueueLen, [&](int i)
 								{
 									if (Vars->UseSRGBGamma)
@@ -6507,8 +5695,8 @@ namespace avir {
 									CFilterStep::unpackScanline(
 										(float*)Queue[i].SrcBuf,
 										(uchar*)Queue[i].ResBuf, SrcLen, *Vars);
-								}
-							);
+								});
+
 							break;
 						}
 
@@ -6526,87 +5714,7 @@ namespace avir {
 										(float*)Queue[i].SrcBuf,
 										(uchar*)Queue[i].ResBuf, SrcLen, *Vars);
 								});
-							break;
-						}
-						}
-					}
 
-					void processScanlineQueue()
-					{
-
-						switch (ScanlineOp)
-						{
-						case sopResizeH:
-						{
-#ifdef _DEBUG
-							for (int i = 0;i < QueueLen;i++)
-								{
-									resizeScanlineH((uchar*)Queue[i].SrcBuf,
-										(float*)Queue[i].ResBuf);
-								}
-#else
-							tbb::parallel_for(0, QueueLen, [&](int i)
-								{
-									resizeScanlineH((uchar*)Queue[i].SrcBuf,
-										(float*)Queue[i].ResBuf);
-								});
-#endif
-							break;
-						}
-
-						case sopResizeV:
-						{
-#ifdef _DEBUG
-							for (int i = 0; i < QueueLen; i++)
-							{
-									resizeScanlineV((float*)Queue[i].SrcBuf,
-										(float*)Queue[i].ResBuf);
-								}
-#else
-							tbb::parallel_for(0, QueueLen, [&](int i)
-								{
-									resizeScanlineV((float*)Queue[i].SrcBuf,
-										(float*)Queue[i].ResBuf);
-								});
-#endif
-
-							break;
-						}
-
-						case sopDitherAndUnpackH:
-						{
-							tbb::parallel_for(0, QueueLen, [&](int i)
-								{
-									if (Vars->UseSRGBGamma)
-									{
-										CFilterStep::applySRGBGamma(
-											(float*)Queue[i].SrcBuf, SrcLen, *Vars);
-									}
-
-									Ditherer.dither((float*)Queue[i].SrcBuf);
-
-									CFilterStep::unpackScanline(
-										(float*)Queue[i].SrcBuf,
-										(uchar*)Queue[i].ResBuf, SrcLen, *Vars);
-								}
-							);
-							break;
-						}
-
-						case sopUnpackH:
-						{
-							tbb::parallel_for(0, QueueLen, [&](int i)
-								{
-									if (Vars->UseSRGBGamma)
-									{
-										CFilterStep::applySRGBGamma(
-											(float*)Queue[i].SrcBuf, SrcLen, *Vars);
-									}
-
-									CFilterStep::unpackScanline(
-										(float*)Queue[i].SrcBuf,
-										(uchar*)Queue[i].ResBuf, SrcLen, *Vars);
-								});
 							break;
 						}
 						}
@@ -6621,9 +5729,6 @@ namespace avir {
 					{
 						return(Ditherer);
 					}
-
-					cv::UMat src;
-					cv::UMat output;
 
 				private:
 					int ThreadIndex; ///< Thread index.
@@ -6666,157 +5771,9 @@ namespace avir {
 					 * @param SrcBuf Source scanline buffer. Can be either horizontal or
 					 * vertical.
 					 * @param ResBuf Resulucharg scanline buffer.
-					 */
-
-public:
-
-
-					UMat doUpsampleOpenCL(UMat src_cvt, const CFilterStep& fs)
-					{
-						int widthOut = fs.OutPrefix + fs.OutLen + fs.OutSuffix;
-						int start = fs.OutPrefix;
-						int stop = fs.OutSuffix;
-						return CAvirFilterOpenCL::UpSample2D(src_cvt, widthOut, QueueLen, SrcLen, start, fs.OutLen, fs.ResampleFactor);
-					}
-
-					UMat doFilterOpenCL(UMat src, const CFilterStep& fs)
-					{
-
-						const float* const f = &fs.Flt[fs.FltLatency];
-						const int flen = fs.FltLatency + 1;
-
-						return CAvirFilterOpenCL::doFilterOpenCL2D(src, fs.OutLen, QueueLen, f, flen);
-					}
-
-					UMat doResizeOpenCL(UMat src, const CFilterStep& fs)
-					{
-						const int IntFltLen = fs.FltBank->getFilterLen();
-						const int ElCount = Vars->ElCount;
-						const typename CImageResizerFilterStep::
-							CResizePos* rpos = &(*fs.RPosBuf)[0];
-
-						const typename CImageResizerFilterStep::
-							CResizePos* const rpose = rpos + fs.OutLen;
-
-						int positionSrc = 0;
-						vector<int> PositionTab;
-						vector<float> ftpTab;
-						int oldPos = 0;
-						int i = 0;
-						while (rpos < rpose)
-						{
-							const float* const ftp = rpos->ftp;
-
-							if (i > 0)
-							{
-								positionSrc = positionSrc + abs(abs(rpos->SrcOffs) - oldPos);
-								oldPos = abs(rpos->SrcOffs);
-								PositionTab.push_back(positionSrc);
-							}
-							else
-								PositionTab.push_back(positionSrc);
-
-							for (int i = 0; i < IntFltLen; i++)
-							{
-								const float xx = ftp[i];
-								ftpTab.push_back(xx);
-							}
-							rpos++;
-							i++;
-						}
-						return CAvirFilterOpenCL::doResizeOpenCL2D(src, fs.OutLen, QueueLen, PositionTab, ftpTab, IntFltLen);
-					}
-
-					UMat doResize2OpenCL(UMat src, const CFilterStep& fs)
-					{
-						int positionSrc = 0;
-						const int IntFltLen0 = fs.FltBank->getFilterLen();
-
-						const typename CImageResizerFilterStep::
-							CResizePos* rpos = &(*fs.RPosBuf)[0];
-
-						const typename CImageResizerFilterStep::
-							CResizePos* const rpose = rpos + fs.OutLen;
-						vector<int> PositionTab;
-						vector<float> ftpTab;
-						int oldPos = 0;
-						int i = 0;
-						while (rpos < rpose)
-						{
-							const float* const ftp = rpos->ftp;
-
-							if (i > 0)
-							{
-								positionSrc = positionSrc + abs(abs(rpos->SrcOffs) - oldPos);
-								oldPos = abs(rpos->SrcOffs);
-								PositionTab.push_back(positionSrc);
-							}
-							else
-								PositionTab.push_back(positionSrc);
-
-							for (int k = 0; k < IntFltLen0; k += 2)
-							{
-								const float xx = ftp[k];
-								ftpTab.push_back(xx);
-							}
-							rpos++; i++;
-						}
-
-						return CAvirFilterOpenCL::doResize2OpenCL2D(src, fs.OutLen, QueueLen, PositionTab, ftpTab, IntFltLen0);
-					}
-
-					void resizeScanlineH_OpenCL()
-					{
-						output = CAvirFilterOpenCL::ConvertToFloat(src, SrcLen, QueueLen);
-
-						for (int j = 0; j < Steps->getItemCount(); j++)
-						{
-							const CFilterStep& fs = (*Steps)[j];
-
-							if (fs.ResampleFactor != 0)
-							{
-								if (fs.IsUpsample)
-								{
-									output = doUpsampleOpenCL(output, fs);
-								}
-								else
-								{
-									output = doFilterOpenCL(output, fs);
-								}
-							}
-							else
-							{
-								if (Vars->IsResize2)
-								{
-									output = doResize2OpenCL(output, fs);
-								}
-								else
-								{
-									output = doResizeOpenCL(output, fs);
-								}
-							}
-						}
-					}
-
-					void resizeScanlineH(const uchar* const SrcBuf, float* const ResBuf)
-					{
-
-						const CFilterStep& fs0 = (*Steps)[0];
-						float* BufPtrs[3];
-						const int l = Vars->BufLen[0] + Vars->BufLen[1];
-						CBuffer< float > Bufs;
-						if (Bufs.getCapacity() < l)
-						{
-							Bufs.alloc(l, fpclass_def::fpalign);
-						}
-
-						BufPtrs[0] = Bufs + Vars->BufOffs[0];
-						BufPtrs[1] = Bufs + Vars->BufLen[0] + Vars->BufOffs[1];
-
-						fs0.packScanline(SrcBuf, BufPtrs[0], SrcLen);
-
-						BufPtrs[2] = ResBuf;
-
+					 * 
+					 *
+					 
 						for (int j = 0; j < Steps->getItemCount(); j++)
 						{
 							const CFilterStep& fs = (*Steps)[j];
@@ -6850,9 +5807,194 @@ public:
 								}
 							}
 						}
+						
+
+					 */
+
+					void resizeScanlineH()
+					{
+						for (int i = 0; i < QueueLen; i++)
+						{
+							const uchar* const SrcBuf = (uchar*)Queue[i].SrcBuf;
+							float* const ResBuf = (float*)Queue[i].ResBuf;
+
+							const CFilterStep& fs0 = (*Steps)[0];
+							float* BufPtrs[3];
+							const int l = Vars->BufLen[0] + Vars->BufLen[1];
+							CBuffer< float > Bufs;
+							if (Bufs.getCapacity() < l)
+							{
+								Bufs.alloc(l, fpclass_def::fpalign);
+							}
+
+							BufPtrs[0] = Bufs + Vars->BufOffs[0];
+							BufPtrs[1] = Bufs + Vars->BufLen[0] + Vars->BufOffs[1];
+
+							{
+								//void packScanline(const uchar* ip, float* const op0, const int l0) const
+								const uchar* ip = SrcBuf;
+								float* const op0 = BufPtrs[0];
+								const int l0 = SrcLen;
+								const int ElCount = Vars->ElCount;
+								const int ElCountIO = Vars->ElCountIO;
+								float* op = op0;
+								int l = l0;
+
+								while (l > 0)
+								{
+									float* v = (float*)op;
+									v[0] = convertSRGB2Lin(ip[0], gm);
+									v[1] = convertSRGB2Lin(ip[1], gm);
+									v[2] = convertSRGB2Lin(ip[2], gm);
+									v[3] = convertSRGB2Lin(ip[3], gm);
+									op += ElCount;
+									ip += 4;
+									l--;
+								}
+							}
+
+							//fs0.packScanline(SrcBuf, BufPtrs[0], SrcLen);
+							BufPtrs[2] = ResBuf;
 
 
-						Bufs.free();
+
+							const int Dsucharcr = (Vars->packmode == 0 ? Vars->ElCount : 1);
+							const int ElCount = Vars->ElCount;
+							{
+								const CFilterStep& fs = (*Steps)[0];
+								fs.prepareInBuf(BufPtrs[fs.InBuf]);
+								const float* const Src = BufPtrs[fs.InBuf];
+								float* const Dst = BufPtrs[fs.OutBuf];
+								//fs.doUpsample(BufPtrs[fs.InBuf], BufPtrs[fs.OutBuf]);
+
+								float* op0 = &Dst[-fs.OutPrefix * ElCount];
+								memset(op0, 0, (size_t)(fs.OutPrefix + fs.OutLen + fs.OutSuffix) *
+									(size_t)ElCount * sizeof(float));
+
+								const float* ip = Src;
+								const int opstep = ElCount * fs.ResampleFactor;
+								int l;
+								op0 += (fs.OutPrefix % fs.ResampleFactor) * ElCount;
+								l = fs.OutPrefix / fs.ResampleFactor;
+
+								while (l > 0)
+								{
+									memcpy(op0, ip, sizeof(float) * 4);
+									op0 += opstep;
+									l--;
+								}
+
+								l = fs.InLen - 1;
+
+								while (l > 0)
+								{
+									memcpy(op0, ip, sizeof(float) * 4);
+									op0 += opstep;
+									ip += ElCount;
+									l--;
+								}
+
+								l = fs.OutSuffix / fs.ResampleFactor;
+
+								while (l >= 0)
+								{
+									memcpy(op0, ip, sizeof(float) * 4);
+									op0 += opstep;
+									l--;
+								}
+							}
+
+							{
+								const CFilterStep& fs = (*Steps)[1];
+								fs.prepareInBuf(BufPtrs[fs.InBuf]);
+								const float* SrcLine = BufPtrs[fs.InBuf];
+								float* DstLine = BufPtrs[fs.OutBuf];
+
+								const int IntFltLen0 = fs.FltBank->getFilterLen();
+
+								const typename CImageResizerFilterStep::
+									CResizePos* rpos = &(*fs.RPosBuf)[0];
+
+								const typename CImageResizerFilterStep::
+									CResizePos* const rpose = rpos + fs.OutLen;
+
+								float sum[4] = { 0.0,0.0,0.0,0.0 };
+								int i;
+
+								while (rpos < rpose)
+								{
+									const float* const ftp = rpos->ftp;
+									const float* Src = SrcLine + rpos->SrcOffs;
+									const int IntFltLen = rpos->fl;
+
+
+									memset(sum, 0, sizeof(float) * 4);
+
+
+									for (i = 0; i < IntFltLen; i += 2)
+									{
+										const float xx = ftp[i];
+										sum[0] += xx * Src[0];
+										sum[1] += xx * Src[1];
+										sum[2] += xx * Src[2];
+										sum[3] += xx * Src[3];
+										Src += 8;
+									}
+
+									memcpy(DstLine, sum, sizeof(float) * 4);
+									DstLine += Dsucharcr;
+									rpos++;
+
+								}
+
+							}
+
+							{
+								const CFilterStep& fs = (*Steps)[2];
+								fs.prepareInBuf(BufPtrs[fs.InBuf]);
+
+								const float* Src = BufPtrs[fs.InBuf];
+								float* Dst = BufPtrs[fs.OutBuf];
+
+								const float* const f = &fs.Flt[fs.FltLatency];
+								const int flen = fs.FltLatency + 1;
+								const int ipstep = ElCount * fs.ResampleFactor;
+								const float* ip = Src - fs.EdgePixelCount * ipstep;
+								const float* ip1;
+								const float* ip2;
+								int l = fs.OutLen;
+								int i;
+
+								float sum[4] = { 0.0,0.0,0.0,0.0 };
+
+								while (l > 0)
+								{
+									sum[0] = f[0] * ip[0];
+									sum[1] = f[0] * ip[1];
+									sum[2] = f[0] * ip[2];
+									sum[3] = f[0] * ip[3];
+									ip1 = ip;
+									ip2 = ip;
+
+									for (i = 1; i < flen; i++)
+									{
+										ip1 += 4;
+										ip2 -= 4;
+										sum[0] += f[i] * (ip1[0] + ip2[0]);
+										sum[1] += f[i] * (ip1[1] + ip2[1]);
+										sum[2] += f[i] * (ip1[2] + ip2[2]);
+										sum[3] += f[i] * (ip1[3] + ip2[3]);
+									}
+
+									memcpy(Dst, sum, sizeof(float) * 4);
+									Dst += Dsucharcr;
+									ip += ipstep;
+									l--;
+								}
+							}
+
+							Bufs.free();
+						}
 					}
 
 					/**
@@ -6861,64 +6003,7 @@ public:
 					 * @param SrcBuf Source scanline buffer. Can be either horizontal or
 					 * vertical.
 					 * @param ResBuf Resulucharg scanline buffer.
-					 */
-
-					void resizeScanlineV_OpenCL()
-					{
-						//tbb::parallel_for(0, QueueLen, [&](int i)
-						//float* dest = new float[SrcLen];
-
-						output = CAvirFilterOpenCL::GetDataOpenCLHtoV2D(output);
-
-						for (int j = 0; j < Steps->getItemCount(); j++)
-						{
-							const CFilterStep& fs = (*Steps)[j];
-
-							if (fs.ResampleFactor != 0)
-							{
-								if (fs.IsUpsample)
-								{
-									output = doUpsampleOpenCL(output, fs);
-								}
-								else
-								{
-									output = doFilterOpenCL(output, fs);
-								}
-							}
-							else
-							{
-								if (Vars->IsResize2)
-								{
-									output = doResize2OpenCL(output, fs);
-								}
-								else
-								{
-									output = doResizeOpenCL(output, fs);
-								}
-							}
-						}
-					}
-
-
-					void resizeScanlineV(const float* const SrcBuf,
-						float* const ResBuf)
-					{
-						const CFilterStep& fs0 = (*Steps)[0];
-						float* BufPtrs[3];
-						const int l = Vars->BufLen[0] + Vars->BufLen[1];
-						CBuffer< float > Bufs;
-						if (Bufs.getCapacity() < l)
-						{
-							Bufs.alloc(l, fpclass_def::fpalign);
-						}
-
-						BufPtrs[0] = Bufs + Vars->BufOffs[0];
-						BufPtrs[1] = Bufs + Vars->BufLen[0] + Vars->BufOffs[1];
-						fs0.convertVtoH(SrcBuf, BufPtrs[0], SrcLen, SrcIncr);
-						BufPtrs[2] = ResBuf;
-						const int ElCount = Vars->ElCount;
-
-						for (int j = 0; j < Steps->getItemCount(); j++)
+					 						for (int j = 0; j < Steps->getItemCount(); j++)
 						{
 							const CFilterStep& fs = (*Steps)[j];
 							fs.prepareInBuf(BufPtrs[fs.InBuf]);
@@ -6952,10 +6037,256 @@ public:
 								}
 							}
 						}
-						
-						Bufs.free();
+					 */
+
+		
+
+											 // Noyau OpenCL pour le redimensionnement
+					const char* kernelSource = R"(
+						__kernel void resizeScanlineV(
+							__global const float* srcBuf,
+							__global float* resBuf,
+							const int srcLen,
+							const int resLen,
+							const int elCount,
+							const float scaleFactor) {
+							int gid = get_global_id(0);
+							if (gid >= resLen) return;
+
+							float srcPos = gid / scaleFactor;
+							int srcIdx = (int)srcPos;
+							float frac = srcPos - srcIdx;
+
+							for (int c = 0; c < elCount; ++c) {
+								float val1 = srcBuf[srcIdx * elCount + c];
+								float val2 = srcBuf[(srcIdx + 1) * elCount + c];
+								resBuf[gid * elCount + c] = val1 * (1.0f - frac) + val2 * frac;
+							}
+						}
+						)";
+					void resizeScanlineV_OpenCL(const std::vector<float>& srcBuf, std::vector<float>& resBuf,
+						int srcLen, int resLen, int elCount) {
+
+						cv::ocl::Context context;
+						if (!cv::ocl::haveOpenCL() || !context.create(cv::ocl::Device::TYPE_GPU)) {
+							throw std::runtime_error("OpenCL non disponible.");
+						}
+						cv::ocl::Device device = context.device(0);
+						std::cout << "Utilisation du périphérique : " << device.name() << std::endl;
+
+						cv::UMat srcBuffer(srcBuf.size(), 1, CV_32F);
+						memcpy(srcBuffer.getMat(cv::ACCESS_WRITE).ptr<float>(), srcBuf.data(), srcBuf.size() * sizeof(float));
+
+						cv::UMat resBuffer(resBuf.size(), 1, CV_32F);
+						memcpy(resBuffer.getMat(cv::ACCESS_WRITE).ptr<float>(), resBuf.data(), resBuf.size() * sizeof(float));
+
+						// Création du programme OpenCL
+						cv::ocl::ProgramSource programSource(kernelSource);
+						cv::String errmsg;
+						cv::ocl::Program program = context.getProg(programSource, errmsg);
+						if (program.ptr() == nullptr) {
+							throw std::runtime_error("Erreur de compilation du kernel OpenCL : " + errmsg);
+						}
+
+						// Création de la tâche OpenCL
+						cv::ocl::Kernel kernel("doResize", program);
+						kernel.args(
+							cv::ocl::KernelArg::ReadOnly(srcBuffer),
+							cv::ocl::KernelArg::WriteOnly(resBuffer),
+							srcLen,
+							resLen,
+							elCount,
+							resLen
+						);
+
+						// Exécution du kernel
+						size_t globalSize = resLen;
+						if (!kernel.run(1, &globalSize, nullptr, true)) {
+							throw std::runtime_error("Erreur lors de l'exécution du kernel OpenCL.");
+						}
+
+						cv::Mat mat;
+						resBuffer.copyTo(mat);
+
+						if (mat.isContinuous()) {
+							// array.assign((float*)mat.datastart, (float*)mat.dataend); // <- has problems for sub-matrix like mat = big_mat.row(i)
+							resBuf.assign((float*)mat.data, (float*)mat.data + mat.total() * mat.channels());
+						}
+						else {
+							for (int i = 0; i < mat.rows; ++i) {
+								resBuf.insert(resBuf.end(), mat.ptr<float>(i), mat.ptr<float>(i) + mat.cols * mat.channels());
+							}
+						}
 					}
 
+					void resizeScanlineV()
+					{
+						for (int i = 0; i < QueueLen; i++)
+						{
+							const float* const SrcBuf = (float*)Queue[i].SrcBuf;
+							float* const ResBuf = (float*)Queue[i].ResBuf;
+							const CFilterStep& fs0 = (*Steps)[0];
+							float* BufPtrs[3];
+							const int l = Vars->BufLen[0] + Vars->BufLen[1];
+							CBuffer< float > Bufs;
+							if (Bufs.getCapacity() < l)
+							{
+								Bufs.alloc(l, fpclass_def::fpalign);
+							}
+
+							BufPtrs[0] = Bufs + Vars->BufOffs[0];
+							BufPtrs[1] = Bufs + Vars->BufLen[0] + Vars->BufOffs[1];
+							fs0.convertVtoH(SrcBuf, BufPtrs[0], SrcLen, SrcIncr);
+							BufPtrs[2] = ResBuf;
+							const int ElCount = Vars->ElCount;
+
+							{
+								const CFilterStep& fs = (*Steps)[0];
+								fs.prepareInBuf(BufPtrs[fs.InBuf]);
+								const int Dsucharcr = (fs.OutBuf == 2 ? ResIncr :
+									(Vars->packmode == 0 ? Vars->ElCount : 1));
+								const float* const Src = BufPtrs[fs.InBuf];
+								float* const Dst = BufPtrs[fs.OutBuf];
+								//fs.doUpsample(BufPtrs[fs.InBuf], BufPtrs[fs.OutBuf]);
+
+								float* op0 = &Dst[-fs.OutPrefix * ElCount];
+								memset(op0, 0, (size_t)(fs.OutPrefix + fs.OutLen + fs.OutSuffix) *
+									(size_t)ElCount * sizeof(float));
+
+								const float* ip = Src;
+								const int opstep = ElCount * fs.ResampleFactor;
+								int l;
+								op0 += (fs.OutPrefix % fs.ResampleFactor) * ElCount;
+								l = fs.OutPrefix / fs.ResampleFactor;
+
+								while (l > 0)
+								{
+									memcpy(op0, ip, sizeof(float) * 4);
+									op0 += opstep;
+									l--;
+								}
+
+								l = fs.InLen - 1;
+
+								while (l > 0)
+								{
+									memcpy(op0, ip, sizeof(float) * 4);
+									op0 += opstep;
+									ip += ElCount;
+									l--;
+								}
+
+								l = fs.OutSuffix / fs.ResampleFactor;
+
+								while (l >= 0)
+								{
+									memcpy(op0, ip, sizeof(float) * 4);
+									op0 += opstep;
+									l--;
+								}
+							}
+
+							{
+								const CFilterStep& fs = (*Steps)[1];
+								fs.prepareInBuf(BufPtrs[fs.InBuf]);
+								const int Dsucharcr = (fs.OutBuf == 2 ? ResIncr :
+									(Vars->packmode == 0 ? Vars->ElCount : 1));
+								const float* SrcLine = BufPtrs[fs.InBuf];
+								float* DstLine = BufPtrs[fs.OutBuf];
+
+								const int IntFltLen0 = fs.FltBank->getFilterLen();
+
+								const typename CImageResizerFilterStep::
+									CResizePos* rpos = &(*fs.RPosBuf)[0];
+
+								const typename CImageResizerFilterStep::
+									CResizePos* const rpose = rpos + fs.OutLen;
+
+								float sum[4] = { 0.0,0.0,0.0,0.0 };
+								int i;
+
+								while (rpos < rpose)
+								{
+									const float* const ftp = rpos->ftp;
+									const float* Src = SrcLine + rpos->SrcOffs;
+									const int IntFltLen = rpos->fl;
+
+
+									memset(sum, 0, sizeof(float) * 4);
+
+
+									for (i = 0; i < IntFltLen; i += 2)
+									{
+										const float xx = ftp[i];
+										sum[0] += xx * Src[0];
+										sum[1] += xx * Src[1];
+										sum[2] += xx * Src[2];
+										sum[3] += xx * Src[3];
+										Src += 8;
+									}
+
+									memcpy(DstLine, sum, sizeof(float) * 4);
+									DstLine += Dsucharcr;
+									rpos++;
+
+								}
+
+							}
+
+							{
+
+								const CFilterStep& fs = (*Steps)[2];
+								fs.prepareInBuf(BufPtrs[fs.InBuf]);
+								const int Dsucharcr = (fs.OutBuf == 2 ? ResIncr :
+									(Vars->packmode == 0 ? Vars->ElCount : 1));
+
+								const float* Src = BufPtrs[fs.InBuf];
+								float* Dst = BufPtrs[fs.OutBuf];
+
+								const float* const f = &fs.Flt[fs.FltLatency];
+								const int flen = fs.FltLatency + 1;
+								const int ipstep = ElCount * fs.ResampleFactor;
+								const float* ip = Src - fs.EdgePixelCount * ipstep;
+								const float* ip1;
+								const float* ip2;
+								int l = fs.OutLen;
+								int i;
+
+								float sum[4] = { 0.0,0.0,0.0,0.0 };
+
+								while (l > 0)
+								{
+									sum[0] = f[0] * ip[0];
+									sum[1] = f[0] * ip[1];
+									sum[2] = f[0] * ip[2];
+									sum[3] = f[0] * ip[3];
+									ip1 = ip;
+									ip2 = ip;
+
+									for (i = 1; i < flen; i++)
+									{
+										ip1 += 4;
+										ip2 -= 4;
+										sum[0] += f[i] * (ip1[0] + ip2[0]);
+										sum[1] += f[i] * (ip1[1] + ip2[1]);
+										sum[2] += f[i] * (ip1[2] + ip2[2]);
+										sum[3] += f[i] * (ip1[3] + ip2[3]);
+									}
+
+									memcpy(Dst, sum, sizeof(float) * 4);
+									Dst += Dsucharcr;
+									ip += ipstep;
+									l--;
+								}
+							}
+						}
+						
+						
+						/*
+
+						*/
+						Bufs.free();
+					}
 				};
 			};
 
@@ -6969,3 +6300,5 @@ public:
 #endif // defined( AVIR_NULLPTR )
 
 		} // namespace avir
+
+#endif // AVIR_CIMAGERESIZER_INCLUDED

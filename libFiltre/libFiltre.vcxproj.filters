@@ -500,5 +500,8 @@
     <ClCompile Include="InterpolationBicubic.cpp">
       <Filter>Main\ScaleCPU</Filter>
     </ClCompile>
+    <ClCompile Include="avir_opencl.cpp">
+      <Filter>Main</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
