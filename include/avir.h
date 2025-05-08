@@ -6367,6 +6367,7 @@ public:
 
 						const typename CImageResizerFilterStep::
 							CResizePos* const rpose = rpos + fs.OutLen;
+
 						vector<int> PositionTab;
 						vector<float> ftpTab;
 						int oldPos = 0;
