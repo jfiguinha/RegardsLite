@@ -352,7 +352,7 @@ UMat CAvirFilterOpenCL::UpSampleUMat(cv::UMat& src, const int& width, const int&
 }
 
 
-UMat CAvirFilterOpenCL::UpSample2D(cv::UMat& src, const int& width, const int& height, int widthSrc, int start, int outLen, int ResampleFactor)
+UMat CAvirFilterOpenCL::UpSample2D(cv::UMat& src, const int& width, const int& height, int widthSrc, int start, int outLen, int ResampleFactor, int opstep)
 {
 	UMat paramSrc(height, width, CV_32FC4);
 	cl_mem_flags flag;
@@ -403,6 +403,11 @@ UMat CAvirFilterOpenCL::UpSample2D(cv::UMat& src, const int& width, const int& h
 		paramsrcResampleFactor->SetValue(ResampleFactor);
 		paramsrcResampleFactor->SetLibelle("ResampleFactor");
 		vecParam.push_back(paramsrcResampleFactor);
+
+		auto paramsrcStep = new COpenCLParameterInt();
+		paramsrcStep->SetValue(opstep);
+		paramsrcStep->SetLibelle("opstep");
+		vecParam.push_back(paramsrcStep);
 
 		// Récupération du code source du kernel
 		wxString kernelSource = CLibResource::GetOpenCLUcharProgram("IDR_OPENCL_AVIR");
@@ -2231,7 +2236,7 @@ UMat CAvirFilterOpenCL::doFilterOpenCL_UMat(cv::UMat& src, const int& width, con
 
 
 UMat CAvirFilterOpenCL::doFilterOpenCL2D(cv::UMat& src, const int& width, const int& height,
-	const float* f, int flen)
+	const float* f, int flen, int step)
 {
 	UMat paramOutput(height, width, CV_32FC4);
 	cl_mem_flags flag;
@@ -2250,6 +2255,16 @@ UMat CAvirFilterOpenCL::doFilterOpenCL2D(cv::UMat& src, const int& width, const 
 		input->SetLibelle("input");
 		input->SetNoDelete(true);
 		vecParam.push_back(input);
+
+		auto paramWidtSrc = new COpenCLParameterInt();
+		paramWidtSrc->SetValue(src.size().width);
+		paramWidtSrc->SetLibelle("widthSrc");
+		vecParam.push_back(paramWidtSrc);
+
+		auto paramHeightSrc = new COpenCLParameterInt();
+		paramHeightSrc->SetValue(src.size().height);
+		paramHeightSrc->SetLibelle("heightSrc");
+		vecParam.push_back(paramHeightSrc);
 
 		auto paramWidth = new COpenCLParameterInt();
 		paramWidth->SetValue(width);
@@ -2270,6 +2285,11 @@ UMat CAvirFilterOpenCL::doFilterOpenCL2D(cv::UMat& src, const int& width, const 
 		paramIntFltLen->SetValue(flen);
 		paramIntFltLen->SetLibelle("flen");
 		vecParam.push_back(paramIntFltLen);
+
+		auto paramIntStep = new COpenCLParameterInt();
+		paramIntStep->SetValue(step);
+		paramIntStep->SetLibelle("step");
+		vecParam.push_back(paramIntStep);
 
 		// Récupération du code source du kernel
 		wxString kernelSource = CLibResource::GetOpenCLUcharProgram("IDR_OPENCL_AVIR");

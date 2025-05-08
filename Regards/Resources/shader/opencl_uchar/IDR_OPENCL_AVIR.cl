@@ -113,11 +113,11 @@ __kernel void UpSample(__global float4 * output, const __global float4 *input, i
     }
 }
 
-__kernel void UpSample2D(__global float4 * output, const __global float4 *input, int width, int height, int widthSrc, int start, int outLen, int ResampleFactor)
+__kernel void UpSample2D(__global float4 * output, const __global float4 *input, int width, int height, int widthSrc, int start, int outLen, int ResampleFactor, int opstep)
 {
 	int k = get_global_id(0);  
 	if(k < width)	
-    {    
+	{    
 		for(int i = 0;i < height;i++)
 		{
 			int pos = k + i * width;
@@ -223,7 +223,7 @@ __kernel void doFilter(__global float4 * output, const __global float4 *input, i
 	output[k] = sum;
 }
 
-__kernel void doFilter2D(__global float4 * output, const __global float4 *input, int width, int height, __global const float* f, const int flen)
+__kernel void doFilter2D(__global float4 * output, const __global float4 *input, int widthSrc, int heightSrc, int width, int height, __global const float* f, const int flen, const int step)
 {
     int k = get_global_id(0); // Index global
     if (k >= width) 
@@ -232,18 +232,19 @@ __kernel void doFilter2D(__global float4 * output, const __global float4 *input,
 	for(int j = 0;j < height;j++)
 	{
 		float4 sum = {0.0f, 0.0f, 0.0f, 0.0f};
-		sum.x = f[0] * input[k+ j * width].x;
-		sum.y = f[0] * input[k+ j * width].y;
-		sum.z = f[0] * input[k+ j * width].z;
-		sum.w = f[0] * input[k+ j * width].w;
+		int position = k * step + j * widthSrc;
+		sum.x = f[0] * input[position].x;
+		sum.y = f[0] * input[position].y;
+		sum.z = f[0] * input[position].z;
+		sum.w = f[0] * input[position].w;
 		
 		for (int i = 1; i < flen; i++)
 		{
-			int pos1 = k + i;
-			int pos2 = (k - i) < 0 ? 0 : (k - i);
+			int pos1 = position+i;
+			int pos2 = (position - i) < 0 ? 0 : (position - i);
 
-			pos1 = pos1 + j * width;
-			pos2 = pos2 + j * width;
+			//pos1 = pos1 + j * width;
+			//pos2 = pos2 + j * width;
 
 			float4 ip1 = input[pos1];
 			float4 ip2 = input[pos2];
@@ -257,7 +258,6 @@ __kernel void doFilter2D(__global float4 * output, const __global float4 *input,
 		output[k+ j * width] = sum;
 	}
 }
-
 __kernel void doCopy(__global float4 * output, const __global float4 *input, int width, int heightPosition)
 {
     int k = get_global_id(0); // Index global

@@ -1600,13 +1600,38 @@ UMat COpenCLFilter::Interpolation(const int& widthOut, const int& heightOut, con
 					cvtColor(out, cvImage, cv::COLOR_BGRA2BGR);
 				}
 				*/
-				cv::UMat src;
-				cvtColor(cvImage, src, cv::COLOR_BGR2BGRA);
-				avir::CImageResizer ImageResizer(8);
-				avir::CImageResizerVars Vars;
-				Vars.UseSRGBGamma = true;
-				cv::UMat out = ImageResizer.resizeImageOpenCL(src, widthOut, heightOut, 4, 0, &Vars);
-				cvtColor(out, cvImage, cv::COLOR_BGRA2BGR);
+
+				/*
+				{
+					cv::UMat src;
+					cvtColor(cvImage, src, cv::COLOR_BGR2BGRA);
+
+					cv::Mat inBuf, outBuf(Size(widthOut, heightOut), CV_8UC4, Scalar(0, 0, 0));
+					cvtColor(cvImage, inBuf, cv::COLOR_BGR2BGRA);
+
+					avir::CImageResizer ImageResizer(8);
+					avir::CImageResizerVars Vars;
+					Vars.UseSRGBGamma = true;
+					ImageResizer.resizeImage(
+						reinterpret_cast<uint8_t*>(inBuf.data), inBuf.cols, inBuf.rows, inBuf.step,
+						reinterpret_cast<uint8_t*>(outBuf.data), widthOut, heightOut, 4, 0, &Vars
+					);
+
+					cvtColor(outBuf, cvImage, cv::COLOR_BGRA2BGR);
+				}
+				*/
+				
+				{
+					cv::UMat src;
+					cvtColor(cvImage, src, cv::COLOR_BGR2BGRA);
+					avir::CImageResizer ImageResizer(8);
+					avir::CImageResizerVars Vars;
+					Vars.UseSRGBGamma = true;
+					cv::UMat out = ImageResizer.resizeImageOpenCL(src, widthOut, heightOut, 4, 0, &Vars);
+					cvtColor(out, cvImage, cv::COLOR_BGRA2BGR);
+				}
+				
+
 
 			}
 			catch (...)
