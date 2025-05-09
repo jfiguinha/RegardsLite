@@ -1,9 +1,7 @@
 //----------------------------------------------------
 //Conversion d'un bitmap en wxImage
 //----------------------------------------------------
-inline float convertSRGB2Lin(uint s0)
-{
-	float tbl[256] = {
+__constant float tbl[256] = {
 		0.0f, 0.000303527f, 0.000607054f, 0.000910581f, 0.001214108f,
 		0.001517635f, 0.001821162f, 0.002124689f, 0.002428216f, 0.002731743f,
 		0.00303527f, 0.003348383f, 0.003678029f, 0.004025973f, 0.004392482f,
@@ -57,231 +55,110 @@ inline float convertSRGB2Lin(uint s0)
 		0.9559742f, 0.9646865f, 0.973445f, 0.9822496f, 0.9911004f,
 		0.9999975f };
 
-	return(tbl[s0]);
+inline float convertSRGB2Lin(uint s0)
+{
+    return tbl[s0];
 }
 	
 __kernel void ConvertToFloat(__global float4 * output, const __global uchar4 *input, int width, int height)
 {
     int x = get_global_id(0);
-	int y = get_global_id(1);
-	if(x < width && y < height && y >= 0 && x >= 0)	
-    {    
-	    int position = x + y * width;
-	    output[position].x = convertSRGB2Lin(input[position].x);
-		output[position].y = convertSRGB2Lin(input[position].y);
-		output[position].z = convertSRGB2Lin(input[position].z);
-		output[position].w = convertSRGB2Lin(input[position].w);
-    }
-}
+    int y = get_global_id(1);
 
-__kernel void ConvertToFloatPos(__global float4 * output, const __global uchar4 *input, int width, int height, int yPosition)
-{
-    int x = get_global_id(0);
-	int y = get_global_id(1);
-	if(x < width && y < height && y >= 0 && x >= 0)	
-    {    
-	    int position = x + y * width;
-		int position_input = x + yPosition * width;
-	    output[position].x = convertSRGB2Lin(input[position_input].x);
-		output[position].y = convertSRGB2Lin(input[position_input].y);
-		output[position].z = convertSRGB2Lin(input[position_input].z);
-		output[position].w = convertSRGB2Lin(input[position_input].w);
-    }
-}
-
-
-__kernel void UpSample(__global float4 * output, const __global float4 *input, int width, int height, int widthSrc, int start, int ResampleFactor)
-{
-	int k = get_global_id(0);  
-	if(k < width)	
-    {    
-		
-		if (k < start)
-		{
-			output[k] = input[0];
-		}
-		else if(k >= start && k < (widthSrc * ResampleFactor + start))
-		{
-			//int kInput = k / ResampleFactor - start / ResampleFactor;
-			int kInput = (k - start) / ResampleFactor ;
-			output[k] = input[kInput];
-		}
-		else if(k >= (widthSrc * ResampleFactor + start))
-		{
-			output[k] = input[widthSrc - 1];
-		}
+    if (x < width && y < height)
+    {
+        int position = x + y * width;
+        output[position].x = tbl[input[position].x];
+        output[position].y = tbl[input[position].y];
+        output[position].z = tbl[input[position].z];
+        output[position].w = tbl[input[position].w];
     }
 }
 
 __kernel void UpSample2D(__global float4 * output, const __global float4 *input, int width, int height, int widthSrc, int start, int outLen, int ResampleFactor)
 {
-    int k = get_global_id(0);
+	int k = get_global_id(0);
 	int i = get_global_id(1);
-	if(k < width && i < height && i >= 0 && k >= 0)	
+
+	if (k < width && i < height) 
 	{
 		int pos = k + i * width;
-		output[pos] = (float4)0.0;
-		if (k < start)
+		output[pos] = (float4)(0.0f);
+
+		int posSrc = i * widthSrc;
+
+		if (k < start) 
 		{
-			int posSrc = i * widthSrc;
 			output[pos] = input[posSrc];
-		}
-		else if(k >= start && k < (widthSrc * ResampleFactor + start))
+		} 
+		else if (k < (widthSrc * ResampleFactor + start)) 
 		{
-			int kInput = (k - start) / ResampleFactor + i * widthSrc;
+			int kInput = (k - start) / ResampleFactor + posSrc;
 			output[pos] = input[kInput];
-		}
-		else if(k >= (widthSrc * ResampleFactor + start))
+		} 
+		else 
 		{
-			output[pos] = input[widthSrc - 1 + i * widthSrc];
+			output[pos] = input[widthSrc - 1 + posSrc];
 		}
-    }
-}
-
-__kernel void doResize2(__global float4 * output, const __global float4 *input, int width, int height, __global const int * PositionTab, __global const float* ftp,
-    const int IntFltLen0, int inputWidth)
-{
-    int k = get_global_id(0); // Index global
-    if (k >= width) 
-		return;
-
-    float4 sum = {0.0f, 0.0f, 0.0f, 0.0f};
-	int positionSrc = PositionTab[k] / 4;
-
-	for (int i = 0; i < IntFltLen0 / 2;i++)
-	{
-		const float xx = ftp[i + k * IntFltLen0 / 2];
-		if(positionSrc < inputWidth)
-		{
-			//float4 toto =  input[positionSrc];
-			sum.x += xx * input[positionSrc].x;
-			sum.y += xx * input[positionSrc].y;
-			sum.z += xx * input[positionSrc].z;
-			sum.w += xx * input[positionSrc].w;
-		}
-		positionSrc += 2;
 	}
-	output[k] = sum;
 }
 
 __kernel void doResize22D(__global float4 * output, const __global float4 *input, int width, int height, __global const int * PositionTab, __global const float* ftp,
     const int IntFltLen0, int inputWidth)
 {
-    int k = get_global_id(0);
+	int k = get_global_id(0);
 	int j = get_global_id(1);
-	if(k < width && j < height && j >= 0 && k >= 0)	
+
+	if (k < width && j < height) 
 	{
-		float4 sum = {0.0f, 0.0f, 0.0f, 0.0f};
+		float4 sum = (float4)(0.0f, 0.0f, 0.0f, 0.0f);
 		int positionSrc = PositionTab[k] / 4;
 
-		for (int i = 0; i < IntFltLen0 / 2;i++)
+		for (int i = 0; i < IntFltLen0 / 2; i++) 
 		{
 			const float xx = ftp[i + k * IntFltLen0 / 2];
-			if(positionSrc < inputWidth)
+			if (positionSrc < inputWidth) 
 			{
 				int localPos = positionSrc + j * inputWidth;
-				sum.x += xx * input[localPos].x;
-				sum.y += xx * input[localPos].y;
-				sum.z += xx * input[localPos].z;
-				sum.w += xx * input[localPos].w;
+				float4 pixel = input[localPos];
+				sum += xx * pixel;
 			}
 			positionSrc += 2;
 		}
-		output[k+ j * width] = sum;
-	}
-}
 
-__kernel void doFilter(__global float4 * output, const __global float4 *input, int width, int height, __global const float* f, const int flen)
-{
-    int k = get_global_id(0); // Index global
-    if (k >= width) 
-		return;
-	float4 sum = {0.0f, 0.0f, 0.0f, 0.0f};
-	sum.x = f[0] * input[k].x;
-	sum.y = f[0] * input[k].y;
-	sum.z = f[0] * input[k].z;
-	sum.w = f[0] * input[k].w;
-	
-	for (int i = 1; i < flen; i++)
-	{
-		int pos1 = k + i;
-		int pos2 = (k - i) < 0 ? 0 : (k - i);
-
-		float4 ip1 = input[pos1];
-		float4 ip2 = input[pos2];
-		
-		sum.x += f[i] * (ip1.x + ip2.x);
-		sum.y += f[i] * (ip1.y + ip2.y);
-		sum.z += f[i] * (ip1.z + ip2.z);
-		sum.w += f[i] * (ip1.w + ip2.w);
+		output[k + j * width] = sum;
 	}
-	
-	output[k] = sum;
 }
 
 __kernel void doFilter2D(__global float4 * output, const __global float4 *input, int widthSrc, int heightSrc, int width, int height, __global const float* f, const int flen, const int step)
 {
-    int k = get_global_id(0);
+	int k = get_global_id(0);
 	int j = get_global_id(1);
-	if(k < width && j < height && j >= 0 && k >= 0)	
-	{
-		float4 sum = {0.0f, 0.0f, 0.0f, 0.0f};
-		int position = k * step + j * widthSrc;
-		sum.x = f[0] * input[position].x;
-		sum.y = f[0] * input[position].y;
-		sum.z = f[0] * input[position].z;
-		sum.w = f[0] * input[position].w;
-		
-		for (int i = 1; i < flen; i++)
-		{
-			int pos1 = position+i;
-			int pos2 = (position - i) < 0 ? 0 : (position - i);
 
-			//pos1 = pos1 + j * width;
-			//pos2 = pos2 + j * width;
+	if (k < width && j < height) 
+	{
+		float4 sum = (float4)(0.0f, 0.0f, 0.0f, 0.0f);
+		int position = k * step + j * widthSrc;
+
+		// Pré-calculer la première valeur pour éviter de la répéter dans la boucle
+		float4 inputVal = input[position];
+		sum = f[0] * inputVal;
+
+		for (int i = 1; i < flen; i++) 
+		{
+			int pos1 = position + i;
+			int pos2 = max(position - i, 0); // Utilisation de max() pour éviter les indices négatifs
 
 			float4 ip1 = input[pos1];
 			float4 ip2 = input[pos2];
-			
-			sum.x += f[i] * (ip1.x + ip2.x);
-			sum.y += f[i] * (ip1.y + ip2.y);
-			sum.z += f[i] * (ip1.z + ip2.z);
-			sum.w += f[i] * (ip1.w + ip2.w);
+
+			// Accumuler les contributions des deux positions
+			sum += f[i] * (ip1 + ip2);
 		}
-		
-		output[k+ j * width] = sum;
+
+		// Écriture dans la mémoire globale
+		output[k + j * width] = sum;
 	}
-}
-__kernel void doCopy(__global float4 * output, const __global float4 *input, int width, int heightPosition)
-{
-    int k = get_global_id(0); // Index global
-    if (k >= width) 
-		return;
-
-	int position = k + heightPosition * width;
-	output[position] = input[k];
-}
-
-__kernel void GetData(__global float4 * output, const __global float4 *input, int width, int height, int yPos)
-{
-    int k = get_global_id(0); // Index global
-    if (k >= width) 
-		return;
-
-	int position = k + yPos * width;
-	output[k] = input[position];
-
-}
-
-__kernel void GetDataHtoV(__global float4 * output, const __global float4 *input, int width, int height, int xPos)
-{
-    int k = get_global_id(0); // Index global
-    if (k >= height) 
-		return;
-
-	int position = xPos + k * width;
-	output[k] = input[position];
-
 }
 
 
@@ -309,163 +186,32 @@ float convertLin2SRGB(float s)
 	return(((float)1 + a) * pow24i_sRGB(s) - a);
 }
 
-__kernel void GetDataHtoV_dither(__global float4 * output, const __global float4 *input, int width, int height, int xPos, float gm)
-{
-    int k = get_global_id(0); // Index global
-    if (k >= height) 
-		return;
-		
-	int position = xPos + k * width;
-	
-	output[k].x = convertLin2SRGB(input[position].x) * gm;
-	output[k].y = convertLin2SRGB(input[position].y) * gm;
-	output[k].z = convertLin2SRGB(input[position].z) * gm;
-	output[k].w = convertLin2SRGB(input[position].w) * gm;
-
-}
-
-__kernel void GetDataHtoV_dither2D(__global float4 * output, const __global float4 *input, int width, int height, float gm)
-{
-    int k = get_global_id(0); // Index global
-    if (k >= height) 
-		return;
-
-	for(int xPos = 0;xPos < width;xPos++)
-	{
-		int position = xPos + k * width;
-		int outpos = k + xPos * height;
-		output[outpos].x = convertLin2SRGB(input[position].x) * gm;
-		output[outpos].y = convertLin2SRGB(input[position].y) * gm;
-		output[outpos].z = convertLin2SRGB(input[position].z) * gm;
-		output[outpos].w = convertLin2SRGB(input[position].w) * gm;
-	}
-
-}
-
-__kernel void Dither(__global float4 * output, const __global float4 *input, int width, int height, float PkOut, float TrMul0)
-{
-    int k = get_global_id(0); // Index global
-    if (k >= width) 
-		return;
-	
-	const float c0 = 0;
-
-	if (TrMul0 == 1.0)
-	{
-		output[k].x = clamp(round(input[k].x), c0, PkOut);
-		output[k].y = clamp(round(input[k].y), c0, PkOut);
-		output[k].z = clamp(round(input[k].z), c0, PkOut);
-		output[k].w = clamp(round(input[k].w), c0, PkOut);
-	}
-	else
-	{
-		const float TrMul = (float)TrMul0;
-		const float TrMulI = (float)(1.0 / TrMul0);
-
-		const float z0 = round(input[k].x * TrMulI) * TrMul;
-		output[k].x = clamp(z0, c0, PkOut);
-				
-		const float z1 = round(input[k].y * TrMulI) * TrMul;
-		output[k].y = clamp(z1, c0, PkOut);
-		
-		const float z2 = round(input[k].z * TrMulI) * TrMul;
-		output[k].z = clamp(z2, c0, PkOut);
-		
-		const float z3 = round(input[k].w * TrMulI) * TrMul;
-		output[k].w = clamp(z3, c0, PkOut);
-	}
-	
-}
-
-__kernel void Dither2D(__global uchar4 * output, const __global float4 *input, int width, int height, float PkOut, float TrMul0)
-{
-    int k = get_global_id(0); // Index global
-    if (k >= width) 
-		return;
-	
-	for(int yPos = 0;yPos < height;yPos++)
-	{
-		int position = k + yPos * width;
-		const float c0 = 0;
-
-		if (TrMul0 == 1.0)
-		{
-			output[position].x = (uchar)(clamp(round(input[position].x), c0, PkOut));
-			output[position].y = (uchar)(clamp(round(input[position].y), c0, PkOut));
-			output[position].z = (uchar)(clamp(round(input[position].z), c0, PkOut));
-			output[position].w = (uchar)(clamp(round(input[position].w), c0, PkOut));
-		}
-		else
-		{
-			const float TrMul = (float)TrMul0;
-			const float TrMulI = (float)(1.0 / TrMul0);
-
-			const float z0 = round(input[position].x * TrMulI) * TrMul;
-			output[position].x = (uchar)(clamp(z0, c0, PkOut));
-					
-			const float z1 = round(input[position].y * TrMulI) * TrMul;
-			output[position].y = (uchar)(clamp(z1, c0, PkOut));
-			
-			const float z2 = round(input[position].z * TrMulI) * TrMul;
-			output[position].z = (uchar)(clamp(z2, c0, PkOut));
-			
-			const float z3 = round(input[position].w * TrMulI) * TrMul;
-			output[position].w = (uchar)(clamp(z3, c0, PkOut));
-		}
-	}
-	
-}
-
-__kernel void doResize(__global float4 * output, const __global float4 *input, int width, int height, __global const int * PositionTab, __global const float* ftp,
-    const int IntFltLen0, int inputWidth)
-{
-    int k = get_global_id(0); // Index global
-    if (k >= width) 
-		return;
-
-    float4 sum = {0.0f, 0.0f, 0.0f, 0.0f};
-	int positionSrc = PositionTab[k] / 4;
-
-	for (int i = 0; i < IntFltLen0;i++)
-	{
-		const float xx = ftp[i + k * IntFltLen0];
-		if(positionSrc < inputWidth)
-		{
-			//float4 toto =  input[positionSrc];
-			sum.x += xx * input[positionSrc].x;
-			sum.y += xx * input[positionSrc].y;
-			sum.z += xx * input[positionSrc].z;
-			sum.w += xx * input[positionSrc].w;
-		}
-		positionSrc++;
-	}
-	output[k] = sum;
-}
 
 __kernel void doResize2D(__global float4 * output, const __global float4 *input, int width, int height, __global const int * PositionTab, __global const float* ftp,
     const int IntFltLen0, int inputWidth)
 {
-    int k = get_global_id(0);
+	int k = get_global_id(0);
 	int j = get_global_id(1);
-	if(k < width && j < height && j >= 0 && k >= 0)	
-	{
-		float4 sum = {0.0f, 0.0f, 0.0f, 0.0f};
-		int positionSrc = PositionTab[k] / 4;
 
-		for (int i = 0; i < IntFltLen0;i++)
+	if (k < width && j < height) 
+	{
+		float4 sum = (float4)(0.0f, 0.0f, 0.0f, 0.0f);
+		int positionSrc = PositionTab[k] / 4;
+		int baseIndex = j * inputWidth;
+
+		for (int i = 0; i < IntFltLen0; i++) 
 		{
-			const float xx = ftp[i + k * IntFltLen0];
-			if(positionSrc < inputWidth)
+			if (positionSrc < inputWidth) 
 			{
-				int localPos = positionSrc + j * inputWidth;
-				sum.x += xx * input[localPos].x;
-				sum.y += xx * input[localPos].y;
-				sum.z += xx * input[localPos].z;
-				sum.w += xx * input[localPos].w;
+				float xx = ftp[i + k * IntFltLen0];
+				int localPos = positionSrc + baseIndex;
+				float4 pixel = input[localPos];
+				sum += xx * pixel;
 			}
 			positionSrc++;
 		}
-		output[k+ j * width] = sum;
+
+		output[k + j * width] = sum;
 	}
 }
 
@@ -484,50 +230,43 @@ __kernel void GetDataHtoV2D(__global float4 * output, const __global float4 *inp
 		output[outpos] = input[position];
 
 	}
-
 }
 
 
 __kernel void GetDataHtoVDither2D(__global uchar4 * output, const __global float4 *input, int width, int height, float gm, float PkOut, float TrMul0)
 {
-    int k = get_global_id(0); // Index global
+	int k = get_global_id(0); // Index global
 	int xPos = get_global_id(1);
-    if (k >= height) 
+
+	if (k >= height) 
 		return;
 
-	float4 outValue = {0.0f, 0.0f, 0.0f, 0.0f};
 	int position = xPos + k * width;
 	int outpos = k + xPos * height;
-	outValue.x = convertLin2SRGB(input[position].x) * gm;
-	outValue.y = convertLin2SRGB(input[position].y) * gm;
-	outValue.z = convertLin2SRGB(input[position].z) * gm;
-	outValue.w = convertLin2SRGB(input[position].w) * gm;
-	
+
+	float4 inValue = input[position];
+	float4 outValue = {
+		convertLin2SRGB(inValue.x) * gm,
+		convertLin2SRGB(inValue.y) * gm,
+		convertLin2SRGB(inValue.z) * gm,
+		convertLin2SRGB(inValue.w) * gm
+	};
+
 	const float c0 = 0;
 
-	if (TrMul0 == 1.0)
-	{
+	if (TrMul0 == 1.0f) {
 		output[outpos].x = (uchar)(clamp(round(outValue.x), c0, PkOut));
 		output[outpos].y = (uchar)(clamp(round(outValue.y), c0, PkOut));
 		output[outpos].z = (uchar)(clamp(round(outValue.z), c0, PkOut));
 		output[outpos].w = (uchar)(clamp(round(outValue.w), c0, PkOut));
-	}
-	else
-	{
+	} else {
 		const float TrMul = (float)TrMul0;
-		const float TrMulI = (float)(1.0 / TrMul0);
+		const float TrMulI = 1.0f / TrMul;
 
-		const float z0 = round(outValue.x * TrMulI) * TrMul;
-		output[outpos].x = (uchar)(clamp(z0, c0, PkOut));
-				
-		const float z1 = round(outValue.y * TrMulI) * TrMul;
-		output[outpos].y = (uchar)(clamp(z1, c0, PkOut));
-		
-		const float z2 = round(outValue.z * TrMulI) * TrMul;
-		output[outpos].z = (uchar)(clamp(z2, c0, PkOut));
-		
-		const float z3 = round(outValue.w * TrMulI) * TrMul;
-		output[outpos].w = (uchar)(clamp(z3, c0, PkOut));
+		output[outpos].x = (uchar)(clamp(round(outValue.x * TrMulI) * TrMul, c0, PkOut));
+		output[outpos].y = (uchar)(clamp(round(outValue.y * TrMulI) * TrMul, c0, PkOut));
+		output[outpos].z = (uchar)(clamp(round(outValue.z * TrMulI) * TrMul, c0, PkOut));
+		output[outpos].w = (uchar)(clamp(round(outValue.w * TrMulI) * TrMul, c0, PkOut));
 	}
 
 }

@@ -6051,43 +6051,18 @@ namespace avir {
 						
 						switch (ScanlineOp)
 						{
-						case sopResizeH:
-						{
-							resizeScanlineH_OpenCL();
-							break;
-						}
-
-						case sopResizeV:
-						{
-							resizeScanlineV_OpenCL();
-							break;
-						}
-
-						case sopDitherAndUnpackH:
-						{
-							const float gm = (float)Vars->OutGammaMult;
-							UMat out = CAvirFilterOpenCL::GetDataOpenCLHtoV_dither2D(output, gm);
-							output = CAvirFilterOpenCL::DitherOpenCL2D(out, Ditherer.PkOut0, Ditherer.TrMul0);
-							break;
-						}
-
-						case sopUnpackH:
-						{
-							tbb::parallel_for(0, QueueLen, [&](int i)
+							case sopResizeH:
 							{
-								if (Vars->UseSRGBGamma)
-								{
-									CFilterStep::applySRGBGamma(
-										(float*)Queue[i].SrcBuf, SrcLen, *Vars);
-								}
+								resizeScanlineH_OpenCL();
+								break;
+							}
 
-								CFilterStep::unpackScanline(
-									(float*)Queue[i].SrcBuf,
-									(uchar*)Queue[i].ResBuf, SrcLen, *Vars);
-							});
+							case sopResizeV:
+							{
+								resizeScanlineV_OpenCL();
+								break;
+							}
 
-							break;
-						}
 						}
 
 
