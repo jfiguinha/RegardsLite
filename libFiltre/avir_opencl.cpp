@@ -232,8 +232,11 @@ UMat CAvirFilterOpenCL::UpSample2D(cv::UMat& src, const int& width, const int& h
 		String buildopt = ""; // Options de compilation (vide par défaut)
 		ocl::Program program = context.getProg(programSource, buildopt, errmsg);
 
-		ocl::Kernel kernel("UpSample2D", program);
-
+		ocl::Kernel kernel;
+		if(src.type() == CV_8UC4)
+			kernel.create("UpSample2DUchar", program);
+		else
+			kernel.create("UpSample2D", program);
 		// Définition du premier argument (outBuffer)
 		cl_int err = clSetKernelArg(static_cast<cl_kernel>(kernel.ptr()), 0, sizeof(cl_mem), &clBuffer);
 		if (err != CL_SUCCESS)
@@ -617,7 +620,11 @@ UMat CAvirFilterOpenCL::doFilterOpenCL2D(cv::UMat& src, const int& width, const 
 		String buildopt = ""; // Options de compilation (vide par défaut)
 		ocl::Program program = context.getProg(programSource, buildopt, errmsg);
 
-		ocl::Kernel kernel("doFilter2D", program);
+		ocl::Kernel kernel;
+		if (src.type() == CV_8UC4)
+			kernel.create("doFilter2DUchar", program);
+		else
+			kernel.create("doFilter2D", program);
 
 		// Définition du premier argument (outBuffer)
 		cl_int err = clSetKernelArg(static_cast<cl_kernel>(kernel.ptr()), 0, sizeof(cl_mem), &clBuffer);

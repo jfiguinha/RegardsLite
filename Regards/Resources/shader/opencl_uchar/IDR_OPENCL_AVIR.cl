@@ -59,6 +59,16 @@ inline float convertSRGB2Lin(uint s0)
 {
     return tbl[s0];
 }
+
+float4 ucharTofloat(uchar4 input)
+{
+	float4 output = (float4)0.0;
+    output.x = tbl[input.x];
+    output.y = tbl[input.y];
+    output.z = tbl[input.z];
+    output.w = tbl[input.w];	
+	return output;
+}
 	
 __kernel void ConvertToFloat(__global float4 * output, const __global uchar4 *input, int width, int height)
 {
@@ -68,11 +78,36 @@ __kernel void ConvertToFloat(__global float4 * output, const __global uchar4 *in
     if (x < width && y < height)
     {
         int position = x + y * width;
-        output[position].x = tbl[input[position].x];
-        output[position].y = tbl[input[position].y];
-        output[position].z = tbl[input[position].z];
-        output[position].w = tbl[input[position].w];
+        output[position] = ucharTofloat(input[position]);
     }
+}
+
+__kernel void UpSample2DUchar(__global float4 * output, const __global uchar4 *input, int width, int height, int widthSrc, int start, int outLen, int ResampleFactor)
+{
+	int k = get_global_id(0);
+	int i = get_global_id(1);
+
+	if (k < width && i < height) 
+	{
+		int pos = k + i * width;
+		output[pos] = (float4)(0.0f);
+
+		int posSrc = i * widthSrc;
+
+		if (k < start) 
+		{
+			output[pos] = ucharTofloat(input[posSrc]);
+		} 
+		else if (k < (widthSrc * ResampleFactor + start)) 
+		{
+			int kInput = (k - start) / ResampleFactor + posSrc;
+			output[pos] = ucharTofloat(input[kInput]);
+		} 
+		else 
+		{
+			output[pos] = ucharTofloat(input[widthSrc - 1 + posSrc]);
+		}
+	}
 }
 
 __kernel void UpSample2D(__global float4 * output, const __global float4 *input, int width, int height, int widthSrc, int start, int outLen, int ResampleFactor)
@@ -151,6 +186,37 @@ __kernel void doFilter2D(__global float4 * output, const __global float4 *input,
 
 			float4 ip1 = input[pos1];
 			float4 ip2 = input[pos2];
+
+			// Accumuler les contributions des deux positions
+			sum += f[i] * (ip1 + ip2);
+		}
+
+		// Écriture dans la mémoire globale
+		output[k + j * width] = sum;
+	}
+}
+
+__kernel void doFilter2DUchar(__global float4 * output, const __global uchar4 *input, int widthSrc, int heightSrc, int width, int height, __global const float* f, const int flen, const int step)
+{
+	int k = get_global_id(0);
+	int j = get_global_id(1);
+
+	if (k < width && j < height) 
+	{
+		float4 sum = (float4)(0.0f, 0.0f, 0.0f, 0.0f);
+		int position = k * step + j * widthSrc;
+
+		// Pré-calculer la première valeur pour éviter de la répéter dans la boucle
+		float4 inputVal = ucharTofloat(input[position]);
+		sum = f[0] * inputVal;
+
+		for (int i = 1; i < flen; i++) 
+		{
+			int pos1 = position + i;
+			int pos2 = max(position - i, 0); // Utilisation de max() pour éviter les indices négatifs
+
+			float4 ip1 = ucharTofloat(input[pos1]);
+			float4 ip2 = ucharTofloat(input[pos2]);
 
 			// Accumuler les contributions des deux positions
 			sum += f[i] * (ip1 + ip2);

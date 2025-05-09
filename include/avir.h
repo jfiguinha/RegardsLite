@@ -6390,24 +6390,7 @@ public:
 
 					void resizeScanlineH_OpenCL()
 					{
-						clock_t start, end;
-						start = clock();
-
-						output = CAvirFilterOpenCL::ConvertToFloat(src, SrcLen, QueueLen);
-
-						end = clock();
-
-						// Calculating total time taken by the program.
-						double time_taken = double(end - start) / double(CLOCKS_PER_SEC);
-#ifdef WIN32
-						OutputDebugString(L"ConvertToFloat Filter : ");
-						OutputDebugString(L"Time taken by program is : ");
-						OutputDebugString(to_wstring(time_taken).c_str());
-						OutputDebugString(L" sec \n");
-#else
-						cout << "Time taken by program is : " << fixed << time_taken << setprecision(5);
-						cout << " sec " << endl;
-#endif
+						output = src;
 
 						for (int j = 0; j < Steps->getItemCount(); j++)
 						{
