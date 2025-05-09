@@ -15,7 +15,7 @@ public:
 	static UMat ConvertToFloat(cv::UMat& src, const int& width, const int& height);
 	static UMat ConvertToFloat(const uchar* data, const int& width, const int& height); 
 	static UMat UpSampleUMat(cv::UMat& src, const int& width, const int& height, int widthSrc, int start, int ResampleFactor);
-	static UMat UpSample2D(cv::UMat& src, const int& width, const int& height, int widthSrc, int start, int outLen, int ResampleFactor, int opstep);
+	static UMat UpSample2D(cv::UMat& src, const int& width, const int& height, int widthSrc, int start, int outLen, int ResampleFactor);
 	static float* UpSample(cv::UMat& src, float*& dest, const int& width, const int& height, int widthSrc, int start, int ResampleFactor);
 	static UMat doResize2OpenCL(cv::UMat& src, const int& width, const int& height, const std::vector<int>& PositionTab, const std::vector<float>& ftp, int IntFltLen);
 	static void doResize2OpenCL(cv::UMat& src, float*& dest, const int& width, const int& height, const std::vector<int>& PositionTab, const std::vector<float>& ftp, int IntFltLen);
@@ -36,7 +36,7 @@ public:
 	static UMat doFilterOpenCL2D(cv::UMat& src, const int& width, const int& height,
 		const float* f, int flen, int step);
 	static void doResizeOpenCL(cv::UMat& src, float*& dest, const int& width, const int& height, const std::vector<int>& PositionTab, const std::vector<float>& ftp, int IntFltLen);
-	
+	static UMat GetDataOpenCLHtoVDither2D(cv::UMat& src, float gm, float PkOut, float TrMul0);
 	static UMat doResize2OpenCL2D(cv::UMat& src, const int& width, const int& height, const std::vector<int>& PositionTab, const std::vector<float>& ftp, int IntFltLen);
 	static UMat doResizeOpenCL2D(cv::UMat& src, const int& width, const int& height, const std::vector<int>& PositionTab, const std::vector<float>& ftp, int IntFltLen);
 };

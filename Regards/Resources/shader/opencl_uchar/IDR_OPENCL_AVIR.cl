@@ -113,7 +113,7 @@ __kernel void UpSample(__global float4 * output, const __global float4 *input, i
     }
 }
 
-__kernel void UpSample2D(__global float4 * output, const __global float4 *input, int width, int height, int widthSrc, int start, int outLen, int ResampleFactor, int opstep)
+__kernel void UpSample2D(__global float4 * output, const __global float4 *input, int width, int height, int widthSrc, int start, int outLen, int ResampleFactor)
 {
     int k = get_global_id(0);
 	int i = get_global_id(1);
@@ -284,23 +284,6 @@ __kernel void GetDataHtoV(__global float4 * output, const __global float4 *input
 
 }
 
-__kernel void GetDataHtoV2D(__global float4 * output, const __global float4 *input, int width, int height)
-{
-    int k = get_global_id(0); // Index global
-    if (k >= width) 
-		return;
-	
-	int widthDest = height;
-	int heightDest = width;
-
-	for(int j = 0;j < height;j++)
-	{
-		int position = k + j * width;
-		int outpos = j + k * widthDest;
-		output[outpos] = input[position];
-	}
-
-}
 
 inline float pow24i_sRGB(float x0)
 {
@@ -484,4 +467,67 @@ __kernel void doResize2D(__global float4 * output, const __global float4 *input,
 		}
 		output[k+ j * width] = sum;
 	}
+}
+
+__kernel void GetDataHtoV2D(__global float4 * output, const __global float4 *input, int width, int height)
+{
+    int k = get_global_id(0);
+	int j = get_global_id(1);
+	if(k < width && j < height && j >= 0 && k >= 0)	
+	{
+	
+		int widthDest = height;
+		int heightDest = width;
+
+		int position = k + j * width;
+		int outpos = j + k * widthDest;
+		output[outpos] = input[position];
+
+	}
+
+}
+
+
+__kernel void GetDataHtoVDither2D(__global uchar4 * output, const __global float4 *input, int width, int height, float gm, float PkOut, float TrMul0)
+{
+    int k = get_global_id(0); // Index global
+	int xPos = get_global_id(1);
+    if (k >= height) 
+		return;
+
+	float4 outValue = {0.0f, 0.0f, 0.0f, 0.0f};
+	int position = xPos + k * width;
+	int outpos = k + xPos * height;
+	outValue.x = convertLin2SRGB(input[position].x) * gm;
+	outValue.y = convertLin2SRGB(input[position].y) * gm;
+	outValue.z = convertLin2SRGB(input[position].z) * gm;
+	outValue.w = convertLin2SRGB(input[position].w) * gm;
+	
+	const float c0 = 0;
+
+	if (TrMul0 == 1.0)
+	{
+		output[outpos].x = (uchar)(clamp(round(outValue.x), c0, PkOut));
+		output[outpos].y = (uchar)(clamp(round(outValue.y), c0, PkOut));
+		output[outpos].z = (uchar)(clamp(round(outValue.z), c0, PkOut));
+		output[outpos].w = (uchar)(clamp(round(outValue.w), c0, PkOut));
+	}
+	else
+	{
+		const float TrMul = (float)TrMul0;
+		const float TrMulI = (float)(1.0 / TrMul0);
+
+		const float z0 = round(outValue.x * TrMulI) * TrMul;
+		output[outpos].x = (uchar)(clamp(z0, c0, PkOut));
+				
+		const float z1 = round(outValue.y * TrMulI) * TrMul;
+		output[outpos].y = (uchar)(clamp(z1, c0, PkOut));
+		
+		const float z2 = round(outValue.z * TrMulI) * TrMul;
+		output[outpos].z = (uchar)(clamp(z2, c0, PkOut));
+		
+		const float z3 = round(outValue.w * TrMulI) * TrMul;
+		output[outpos].w = (uchar)(clamp(z3, c0, PkOut));
+	}
+
 }

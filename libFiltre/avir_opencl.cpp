@@ -352,7 +352,7 @@ UMat CAvirFilterOpenCL::UpSampleUMat(cv::UMat& src, const int& width, const int&
 }
 
 
-UMat CAvirFilterOpenCL::UpSample2D(cv::UMat& src, const int& width, const int& height, int widthSrc, int start, int outLen, int ResampleFactor, int opstep)
+UMat CAvirFilterOpenCL::UpSample2D(cv::UMat& src, const int& width, const int& height, int widthSrc, int start, int outLen, int ResampleFactor)
 {
 	UMat paramSrc(height, width, CV_32FC4);
 	cl_mem_flags flag;
@@ -403,11 +403,6 @@ UMat CAvirFilterOpenCL::UpSample2D(cv::UMat& src, const int& width, const int& h
 		paramsrcResampleFactor->SetValue(ResampleFactor);
 		paramsrcResampleFactor->SetLibelle("ResampleFactor");
 		vecParam.push_back(paramsrcResampleFactor);
-
-		auto paramsrcStep = new COpenCLParameterInt();
-		paramsrcStep->SetValue(opstep);
-		paramsrcStep->SetLibelle("opstep");
-		vecParam.push_back(paramsrcStep);
 
 		// Récupération du code source du kernel
 		wxString kernelSource = CLibResource::GetOpenCLUcharProgram("IDR_OPENCL_AVIR");
@@ -1524,8 +1519,8 @@ cv::UMat CAvirFilterOpenCL::GetDataOpenCLHtoV2D(cv::UMat& src)
 			parameter->Add(static_cast<cl_kernel>(kernel.ptr()), numArg++);
 		}
 
-		size_t global_work_size[1] = { static_cast<size_t>(src.size().width) };
-		bool success = kernel.run(1, global_work_size, nullptr, true);
+		size_t global_work_size[2] = { static_cast<size_t>(src.size().width), static_cast<size_t>(src.size().height) };
+		bool success = kernel.run(2, global_work_size, nullptr, true);
 		if (!success)
 		{
 			throw std::runtime_error("Failed to execute OpenCL kernel.");
@@ -1783,8 +1778,8 @@ UMat CAvirFilterOpenCL::GetDataOpenCLHtoV_dither2D(cv::UMat& src, float gm)
 			parameter->Add(static_cast<cl_kernel>(kernel.ptr()), numArg++);
 		}
 
-		size_t global_work_size[1] = { static_cast<size_t>(src.size().height) };
-		bool success = kernel.run(1, global_work_size, nullptr, true);
+		size_t global_work_size[2] = { static_cast<size_t>(src.size().height), static_cast<size_t>(src.size().width) };
+		bool success = kernel.run(2, global_work_size, nullptr, true);
 		if (!success)
 		{
 			throw std::runtime_error("Failed to execute OpenCL kernel.");
@@ -1802,6 +1797,8 @@ UMat CAvirFilterOpenCL::GetDataOpenCLHtoV_dither2D(cv::UMat& src, float gm)
 	}
 	return paramOutput;
 }
+
+
 
 void CAvirFilterOpenCL::DitherOpenCL(cv::UMat& src, float*& dest, int srcLen, float PkOut, float TrMul0)
 {
@@ -1894,6 +1891,102 @@ void CAvirFilterOpenCL::DitherOpenCL(cv::UMat& src, float*& dest, int srcLen, fl
 }
 
 
+
+UMat CAvirFilterOpenCL::GetDataOpenCLHtoVDither2D(cv::UMat& src, float gm, float PkOut, float TrMul0)
+{
+	UMat paramOutput(src.size().width, src.size().height, CV_8UC4);
+	cl_mem_flags flag;
+	{
+
+
+		bool useMemory = (cv::ocl::Device::getDefault().type() == CL_DEVICE_TYPE_GPU) ? false : true;
+		flag = useMemory ? CL_MEM_USE_HOST_PTR : CL_MEM_COPY_HOST_PTR;
+
+		vector<COpenCLParameter*> vecParam;
+		// Crée un UMat avec le type CV_8UC4
+
+		auto clBuffer = static_cast<cl_mem>(paramOutput.handle(ACCESS_WRITE));
+
+		auto clInputBuffer = static_cast<cl_mem>(src.handle(ACCESS_READ));
+		auto input = new COpenCLParameterClMem(true);
+		input->SetValue(clInputBuffer);
+		input->SetLibelle("input");
+		input->SetNoDelete(true);
+		vecParam.push_back(input);
+
+
+		auto paramWidth = new COpenCLParameterInt();
+		paramWidth->SetValue(src.size().width);
+		paramWidth->SetLibelle("width");
+		vecParam.push_back(paramWidth);
+
+		auto paramHeight = new COpenCLParameterInt();
+		paramHeight->SetValue(src.size().height);
+		paramHeight->SetLibelle("height");
+		vecParam.push_back(paramHeight);
+
+		auto paramGM = new COpenCLParameterFloat();
+		paramGM->SetValue(gm);
+		paramGM->SetLibelle("gm");
+		vecParam.push_back(paramGM);
+
+		auto paramPkOut = new COpenCLParameterFloat();
+		paramPkOut->SetValue(PkOut);
+		paramPkOut->SetLibelle("PkOut");
+		vecParam.push_back(paramPkOut);
+
+		auto paramTrMul0 = new COpenCLParameterFloat();
+		paramTrMul0->SetValue(TrMul0);
+		paramTrMul0->SetLibelle("TrMul0");
+		vecParam.push_back(paramTrMul0);
+
+		// Récupération du code source du kernel
+		wxString kernelSource = CLibResource::GetOpenCLUcharProgram("IDR_OPENCL_AVIR");
+		cv::ocl::ProgramSource programSource(kernelSource);
+		ocl::Context context = clExecCtx.getContext();
+
+		// Compilation du kernel
+		String errmsg;
+		String buildopt = ""; // Options de compilation (vide par défaut)
+		ocl::Program program = context.getProg(programSource, buildopt, errmsg);
+
+		ocl::Kernel kernel("GetDataHtoVDither2D", program);
+
+		// Définition du premier argument (outBuffer)
+		cl_int err = clSetKernelArg(static_cast<cl_kernel>(kernel.ptr()), 0, sizeof(cl_mem), &clBuffer);
+		if (err != CL_SUCCESS)
+		{
+			throw std::runtime_error("Failed to set kernel argument for outBuffer.");
+		}
+
+		// Ajout des autres arguments
+		int numArg = 1;
+		for (COpenCLParameter* parameter : vecParam)
+		{
+			parameter->Add(static_cast<cl_kernel>(kernel.ptr()), numArg++);
+		}
+
+		size_t global_work_size[2] = { static_cast<size_t>(src.size().height), static_cast<size_t>(src.size().width) };
+		bool success = kernel.run(2, global_work_size, nullptr, true);
+		if (!success)
+		{
+			throw std::runtime_error("Failed to execute OpenCL kernel.");
+		}
+
+		for (COpenCLParameter* parameter : vecParam)
+		{
+			if (!parameter->GetNoDelete())
+			{
+				delete parameter;
+				parameter = nullptr;
+			}
+		}
+
+	}
+	return paramOutput;
+}
+
+
 cv::UMat CAvirFilterOpenCL::DitherOpenCL2D(cv::UMat& src, float PkOut, float TrMul0)
 {
 	UMat paramOutput(src.size().height, src.size().width, CV_8UC4);
@@ -1963,8 +2056,8 @@ cv::UMat CAvirFilterOpenCL::DitherOpenCL2D(cv::UMat& src, float PkOut, float TrM
 			parameter->Add(static_cast<cl_kernel>(kernel.ptr()), numArg++);
 		}
 
-		size_t global_work_size[1] = { static_cast<size_t>(src.size().width) };
-		bool success = kernel.run(1, global_work_size, nullptr, true);
+		size_t global_work_size[2] = { static_cast<size_t>(src.size().width), static_cast<size_t>(src.size().height) };
+		bool success = kernel.run(2, global_work_size, nullptr, true);
 		if (!success)
 		{
 			throw std::runtime_error("Failed to execute OpenCL kernel.");

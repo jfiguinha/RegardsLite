@@ -4040,6 +4040,10 @@ namespace avir {
 					const int NewWidth, const int NewHeight, const int ElCountIO,
 					const double k, CImageResizerVars* const aVars = nullptr) const
 				{
+					clock_t start, end;
+					start = clock();
+
+
 					int UseBuildMode = 1;
 					static CThreadData td;
 					int i = 0;
@@ -4201,7 +4205,24 @@ namespace avir {
 						(size_t)src.size().height, fpclass_def::fpalign);
 
 					td.addQueueLen(src.size().height);
+
+					end = clock();
+
+					// Calculating total time taken by the program.
+					double time_taken = double(end - start) / double(CLOCKS_PER_SEC);
+#ifdef WIN32
+					OutputDebugString(L"Start Filter : ");
+					OutputDebugString(L"Time taken by program is : ");
+					OutputDebugString(to_wstring(time_taken).c_str());
+					OutputDebugString(L" sec \n");
+#else
+					cout << "Time taken by program is : " << fixed << time_taken << setprecision(5);
+					cout << " sec " << endl;
+#endif
+
 					td.processScanlineQueueOpenCL();
+
+					start = clock();
 
 					// Vertical scanline filtering and resizing, reuse previously defined
 					// filtering steps if possible.
@@ -4266,36 +4287,29 @@ namespace avir {
 					}
 
 
-					if (IsOutFloat && sizeof(FltBuf[0]) == sizeof(uchar) &&
-						fpclass_def::packmode == 0)
-					{
-						td.initScanlineQueue(td.sopResizeV, NewWidth,
-							src.size().height, NewWidthE, NewWidthE);
-
-						td.addQueueLen(NewWidth);
-
-						td.processScanlineQueueOpenCL();
-						return td.output;
-					}
-
 					td.initScanlineQueue(td.sopResizeV, NewWidth,
 						src.size().height, NewWidthE, NewWidthE);
 
 					td.addQueueLen(NewWidth);
+
+
+					end = clock();
+
+					// Calculating total time taken by the program.
+					time_taken = double(end - start) / double(CLOCKS_PER_SEC);
+#ifdef WIN32
+					OutputDebugString(L"Middle Filter : ");
+					OutputDebugString(L"Time taken by program is : ");
+					OutputDebugString(to_wstring(time_taken).c_str());
+					OutputDebugString(L" sec \n");
+#else
+					cout << "Time taken by program is : " << fixed << time_taken << setprecision(5);
+					cout << " sec " << endl;
+#endif
+
 					td.processScanlineQueueOpenCL();
 
-					if (IsOutFloat)
-					{
-						td.initScanlineQueue(td.sopUnpackH,
-							NewHeight, NewWidth);
-
-
-						td.addQueueLen(NewHeight);
-						td.processScanlineQueueOpenCL();
-						return td.output;
-					}
-
-					// Perform output with dithering (for integer output only).
+					start = clock();
 
 					int TruncBits; // The number of lower bits to truncate and dither.
 					int OutRange; // Output range.
@@ -4315,25 +4329,24 @@ namespace avir {
 					const double TrMul = (TruncBits > 0 ?
 						PkOut / (OutRange >> TruncBits) : 1.0);
 
-					if (CDitherer::isRecursive())
-					{
-						td.getDitherer().init(NewWidth, *Vars, TrMul, PkOut);
+					const float gm = (float)Vars->OutGammaMult;
+					//UMat out = CAvirFilterOpenCL::GetDataOpenCLHtoV_dither2D(td.output, gm);
+					//td.output = CAvirFilterOpenCL::DitherOpenCL2D(out, PkOut, TrMul);
 
-						const float gm = (float)Vars->OutGammaMult;
-						UMat out = CAvirFilterOpenCL::GetDataOpenCLHtoV_dither2D(td.output, gm);
-						td.output = CAvirFilterOpenCL::DitherOpenCL2D(out, PkOut, TrMul);
-					}
-					else
-					{
-						td.initScanlineQueue(td.sopDitherAndUnpackH,
-							NewHeight, NewWidth);
+					td.output = CAvirFilterOpenCL::GetDataOpenCLHtoVDither2D(td.output, gm, PkOut, TrMul);
+					end = clock();
 
-						td.getDitherer().init(NewWidth, *Vars, TrMul, PkOut);
-
-						td.addQueueLen(NewHeight);
-						td.processScanlineQueueOpenCL();
-					}
-
+					// Calculating total time taken by the program.
+					time_taken = double(end - start) / double(CLOCKS_PER_SEC);
+#ifdef WIN32
+					OutputDebugString(L"End Filter : ");
+					OutputDebugString(L"Time taken by program is : ");
+					OutputDebugString(to_wstring(time_taken).c_str());
+					OutputDebugString(L" sec \n");
+#else
+					cout << "Time taken by program is : " << fixed << time_taken << setprecision(5);
+					cout << " sec " << endl;
+#endif
 
 					return td.output;
 				}
@@ -6033,6 +6046,8 @@ namespace avir {
 
 					void processScanlineQueueOpenCL()
 					{
+						clock_t start, end;
+						start = clock();
 						
 						switch (ScanlineOp)
 						{
@@ -6074,90 +6089,24 @@ namespace avir {
 							break;
 						}
 						}
+
+
+						end = clock();
+
+						// Calculating total time taken by the program.
+						double time_taken = double(end - start) / double(CLOCKS_PER_SEC);
+#ifdef WIN32
+						OutputDebugString(L"processScanlineQueueOpenCL : ");
+						OutputDebugString(L"Time taken by program is : ");
+						OutputDebugString(to_wstring(time_taken).c_str());
+						OutputDebugString(L" sec \n");
+#else
+						cout << "Time taken by program is : " << fixed << time_taken << setprecision(5);
+						cout << " sec " << endl;
+#endif
 					}
 
 
-					void processScanlineQueueCL()
-					{
-
-						switch (ScanlineOp)
-						{
-						case sopResizeH:
-						{
-							output = CAvirFilterOpenCL::ConvertToFloat(src, SrcLen, QueueLen);
-#ifdef _DEBUG
-							for (int i = 0; i < QueueLen; i++)
-							{
-								resizeScanlineH((uchar*)Queue[i].SrcBuf,
-									(float*)Queue[i].ResBuf);
-							}
-#else
-							tbb::parallel_for(0, QueueLen, [&](int i)
-								{
-									resizeScanlineH((uchar*)Queue[i].SrcBuf,
-										(float*)Queue[i].ResBuf);
-								});
-#endif
-							break;
-						}
-
-						case sopResizeV:
-						{
-#ifdef _DEBUG
-							for (int i = 0; i < QueueLen; i++)
-							{
-								resizeScanlineV((float*)Queue[i].SrcBuf,
-									(float*)Queue[i].ResBuf);
-							}
-#else
-							tbb::parallel_for(0, QueueLen, [&](int i)
-								{
-									resizeScanlineV((float*)Queue[i].SrcBuf,
-										(float*)Queue[i].ResBuf);
-								});
-#endif
-
-							break;
-						}
-
-						case sopDitherAndUnpackH:
-						{
-							tbb::parallel_for(0, QueueLen, [&](int i)
-								{
-									if (Vars->UseSRGBGamma)
-									{
-										CFilterStep::applySRGBGamma(
-											(float*)Queue[i].SrcBuf, SrcLen, *Vars);
-									}
-
-									Ditherer.dither((float*)Queue[i].SrcBuf);
-
-									CFilterStep::unpackScanline(
-										(float*)Queue[i].SrcBuf,
-										(uchar*)Queue[i].ResBuf, SrcLen, *Vars);
-								}
-							);
-							break;
-						}
-
-						case sopUnpackH:
-						{
-							tbb::parallel_for(0, QueueLen, [&](int i)
-								{
-									if (Vars->UseSRGBGamma)
-									{
-										CFilterStep::applySRGBGamma(
-											(float*)Queue[i].SrcBuf, SrcLen, *Vars);
-									}
-
-									CFilterStep::unpackScanline(
-										(float*)Queue[i].SrcBuf,
-										(uchar*)Queue[i].ResBuf, SrcLen, *Vars);
-								});
-							break;
-						}
-						}
-					}
 
 					void processScanlineQueue()
 					{
@@ -6301,25 +6250,60 @@ public:
 
 					UMat doUpsampleOpenCL(UMat src_cvt, const CFilterStep& fs)
 					{
-						const int ElCount = Vars->ElCount;
+						clock_t start, end;
+						start = clock();
+
 						int widthOut = fs.OutPrefix + fs.OutLen + fs.OutSuffix;
-						int start = fs.OutPrefix;
-						int stop = fs.OutSuffix;
-						const int opstep = (ElCount * fs.ResampleFactor) / 4;
-						return CAvirFilterOpenCL::UpSample2D(src_cvt, widthOut, QueueLen, SrcLen, start, fs.OutLen, fs.ResampleFactor, opstep);
+						cv::UMat out = CAvirFilterOpenCL::UpSample2D(src_cvt, widthOut, QueueLen, SrcLen, fs.OutPrefix, fs.OutLen, fs.ResampleFactor);
+
+						end = clock();
+
+						// Calculating total time taken by the program.
+						double time_taken = double(end - start) / double(CLOCKS_PER_SEC);
+#ifdef WIN32
+						OutputDebugString(L"doUpsampleOpenCL Filter : ");
+						OutputDebugString(L"Time taken by program is : ");
+						OutputDebugString(to_wstring(time_taken).c_str());
+						OutputDebugString(L" sec \n");
+#else
+						cout << "Time taken by program is : " << fixed << time_taken << setprecision(5);
+						cout << " sec " << endl;
+#endif
+						return out;
 					}
 
 					UMat doFilterOpenCL(UMat src, const CFilterStep& fs)
 					{
+						clock_t start, end;
+						start = clock();
+
 						const int ElCount = Vars->ElCount;
 						const float* const f = &fs.Flt[fs.FltLatency];
 						const int flen = fs.FltLatency + 1;
 						const int ipstep = (ElCount * fs.ResampleFactor) / 4;
-						return CAvirFilterOpenCL::doFilterOpenCL2D(src, src.size().width, QueueLen, f, flen, ipstep);
+						cv::UMat out = CAvirFilterOpenCL::doFilterOpenCL2D(src, src.size().width, QueueLen, f, flen, ipstep);
+
+						end = clock();
+
+						// Calculating total time taken by the program.
+						double time_taken = double(end - start) / double(CLOCKS_PER_SEC);
+#ifdef WIN32
+						OutputDebugString(L"doFilterOpenCL Filter : ");
+						OutputDebugString(L"Time taken by program is : ");
+						OutputDebugString(to_wstring(time_taken).c_str());
+						OutputDebugString(L" sec \n");
+#else
+						cout << "Time taken by program is : " << fixed << time_taken << setprecision(5);
+						cout << " sec " << endl;
+#endif
+						return out;
 					}
 
 					UMat doResizeOpenCL(UMat src, const CFilterStep& fs)
 					{
+						clock_t start, end;
+						start = clock();
+
 						const int IntFltLen = fs.FltBank->getFilterLen();
 						const int ElCount = Vars->ElCount;
 						const typename CImageResizerFilterStep::
@@ -6354,11 +6338,29 @@ public:
 							rpos++;
 							i++;
 						}
-						return CAvirFilterOpenCL::doResizeOpenCL2D(src, fs.OutLen, QueueLen, PositionTab, ftpTab, IntFltLen);
+						cv::UMat out = CAvirFilterOpenCL::doResizeOpenCL2D(src, fs.OutLen, QueueLen, PositionTab, ftpTab, IntFltLen);
+
+						end = clock();
+
+						// Calculating total time taken by the program.
+						double time_taken = double(end - start) / double(CLOCKS_PER_SEC);
+#ifdef WIN32
+						OutputDebugString(L"doResizeOpenCL Filter : ");
+						OutputDebugString(L"Time taken by program is : ");
+						OutputDebugString(to_wstring(time_taken).c_str());
+						OutputDebugString(L" sec \n");
+#else
+						cout << "Time taken by program is : " << fixed << time_taken << setprecision(5);
+						cout << " sec " << endl;
+#endif
+						return out;
 					}
 
 					UMat doResize2OpenCL(UMat src, const CFilterStep& fs)
 					{
+						clock_t start, end;
+						start = clock();
+
 						int positionSrc = 0;
 						const int IntFltLen0 = fs.FltBank->getFilterLen();
 
@@ -6393,12 +6395,44 @@ public:
 							rpos++; i++;
 						}
 
-						return CAvirFilterOpenCL::doResize2OpenCL2D(src, fs.OutLen, QueueLen, PositionTab, ftpTab, IntFltLen0);
+						cv::UMat out = CAvirFilterOpenCL::doResize2OpenCL2D(src, fs.OutLen, QueueLen, PositionTab, ftpTab, IntFltLen0);
+
+						end = clock();
+
+						// Calculating total time taken by the program.
+						double time_taken = double(end - start) / double(CLOCKS_PER_SEC);
+#ifdef WIN32
+						OutputDebugString(L"doResize2OpenCL Filter : ");
+						OutputDebugString(L"Time taken by program is : ");
+						OutputDebugString(to_wstring(time_taken).c_str());
+						OutputDebugString(L" sec \n");
+#else
+						cout << "Time taken by program is : " << fixed << time_taken << setprecision(5);
+						cout << " sec " << endl;
+#endif
+						return out;
 					}
 
 					void resizeScanlineH_OpenCL()
 					{
+						clock_t start, end;
+						start = clock();
+
 						output = CAvirFilterOpenCL::ConvertToFloat(src, SrcLen, QueueLen);
+
+						end = clock();
+
+						// Calculating total time taken by the program.
+						double time_taken = double(end - start) / double(CLOCKS_PER_SEC);
+#ifdef WIN32
+						OutputDebugString(L"ConvertToFloat Filter : ");
+						OutputDebugString(L"Time taken by program is : ");
+						OutputDebugString(to_wstring(time_taken).c_str());
+						OutputDebugString(L" sec \n");
+#else
+						cout << "Time taken by program is : " << fixed << time_taken << setprecision(5);
+						cout << " sec " << endl;
+#endif
 
 						for (int j = 0; j < Steps->getItemCount(); j++)
 						{

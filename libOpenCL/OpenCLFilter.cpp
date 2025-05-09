@@ -1552,6 +1552,8 @@ UMat COpenCLFilter::Interpolation(const int& widthOut, const int& heightOut, con
 			
 			try
 			{
+				clock_t start, end;
+				start = clock();
 				cv::UMat src;
 				cvtColor(cvImage, src, cv::COLOR_BGR2BGRA);
 				avir::CImageResizer ImageResizer(8);
@@ -1559,9 +1561,39 @@ UMat COpenCLFilter::Interpolation(const int& widthOut, const int& heightOut, con
 				Vars.UseSRGBGamma = true;
 				cv::UMat out = ImageResizer.resizeImageOpenCL(src, widthOut, heightOut, 4, 0, &Vars);
 				cvtColor(out, cvImage, cv::COLOR_BGRA2BGR);
+
+				end = clock();
+
+				// Calculating total time taken by the program.
+				double time_taken = double(end - start) / double(CLOCKS_PER_SEC);
+
+#ifdef WIN32
+				OutputDebugString(L"Time taken by program is : ");
+				OutputDebugString(to_wstring(time_taken).c_str());
+				OutputDebugString(L" sec \n");
+#else
+				cout << "Time taken by program is : " << fixed << time_taken << setprecision(5);
+				cout << " sec " << endl;
+#endif
+				
+				/*
+				cv::Mat inBuf, outBuf(Size(widthOut, heightOut), CV_8UC4, Scalar(0, 0, 0));
+				cvtColor(cvImage, inBuf, cv::COLOR_BGR2BGRA);
+
+				avir::CImageResizer ImageResizer(8);
+				avir::CImageResizerVars Vars;
+				Vars.UseSRGBGamma = true;
+				ImageResizer.resizeImage(
+					reinterpret_cast<uint8_t*>(inBuf.data), inBuf.cols, inBuf.rows, inBuf.step,
+					reinterpret_cast<uint8_t*>(outBuf.data), widthOut, heightOut, 4, 0, &Vars
+				);
+
+				cvtColor(outBuf, cvImage, cv::COLOR_BGRA2BGR);
+				*/
 			}
 			catch (...)
 			{
+				/*
 				
 				cv::Mat inBuf, outBuf(Size(widthOut, heightOut), CV_8UC4, Scalar(0, 0, 0));
 				cvtColor(cvImage, inBuf, cv::COLOR_BGR2BGRA);
@@ -1575,6 +1607,12 @@ UMat COpenCLFilter::Interpolation(const int& widthOut, const int& heightOut, con
 				);
 
 				cvtColor(outBuf, cvImage, cv::COLOR_BGRA2BGR);
+				*/
+
+				if (cvImage.cols != widthOut || cvImage.rows != heightOut)
+				{
+					resize(cvImage, cvImage, Size(widthOut, heightOut), method);
+				}
 			}
 			
 		}
