@@ -1562,6 +1562,10 @@ UMat COpenCLFilter::Interpolation(const int& widthOut, const int& heightOut, con
 				cv::UMat out = ImageResizer.resizeImageOpenCL(src, widthOut, heightOut, 4, 0, &Vars);
 				cvtColor(out, cvImage, cv::COLOR_BGRA2BGR);
 
+				cv::Mat output;
+				out.copyTo(output);
+				imwrite("d:\\out.png", output);
+
 				end = clock();
 
 				// Calculating total time taken by the program.

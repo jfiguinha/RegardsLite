@@ -121,20 +121,9 @@ __kernel void UpSample2D(__global float4 * output, const __global float4 *input,
 		output[pos] = (float4)(0.0f);
 
 		int posSrc = i * widthSrc;
-
-		if (k < start) 
-		{
-			output[pos] = input[posSrc];
-		} 
-		else if (k < (widthSrc * ResampleFactor + start)) 
-		{
-			int kInput = (k - start) / ResampleFactor + posSrc;
-			output[pos] = input[kInput];
-		} 
-		else 
-		{
-			output[pos] = input[widthSrc - 1 + posSrc];
-		}
+		
+		int kInput = k / ResampleFactor + posSrc;
+		output[pos] = input[kInput];
 	}
 }
 
@@ -200,7 +189,7 @@ __kernel void doFilter2DUchar(__global float4 * output, const __global uchar4 *i
 {
 	int k = get_global_id(0);
 	int j = get_global_id(1);
-
+	
 	if (k < width && j < height) 
 	{
 		float4 sum = (float4)(0.0f, 0.0f, 0.0f, 0.0f);
@@ -272,6 +261,35 @@ __kernel void doResize2D(__global float4 * output, const __global float4 *input,
 				float xx = ftp[i + k * IntFltLen0];
 				int localPos = positionSrc + baseIndex;
 				float4 pixel = input[localPos];
+				sum += xx * pixel;
+			}
+			positionSrc++;
+		}
+
+		output[k + j * width] = sum;
+	}
+}
+
+
+__kernel void doResize2DUchar(__global float4 * output, const __global uchar4 *input, int width, int height, __global const int * PositionTab, __global const float* ftp,
+    const int IntFltLen0, int inputWidth)
+{
+	int k = get_global_id(0);
+	int j = get_global_id(1);
+
+	if (k < width && j < height) 
+	{
+		float4 sum = (float4)(0.0f, 0.0f, 0.0f, 0.0f);
+		int positionSrc = PositionTab[k] / 4;
+		int baseIndex = j * inputWidth;
+
+		for (int i = 0; i < IntFltLen0; i++) 
+		{
+			if (positionSrc < inputWidth) 
+			{
+				float xx = ftp[i + k * IntFltLen0];
+				int localPos = positionSrc + baseIndex;
+				float4 pixel = ucharTofloat(input[localPos]);
 				sum += xx * pixel;
 			}
 			positionSrc++;

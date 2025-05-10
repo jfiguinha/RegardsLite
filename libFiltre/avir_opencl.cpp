@@ -425,7 +425,11 @@ UMat CAvirFilterOpenCL::doResizeOpenCL2D(cv::UMat& src, const int& width, const 
 		String buildopt = ""; // Options de compilation (vide par défaut)
 		ocl::Program program = context.getProg(programSource, buildopt, errmsg);
 
-		ocl::Kernel kernel("doResize2D", program);
+		ocl::Kernel kernel;
+		if (src.type() == CV_8UC4)
+			kernel.create("doResize2DUchar", program);
+		else
+			kernel.create("doResize2D", program);
 
 		// Définition du premier argument (outBuffer)
 		cl_int err = clSetKernelArg(static_cast<cl_kernel>(kernel.ptr()), 0, sizeof(cl_mem), &clBuffer);

@@ -3568,86 +3568,6 @@ namespace avir {
 			}
 
 
-			/**
-			 * @brief Performs resizing of a single scanline.
-			 *
-			 * This function does not "know" about the length of the source scanline
-			 * buffer. This buffer should be padded with enough pixels so that
-			 * `SrcPos - FilterLenD2` is always greater or equal to 0, and
-			 * `SrcPos + ( DstLineLen - 1 ) * k + FilterLenD2 + 1` does not exceed
-			 * source scanline's buffer length. `SrcLine` increment is assumed to be
-			 * equal to `ElCount`.
-			 *
-			 * @param SrcLine Source scanline buffer.
-			 * @param DstLine Desucharation (resized) scanline buffer.
-			 * @param DstLineIncr Desucharation scanline position increment, used for
-			 * horizontal or vertical scanline stepping.
-			 */
-
-			void doResizeCL(const float* SrcLine, float* DstLine,
-				const int DstLineIncr, float* const) const
-			{
-				const int IntFltLen = FltBank->getFilterLen();
-				const int ElCount = Vars->ElCount;
-				const typename CImageResizerFilterStep::
-					CResizePos* rpos = &(*RPosBuf)[0];
-
-				const typename CImageResizerFilterStep::
-					CResizePos* const rpose = rpos + OutLen;
-
-				/*
-				float sum[4] = { 0.0,0.0,0.0,0.0 };
-				while (rpos < rpose)
-				{
-					const float* const ftp = rpos->ftp;
-					const float* Src = SrcLine + rpos->SrcOffs;
-
-					memset(sum, 0, sizeof(float) * 4);
-
-					for (int i = 0; i < IntFltLen; i++)
-					{
-						const float xx = ftp[i];
-						sum[0] += xx * Src[0];
-						sum[1] += xx * Src[1];
-						sum[2] += xx * Src[2];
-						sum[3] += xx * Src[3];
-						Src += 4;
-					}
-
-					memcpy(DstLine, sum, sizeof(float) * 4);
-					DstLine += DstLineIncr;
-					rpos++;
-				}
-				*/
-
-				int positionSrc = 0;
-				vector<int> PositionTab;
-				vector<float> ftpTab;
-				int oldPos = 0;
-				int i = 0;
-				while (rpos < rpose)
-				{
-					const float* const ftp = rpos->ftp;
-
-					if (i > 0)
-					{
-						positionSrc = positionSrc + abs(abs(rpos->SrcOffs) - oldPos);
-						oldPos = abs(rpos->SrcOffs);
-						PositionTab.push_back(positionSrc);
-					}
-					else
-						PositionTab.push_back(positionSrc);
-
-					for (int i = 0; i < IntFltLen; i++)
-					{
-						const float xx = ftp[i];
-						ftpTab.push_back(xx);
-					}
-					rpos++; 
-					i++;
-				}
-
-			}
 };
 			/**
 			 * @brief Image resizer's default dithering class.
@@ -6230,6 +6150,8 @@ public:
 
 						int widthOut = fs.OutPrefix + fs.OutLen + fs.OutSuffix;
 						cv::UMat out = CAvirFilterOpenCL::UpSample2D(src_cvt, widthOut, QueueLen, SrcLen, fs.OutPrefix, fs.OutLen, fs.ResampleFactor);
+						//widthOut = src_cvt.size().width * fs.ResampleFactor;
+						//cv::UMat out = CAvirFilterOpenCL::UpSample2D(src_cvt, widthOut, QueueLen, SrcLen, 0, widthOut, fs.ResampleFactor);
 
 						end = clock();
 
@@ -6252,11 +6174,13 @@ public:
 						clock_t start, end;
 						start = clock();
 
-						const int ElCount = Vars->ElCount;
+						//const int ElCount = Vars->ElCount;
 						const float* const f = &fs.Flt[fs.FltLatency];
 						const int flen = fs.FltLatency + 1;
-						const int ipstep = (ElCount * fs.ResampleFactor) / 4;
-						cv::UMat out = CAvirFilterOpenCL::doFilterOpenCL2D(src, src.size().width, QueueLen, f, flen, ipstep);
+						//const int ipstep = (ElCount * fs.ResampleFactor) / 4;
+						int diff = fs.OutLen - src.size().width;
+
+						cv::UMat out = CAvirFilterOpenCL::doFilterOpenCL2D(src, src.size().width, QueueLen, f, flen, fs.ResampleFactor);
 
 						end = clock();
 
@@ -6390,6 +6314,7 @@ public:
 
 					void resizeScanlineH_OpenCL()
 					{
+						//output = CAvirFilterOpenCL::ConvertToFloat(src, SrcLen, QueueLen);
 						output = src;
 
 						for (int j = 0; j < Steps->getItemCount(); j++)
