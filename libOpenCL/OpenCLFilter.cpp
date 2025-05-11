@@ -35,6 +35,12 @@ COpenCLFilter::~COpenCLFilter()
 	if (hq3d != nullptr)
 		delete hq3d;
 
+	if (param != nullptr)
+	{
+		delete param;
+		param = nullptr;
+	}
+
 }
 
 void COpenCLFilter::DetailEnhance(UMat& inputData, const double& sigma_s, const double& sigma_r)
@@ -1552,6 +1558,7 @@ UMat COpenCLFilter::Interpolation(const int& widthOut, const int& heightOut, con
 			
 			try
 			{
+				
 				clock_t start, end;
 				start = clock();
 				cv::UMat src;
@@ -1559,12 +1566,38 @@ UMat COpenCLFilter::Interpolation(const int& widthOut, const int& heightOut, con
 				avir::CImageResizer ImageResizer(8);
 				avir::CImageResizerVars Vars;
 				Vars.UseSRGBGamma = true;
-				cv::UMat out = ImageResizer.resizeImageOpenCL(src, widthOut, heightOut, 4, 0, &Vars);
-				cvtColor(out, cvImage, cv::COLOR_BGRA2BGR);
+				bool useParam = false;
+				if (param == nullptr)
+				{
+					param = new CAvirFilterParam();
+					param->width = src.cols;
+					param->height = src.rows;
+					param->widthOut = widthOut;
+					param->heightOut = heightOut;
+				}
+				else
+				{
+					if (param->width != src.cols || param->height != src.rows || param->widthOut != widthOut  || param->heightOut != heightOut)
+					{
+						delete param;
+						param = new CAvirFilterParam();
+						param->width = src.cols;
+						param->height = src.rows;
+						param->widthOut = widthOut;
+						param->heightOut = heightOut;
+					}
+					else
+					{
+						useParam = true;
+					}
+				}
 
-				cv::Mat output;
-				out.copyTo(output);
-				imwrite("d:\\out.png", output);
+				cv::UMat out;
+				if(useParam)
+					out = ImageResizer.resizeImageOpenCLWithStep(src, param);
+				else
+					out = ImageResizer.resizeImageOpenCL(src, src.cols, src.rows, widthOut, heightOut, 4, 0, param, &Vars);
+				cvtColor(out, cvImage, cv::COLOR_BGRA2BGR);
 
 				end = clock();
 
@@ -1581,19 +1614,22 @@ UMat COpenCLFilter::Interpolation(const int& widthOut, const int& heightOut, con
 #endif
 				
 				/*
-				cv::Mat inBuf, outBuf(Size(widthOut, heightOut), CV_8UC4, Scalar(0, 0, 0));
-				cvtColor(cvImage, inBuf, cv::COLOR_BGR2BGRA);
+				{
+					cv::Mat inBuf, outBuf(Size(widthOut, heightOut), CV_8UC4, Scalar(0, 0, 0));
+					cvtColor(cvImage, inBuf, cv::COLOR_BGR2BGRA);
 
-				avir::CImageResizer ImageResizer(8);
-				avir::CImageResizerVars Vars;
-				Vars.UseSRGBGamma = true;
-				ImageResizer.resizeImage(
-					reinterpret_cast<uint8_t*>(inBuf.data), inBuf.cols, inBuf.rows, inBuf.step,
-					reinterpret_cast<uint8_t*>(outBuf.data), widthOut, heightOut, 4, 0, &Vars
-				);
+					avir::CImageResizer ImageResizer(8);
+					avir::CImageResizerVars Vars;
+					Vars.UseSRGBGamma = true;
+					ImageResizer.resizeImage(
+						reinterpret_cast<uint8_t*>(inBuf.data), inBuf.cols, inBuf.rows, inBuf.step,
+						reinterpret_cast<uint8_t*>(outBuf.data), widthOut, heightOut, 4, 0, &Vars
+					);
 
-				cvtColor(outBuf, cvImage, cv::COLOR_BGRA2BGR);
+					cvtColor(outBuf, cvImage, cv::COLOR_BGRA2BGR);
+				}
 				*/
+				
 			}
 			catch (...)
 			{

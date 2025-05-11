@@ -272,7 +272,7 @@ UMat CAvirFilterOpenCL::UpSample2D(cv::UMat& src, const int& width, const int& h
 }
 
 UMat CAvirFilterOpenCL::doResize2OpenCL2D(cv::UMat& src, const int& width, const int& height,
-	const std::vector<int>& PositionTab, const std::vector<float>& ftp, int IntFltLen)
+	int * PositionTab, int posTabSize, float * ftp, int ftpTabSize, int IntFltLen)
 {
 	UMat paramOutput(height, width, CV_32FC4);
 	cl_mem_flags flag;
@@ -304,12 +304,12 @@ UMat CAvirFilterOpenCL::doResize2OpenCL2D(cv::UMat& src, const int& width, const
 
 		COpenCLParameterIntArray* paramrPos = new COpenCLParameterIntArray();
 		paramrPos->SetLibelle("PositionTab");
-		paramrPos->SetValue((cl_context)clExecCtx.getContext().ptr(), (int*)&PositionTab.at(0), PositionTab.size(), flag);
+		paramrPos->SetValue((cl_context)clExecCtx.getContext().ptr(), PositionTab, posTabSize, flag);
 		vecParam.push_back(paramrPos);
 
 		COpenCLParameterFloatArray* paramrfltBank = new COpenCLParameterFloatArray();
 		paramrfltBank->SetLibelle("ftp");
-		paramrfltBank->SetValue((cl_context)clExecCtx.getContext().ptr(), (float*)&ftp.at(0), ftp.size(), flag);
+		paramrfltBank->SetValue((cl_context)clExecCtx.getContext().ptr(),ftp, ftpTabSize, flag);
 		vecParam.push_back(paramrfltBank);
 
 		auto paramIntFltLen = new COpenCLParameterInt();
@@ -366,7 +366,7 @@ UMat CAvirFilterOpenCL::doResize2OpenCL2D(cv::UMat& src, const int& width, const
 	return paramOutput;
 }
 
-UMat CAvirFilterOpenCL::doResizeOpenCL2D(cv::UMat& src, const int& width, const int& height, const std::vector<int>& PositionTab, const std::vector<float>& ftp, int IntFltLen)
+UMat CAvirFilterOpenCL::doResizeOpenCL2D(cv::UMat& src, const int& width, const int& height, int* PositionTab, int posTabSize, float* ftp, int ftpTabSize, int IntFltLen)
 {
 	UMat paramOutput(height, width, CV_32FC4);
 	cl_mem_flags flag;
@@ -398,12 +398,17 @@ UMat CAvirFilterOpenCL::doResizeOpenCL2D(cv::UMat& src, const int& width, const 
 
 		COpenCLParameterIntArray* paramrPos = new COpenCLParameterIntArray();
 		paramrPos->SetLibelle("PositionTab");
-		paramrPos->SetValue((cl_context)clExecCtx.getContext().ptr(), (int*)&PositionTab.at(0), PositionTab.size(), flag);
+		paramrPos->SetValue((cl_context)clExecCtx.getContext().ptr(), PositionTab, posTabSize, flag);
 		vecParam.push_back(paramrPos);
+
+		auto paramTabSize = new COpenCLParameterInt();
+		paramTabSize->SetValue(posTabSize);
+		paramTabSize->SetLibelle("tabSize");
+		vecParam.push_back(paramTabSize);
 
 		COpenCLParameterFloatArray* paramrfltBank = new COpenCLParameterFloatArray();
 		paramrfltBank->SetLibelle("ftp");
-		paramrfltBank->SetValue((cl_context)clExecCtx.getContext().ptr(), (float*)&ftp.at(0), ftp.size(), flag);
+		paramrfltBank->SetValue((cl_context)clExecCtx.getContext().ptr(), ftp, ftpTabSize, flag);
 		vecParam.push_back(paramrfltBank);
 
 		auto paramIntFltLen = new COpenCLParameterInt();

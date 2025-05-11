@@ -93,12 +93,11 @@ __kernel void UpSample2DUchar(__global float4 * output, const __global uchar4 *i
 		output[pos] = (float4)(0.0f);
 
 		int posSrc = i * widthSrc;
-
 		if (k < start) 
 		{
 			output[pos] = ucharTofloat(input[posSrc]);
 		} 
-		else if (k < (widthSrc * ResampleFactor + start)) 
+		else if (k < (outLen + start)) 
 		{
 			int kInput = (k - start) / ResampleFactor + posSrc;
 			output[pos] = ucharTofloat(input[kInput]);
@@ -121,9 +120,19 @@ __kernel void UpSample2D(__global float4 * output, const __global float4 *input,
 		output[pos] = (float4)(0.0f);
 
 		int posSrc = i * widthSrc;
-		
-		int kInput = k / ResampleFactor + posSrc;
-		output[pos] = input[kInput];
+		if (k < start) 
+		{
+			output[pos] = input[posSrc];
+		} 
+		else if (k < (outLen + start)) 
+		{
+			int kInput = (k - start) / ResampleFactor + posSrc;
+			output[pos] = input[kInput];
+		} 
+		else 
+		{
+			output[pos] = input[widthSrc - 1 + posSrc];
+		}
 	}
 }
 
@@ -141,7 +150,7 @@ __kernel void doResize22D(__global float4 * output, const __global float4 *input
 		for (int i = 0; i < IntFltLen0 / 2; i++) 
 		{
 			const float xx = ftp[i + k * IntFltLen0 / 2];
-			if (positionSrc < inputWidth) 
+			if (positionSrc < inputWidth && positionSrc >= 0)  
 			{
 				int localPos = positionSrc + j * inputWidth;
 				float4 pixel = input[localPos];
@@ -242,7 +251,7 @@ float convertLin2SRGB(float s)
 }
 
 
-__kernel void doResize2D(__global float4 * output, const __global float4 *input, int width, int height, __global const int * PositionTab, __global const float* ftp,
+__kernel void doResize2D(__global float4 * output, const __global float4 *input, int width, int height, __global const int * PositionTab, int tabSize, __global const float* ftp,
     const int IntFltLen0, int inputWidth)
 {
 	int k = get_global_id(0);
@@ -251,19 +260,22 @@ __kernel void doResize2D(__global float4 * output, const __global float4 *input,
 	if (k < width && j < height) 
 	{
 		float4 sum = (float4)(0.0f, 0.0f, 0.0f, 0.0f);
-		int positionSrc = PositionTab[k] / 4;
-		int baseIndex = j * inputWidth;
-
-		for (int i = 0; i < IntFltLen0; i++) 
+		if(k < tabSize)
 		{
-			if (positionSrc < inputWidth) 
+			int positionSrc = PositionTab[k] / 4;
+			int baseIndex = j * inputWidth;
+
+			for (int i = 0; i < IntFltLen0; i++) 
 			{
-				float xx = ftp[i + k * IntFltLen0];
-				int localPos = positionSrc + baseIndex;
-				float4 pixel = input[localPos];
-				sum += xx * pixel;
+				if (positionSrc < inputWidth && positionSrc >= 0) 
+				{
+					float xx = ftp[i + k * IntFltLen0];
+					int localPos = positionSrc + baseIndex;
+					float4 pixel = input[localPos];
+					sum += xx * pixel;
+				}
+				positionSrc++;
 			}
-			positionSrc++;
 		}
 
 		output[k + j * width] = sum;
@@ -271,7 +283,7 @@ __kernel void doResize2D(__global float4 * output, const __global float4 *input,
 }
 
 
-__kernel void doResize2DUchar(__global float4 * output, const __global uchar4 *input, int width, int height, __global const int * PositionTab, __global const float* ftp,
+__kernel void doResize2DUchar(__global float4 * output, const __global uchar4 *input, int width, int height, __global const int * PositionTab, int tabSize, __global const float* ftp,
     const int IntFltLen0, int inputWidth)
 {
 	int k = get_global_id(0);
@@ -280,20 +292,24 @@ __kernel void doResize2DUchar(__global float4 * output, const __global uchar4 *i
 	if (k < width && j < height) 
 	{
 		float4 sum = (float4)(0.0f, 0.0f, 0.0f, 0.0f);
-		int positionSrc = PositionTab[k] / 4;
-		int baseIndex = j * inputWidth;
-
-		for (int i = 0; i < IntFltLen0; i++) 
+		if(k < tabSize)
 		{
-			if (positionSrc < inputWidth) 
+			int positionSrc = PositionTab[k] / 4;
+			int baseIndex = j * inputWidth;
+
+			for (int i = 0; i < IntFltLen0; i++) 
 			{
-				float xx = ftp[i + k * IntFltLen0];
-				int localPos = positionSrc + baseIndex;
-				float4 pixel = ucharTofloat(input[localPos]);
-				sum += xx * pixel;
+				if (positionSrc < inputWidth && positionSrc >= 0) 
+				{
+					float xx = ftp[i + k * IntFltLen0];
+					int localPos = positionSrc + baseIndex;
+					float4 pixel = ucharTofloat(input[localPos]);
+					sum += xx * pixel;
+				}
+				positionSrc++;
 			}
-			positionSrc++;
 		}
+
 
 		output[k + j * width] = sum;
 	}

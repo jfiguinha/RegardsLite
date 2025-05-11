@@ -10,8 +10,8 @@
 #include <hqdn3d.h>
 #include <GLTexture.h>
 using namespace Regards::OpenGL;
-class CRegardsBitmap;
 
+class CAvirFilterParam;
 
 namespace Regards
 {
@@ -103,6 +103,7 @@ namespace Regards
 			double oldLevelDenoise = 0;
 			int oldwidthDenoise = 0;
 			int oldheightDenoise = 0;
+			CAvirFilterParam* param = nullptr;
 
 		};
 	}
