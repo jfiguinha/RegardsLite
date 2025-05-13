@@ -59,7 +59,7 @@ using namespace Regards::OpenCL;
 using namespace cv;
 
 #define BITDECALAGE_RESIZE 12
-#define BITDECALAGE_RESIZE2 16
+#define BITDECALAGE_RESIZE2 12
 
 //#define BITDECALAGE_RESIZE2 128
 #if __cplusplus >= 201103L
