@@ -4217,6 +4217,11 @@ namespace avir {
 
 					td.processScanlineQueueOpenCL(param);
 
+					if (td.output.rows != NewWidth)
+					{
+						td.output = CAvirFilterOpenCL::GetDataOpenCLHtoV2D(td.output);
+					}
+
 					start = clock();
 
 					// Vertical scanline filtering and resizing, reuse previously defined
@@ -4302,10 +4307,6 @@ namespace avir {
 					cout << " sec " << endl;
 #endif
 
-					td.processScanlineQueueOpenCL(param);
-
-					start = clock();
-
 					int TruncBits = 8 - ResBitDepth;; // The number of lower bits to truncate and dither.
 					int OutRange = 255; // Output range.
 
@@ -4319,20 +4320,13 @@ namespace avir {
 					param->PkOut = PkOut;
 					param->TrMul = TrMul;
 
-					td.output = CAvirFilterOpenCL::GetDataOpenCLHtoVDither2D(td.output, gm, PkOut, TrMul);
-					end = clock();
+					td.processScanlineQueueOpenCL(param);
 
-					// Calculating total time taken by the program.
-					time_taken = double(end - start) / double(CLOCKS_PER_SEC);
-#ifdef WIN32
-					OutputDebugString(L"End Filter : ");
-					OutputDebugString(L"Time taken by program is : ");
-					OutputDebugString(to_wstring(time_taken).c_str());
-					OutputDebugString(L" sec \n");
-#else
-					cout << "Time taken by program is : " << fixed << time_taken << setprecision(5);
-					cout << " sec " << endl;
-#endif
+					if (td.output.type() != CV_8UC4)
+					{
+						td.output = CAvirFilterOpenCL::GetDataOpenCLHtoVDither2D(td.output, gm, PkOut, TrMul);
+					}
+					end = clock();
 
 					return td.output;
 				}
@@ -6245,7 +6239,7 @@ public:
 						return out;
 					}
 
-					UMat doFilterOpenCL(UMat src, const CFilterStep& fs, CAvirStepDoFilter* paramDoFilter)
+					UMat doFilterOpenCL(UMat src, const CFilterStep& fs, CAvirStepDoFilter* paramDoFilter, bool isLastStep)
 					{
 						clock_t start, end;
 						start = clock();
@@ -6263,8 +6257,48 @@ public:
 						paramDoFilter->flen = flen;
 						paramDoFilter->step = fs.ResampleFactor;
 
-						cv::UMat out = CAvirFilterOpenCL::doFilterOpenCL2D(src, src.size().width, QueueLen, f, flen, fs.ResampleFactor);
+						cv::UMat out;
+						if(!isLastStep)
+							out = CAvirFilterOpenCL::doFilterOpenCL2D(src, src.size().width, QueueLen, f, flen, fs.ResampleFactor);
+						else
+							out = CAvirFilterOpenCL::doFilterOpenCL2DV(src, f, flen, fs.ResampleFactor);
+						end = clock();
 
+						// Calculating total time taken by the program.
+						double time_taken = double(end - start) / double(CLOCKS_PER_SEC);
+#ifdef WIN32
+						OutputDebugString(L"doFilterOpenCL Filter : ");
+						OutputDebugString(L"Time taken by program is : ");
+						OutputDebugString(to_wstring(time_taken).c_str());
+						OutputDebugString(L" sec \n");
+#else
+						cout << "Time taken by program is : " << fixed << time_taken << setprecision(5);
+						cout << " sec " << endl;
+#endif
+						return out;
+					}
+
+
+					UMat doFilterOpenCL(UMat src, const CFilterStep& fs, CAvirStepDoFilter* paramDoFilter, CAvirFilterParam* param)
+					{
+						clock_t start, end;
+						start = clock();
+
+						//const int ElCount = Vars->ElCount;
+						const float* const f = &fs.Flt[fs.FltLatency];
+						const int flen = fs.FltLatency + 1;
+						//const int ipstep = (ElCount * fs.ResampleFactor) / 4;
+						int diff = fs.OutLen - src.size().width;
+
+						paramDoFilter->width = src.size().width;
+						paramDoFilter->height = QueueLen;
+						paramDoFilter->f = new float[flen];
+						memcpy(paramDoFilter->f, f, flen * sizeof(float));
+						paramDoFilter->flen = flen;
+						paramDoFilter->step = fs.ResampleFactor;
+
+						cv::UMat out;
+						out = CAvirFilterOpenCL::doFilterOpenCL2DLastStep(output, paramDoFilter->f, paramDoFilter->flen, paramDoFilter->step, param->gm, param->PkOut, param->TrMul);
 						end = clock();
 
 						// Calculating total time taken by the program.
@@ -6453,6 +6487,13 @@ public:
 						{
 							const CFilterStep& fs = (*Steps)[j];
 
+							bool isLastStep = false;
+							if (j == Steps->getItemCount() - 1)
+							{
+								isLastStep = true;
+							}
+
+
 							if (fs.ResampleFactor != 0)
 							{
 								if (fs.IsUpsample)
@@ -6464,7 +6505,7 @@ public:
 								else
 								{
 									CAvirStepDoFilter* paramDoFilter = new CAvirStepDoFilter();
-									output = doFilterOpenCL(output, fs, paramDoFilter);
+									output = doFilterOpenCL(output, fs, paramDoFilter, isLastStep);
 									param->stepH.push_back(paramDoFilter);
 								}
 							}
@@ -6556,12 +6597,16 @@ public:
 						//tbb::parallel_for(0, QueueLen, [&](int i)
 						//float* dest = new float[SrcLen];
 
-						output = CAvirFilterOpenCL::GetDataOpenCLHtoV2D(output);
+						//output = CAvirFilterOpenCL::GetDataOpenCLHtoV2D(output);
 
 						for (int j = 0; j < Steps->getItemCount(); j++)
 						{
 							const CFilterStep& fs = (*Steps)[j];
-
+							bool isLastStep = false;
+							if (j == Steps->getItemCount() - 1)
+							{
+								isLastStep = true;
+							}
 							if (fs.ResampleFactor != 0)
 							{
 								if (fs.IsUpsample)
@@ -6573,7 +6618,10 @@ public:
 								else
 								{
 									CAvirStepDoFilter* paramDoFilter = new CAvirStepDoFilter();
-									output = doFilterOpenCL(output, fs, paramDoFilter);
+									if(isLastStep)
+										output = doFilterOpenCL(output, fs, paramDoFilter, param);
+									else
+										output = doFilterOpenCL(output, fs, paramDoFilter, false);
 									param->stepV.push_back(paramDoFilter);
 								}
 							}
