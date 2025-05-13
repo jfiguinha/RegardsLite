@@ -18,7 +18,7 @@ using namespace cv;
 bool COpenCLFilter::isUsed = false;
 int COpenCLFilter::numTexture = -1;
 extern cv::ocl::OpenCLExecutionContext clExecCtx;
-
+extern std::map<wxString, vector<char>> openclBinaryMapping;
 #define OPENCV_METHOD
 
 
@@ -1439,16 +1439,39 @@ void COpenCLFilter::ExecuteOpenCLCode(const wxString& programName, const wxStrin
 {
 	try
 	{
-		// Récupération du code source du kernel
-		wxString kernelSource = CLibResource::GetOpenCLUcharProgram(programName);
-		ocl::ProgramSource programSource(kernelSource);
-		ocl::Context context = clExecCtx.getContext();
 
-		// Compilation du kernel
+
+		ocl::Context context = clExecCtx.getContext();
+		ocl::Program program = COpenCLContext::GetProgram(programName);
+
+		/*
+		std::map<wxString, vector<char>>::iterator it;
+		it = openclBinaryMapping.find(programName);
+		if (it != openclBinaryMapping.end())
+		{
+			ocl::ProgramSource programSource;
+			// Compilation du kernel
+			String errmsg;
+			String buildopt = ""; // Options de compilation (vide par défaut)
+			programSource.fromBinary("COpenCLFilter", programName.ToStdString(), reinterpret_cast<uchar*>(openclBinaryMapping[programName].data()), openclBinaryMapping[programName].size());
+			program = context.getProg(programSource, buildopt, errmsg);
+		}
+		else
+		{
+			// Récupération du code source du kernel
+			wxString kernelSource = CLibResource::GetOpenCLUcharProgram(programName);
+			ocl::ProgramSource programSource(kernelSource);
+			// Compilation du kernel
+			String errmsg;
+			String buildopt = ""; // Options de compilation (vide par défaut)
+			
+			program = context.getProg(programSource, buildopt, errmsg);
+			program.getBinary(openclBinaryMapping[programName]);
+		}
+		
 		String errmsg;
 		String buildopt = ""; // Options de compilation (vide par défaut)
-		ocl::Program program = context.getProg(programSource, buildopt, errmsg);
-
+		*/
 		ocl::Kernel kernel(functionName, program);
 
 		// Définition du premier argument (outBuffer)
@@ -1593,10 +1616,19 @@ UMat COpenCLFilter::Interpolation(const int& widthOut, const int& heightOut, con
 				}
 
 				cv::UMat out;
-				if(useParam)
-					out = ImageResizer.resizeImageOpenCLWithStep(src, param);
+				if (isVideo)
+				{
+					if(useParam)
+						out = ImageResizer.resizeImageOpenCLWithStep(src, param);
+					else
+						out = ImageResizer.resizeImageOpenCL(src, src.cols, src.rows, widthOut, heightOut, 4, 0, param, &Vars);
+				}	
 				else
+				{
 					out = ImageResizer.resizeImageOpenCL(src, src.cols, src.rows, widthOut, heightOut, 4, 0, param, &Vars);
+				}
+
+					
 				cvtColor(out, cvImage, cv::COLOR_BGRA2BGR);
 
 				end = clock();

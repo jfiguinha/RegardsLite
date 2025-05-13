@@ -18,4 +18,8 @@ public:
 	static UMat doResize2OpenCL2D(cv::UMat& src, const int& width, const int& height,
 		int* PositionTab, int posTabSize, float* ftp, int ftpTabSize, int IntFltLen);
 	static UMat doResizeOpenCL2D(cv::UMat& src, const int& width, const int& height, int* PositionTab, int posTabSize, float* ftp, int ftpTabSize, int IntFltLen);
+
+	static UMat doFilterOpenCL2DLastStep(cv::UMat& src, const float* f, int flen, int step, float gm, float PkOut, float TrMul0);
+	static UMat doFilterOpenCL2DV(cv::UMat& src, const float* f, int flen, int step);
+
 };

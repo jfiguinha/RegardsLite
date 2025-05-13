@@ -30,7 +30,7 @@
 #include <ParamInit.h>
 #include <RegardsConfigParam.h>
 #include "utility_opencl.h"
-
+#include <LibResource.h>
 #if defined (__APPLE__) || defined(MACOSX)
 static const char* CL_GL_SHARING_EXT = "cl_APPLE_gl_sharing";
 #else
@@ -41,9 +41,8 @@ extern string platformName;
 extern cv::ocl::OpenCLExecutionContext clExecCtx;
 extern bool isOpenCLInitialized;
 using namespace Regards::OpenCL;
-
-
-
+extern std::map<wxString, vector<char>> openclBinaryMapping;
+extern string buildOption;
 
 wxString COpenCLContext::GetDeviceInfo(cl_device_id device, cl_device_info param_name)
 {
@@ -80,6 +79,57 @@ wxString COpenCLContext::GetDeviceInfo(cl_device_id device, cl_device_info param
 
 	return "";
 }
+
+cv::ocl::Program COpenCLContext::GetProgram(const wxString & programName)
+{
+	cv::ocl::Program program;
+	cv::String module_name = "REGARDS";
+	cv::ocl::Context context = clExecCtx.getContext();
+	std::map<wxString, vector<char>>::iterator it;
+	it = openclBinaryMapping.find(programName);
+	if (it == openclBinaryMapping.end())
+	{
+		// Récupération du code source du kernel
+		wxString kernelSource = CLibResource::GetOpenCLUcharProgram(programName);
+		//cv::ocl::ProgramSource programSource(module_name, programName, kernelSource, "");
+		// Compilation du kernel
+		string errmsg;
+
+		cv::ocl::ProgramSource src(module_name, programName.ToStdString(), kernelSource.ToStdString(), "");
+		cv::ocl::Program program(src, buildOption, errmsg);
+		if (program.ptr() == NULL)
+		{
+			std::cout << "Error: " << errmsg << std::endl;
+			return program;
+		}
+
+		program.getBinary(openclBinaryMapping[programName]);
+		std::cout << "Program binary size: " << openclBinaryMapping[programName].size() << " bytes" << std::endl;
+
+	}
+	cv::ocl::ProgramSource programSource;
+	try
+	{
+		
+		string errmsg;
+		programSource = cv::ocl::ProgramSource::fromBinary(module_name, programName.ToStdString(), (uchar*)&openclBinaryMapping[programName][0], openclBinaryMapping[programName].size());
+		if (programSource.empty())
+		{
+			std::cout << "Error: " << std::endl;
+			return program;
+		}
+		program.create(programSource, buildOption, errmsg);
+	}
+	catch (cv::Exception& e)
+	{
+		std::cerr << "COpenCLFilter::Interpolation exception caught: " << e.what() << std::endl;
+		std::cerr << "Invalid file format. Please input the name of an IMAGE file." << std::endl;
+
+	}
+
+	return program;
+}
+
 
 cl_device_id COpenCLContext::GetListOfDevice(cl_platform_id platform, cl_device_type device_type, int& found)
 {

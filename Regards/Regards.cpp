@@ -33,8 +33,10 @@ string platformName = "";
 bool isOpenCLInitialized = false;
 bool firstElementToShow = true;
 int numElementToLoad = 5;
-cv::ocl::OpenCLExecutionContext clExecCtx;
 
+string buildOption = "-cl-mad-enable -cl-unsafe-math-optimizations";
+cv::ocl::OpenCLExecutionContext clExecCtx;
+std::map<wxString,vector<char>> openclBinaryMapping;
 
 using namespace cv;
 using namespace Regards::Picture;

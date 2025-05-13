@@ -16,6 +16,7 @@ extern cv::ocl::OpenCLExecutionContext clExecCtx;
 COpenCLEffectVideo::COpenCLEffectVideo()
 {
 	openclFilter = new COpenCLFilter();
+	openclFilter->SetIsVideo(true);
 	bool useMemory = (cv::ocl::Device::getDefault().type() == CL_DEVICE_TYPE_GPU) ? false : true;
 	flag = useMemory ? CL_MEM_USE_HOST_PTR : CL_MEM_COPY_HOST_PTR;
 
@@ -181,7 +182,7 @@ void COpenCLEffectVideo::InterpolationZoomBicubic(const int& widthOutput, const 
 	if (!clExecCtx.empty() && !paramSrc.empty())
 	{
 
-
+		
 		paramOutput = openclFilter->Interpolation(widthOutput, heightOutput, rc, bicubic, paramSrc, flipH, flipV, angle,
 			ratio);
 		interpolatePicture = true;

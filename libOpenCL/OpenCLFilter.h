@@ -27,6 +27,11 @@ namespace Regards
 
 			virtual ~COpenCLFilter();
 
+			void SetIsVideo(const bool& isVideo)
+			{
+				this->isVideo = isVideo;
+			}
+
 			COpenCLProgram* GetProgram(const wxString& numProgram);
 			void Emboss(cv::UMat& inputData);
 
@@ -104,6 +109,7 @@ namespace Regards
 			int oldwidthDenoise = 0;
 			int oldheightDenoise = 0;
 			CAvirFilterParam* param = nullptr;
+			bool isVideo = false;
 
 		};
 	}
