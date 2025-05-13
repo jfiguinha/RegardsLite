@@ -3989,7 +3989,10 @@ namespace avir {
 						}
 					}
 
-					//output = CAvirFilterOpenCL::GetDataOpenCLHtoV2D(output);
+					if (output.rows != param->widthOut)
+					{
+						output = CAvirFilterOpenCL::GetDataOpenCLHtoV2D(output);
+					}
 
 					for (int j = 0; j < param->stepV.size(); j++)
 					{

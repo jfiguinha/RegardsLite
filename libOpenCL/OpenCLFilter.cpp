@@ -1616,7 +1616,7 @@ UMat COpenCLFilter::Interpolation(const int& widthOut, const int& heightOut, con
 				}
 
 				cv::UMat out;
-				if (isVideo)
+				if (TRUE)
 				{
 					if(useParam)
 						out = ImageResizer.resizeImageOpenCLWithStep(src, param);
