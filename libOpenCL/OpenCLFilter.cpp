@@ -1616,7 +1616,7 @@ UMat COpenCLFilter::Interpolation(const int& widthOut, const int& heightOut, con
 				}
 
 				cv::UMat out;
-				
+				/*
 				if (TRUE)
 				{
 					if(useParam)
@@ -1624,7 +1624,7 @@ UMat COpenCLFilter::Interpolation(const int& widthOut, const int& heightOut, con
 					else
 						out = ImageResizer.resizeImageOpenCL(src, src.cols, src.rows, widthOut, heightOut, 4, 0, param, &Vars);
 				}	
-				else
+				else*/
 				{
 					out = ImageResizer.resizeImageOpenCL(src, src.cols, src.rows, widthOut, heightOut, 4, 0, param, &Vars);
 				}

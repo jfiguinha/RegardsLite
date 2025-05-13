@@ -131,4 +131,7 @@ public:
 	int start = 0;
 	int outLen = 0;
 	int ResampleFactor = 0;
+	int OutPrefix = 0;
+	int OutLen = 0;
+	int OutSuffix = 0;
 };

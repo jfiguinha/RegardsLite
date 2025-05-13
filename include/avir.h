@@ -58,8 +58,8 @@ extern cv::ocl::OpenCLExecutionContext clExecCtx;
 using namespace Regards::OpenCL;
 using namespace cv;
 
-#define BITDECALAGE_RESIZE 12
-#define BITDECALAGE_RESIZE2 16
+#define BITDECALAGE_RESIZE 0
+#define BITDECALAGE_RESIZE2 0
 
 //#define BITDECALAGE_RESIZE2 128
 #if __cplusplus >= 201103L
@@ -6213,9 +6213,6 @@ public:
 						clock_t start, end;
 						start = clock();
 
-
-						
-
 						int widthOut = fs.OutPrefix + fs.OutLen + fs.OutSuffix;
 
 						paramUpSample->width = widthOut;
@@ -6224,11 +6221,10 @@ public:
 						paramUpSample->start = fs.OutPrefix;
 						paramUpSample->outLen = fs.OutLen;
 						paramUpSample->ResampleFactor = fs.ResampleFactor;
-
+						paramUpSample->OutPrefix = fs.OutPrefix;
+						paramUpSample->OutLen = fs.OutLen;
+						paramUpSample->OutSuffix = fs.OutSuffix;
 						cv::UMat out = CAvirFilterOpenCL::UpSample2D(src_cvt, widthOut, QueueLen, SrcLen, fs.OutPrefix, fs.OutLen, fs.ResampleFactor);
-						//widthOut = src_cvt.size().width * fs.ResampleFactor;
-						//cv::UMat out = CAvirFilterOpenCL::UpSample2D(src_cvt, widthOut, QueueLen, SrcLen, 0, widthOut, fs.ResampleFactor);
-
 						end = clock();
 
 						// Calculating total time taken by the program.
@@ -6321,7 +6317,7 @@ public:
 						return out;
 					}
 
-					UMat doResizeOpenCL(UMat src, const CFilterStep& fs, CAvirStepResize* paramResize)
+					UMat doResizeOpenCL(UMat src, const CFilterStep& fs, CAvirStepResize* paramResize, CAvirStepUpSample* paramUpSample)
 					{
 
 						clock_t start, end;
@@ -6337,58 +6333,53 @@ public:
 						paramResize->ftp = new float[paramResize->ftpTabSize];
 						paramResize->IntFltLen = IntFltLen;
 
-						///int * PositionTab2 = new int[fs.OutLen];
-						//float * ftpTab2 = new float[fs.OutLen * IntFltLen];
 
-
-						tbb::parallel_for(0, fs.OutLen, [&](int j)
-							{
-								CImageResizerFilterStep::CResizePos* rpos = &(*fs.RPosBuf)[j];
-								const float* const ftp = rpos->ftp;
-								paramResize->PositionTab[j] = rpos->SrcOffs - BITDECALAGE_RESIZE;
-								for (int i = 0; i < IntFltLen; i++)
-								{
-									const float xx = ftp[i];
-									paramResize->ftp[j * IntFltLen + i] = xx;
-								}
-								rpos++;
-							});
-
-
-						cv::UMat out = CAvirFilterOpenCL::doResizeOpenCL2D(src, paramResize->width, paramResize->height, paramResize->PositionTab, paramResize->posTabSize, paramResize->ftp, paramResize->ftpTabSize, paramResize->IntFltLen);
-
-							
-
-						/*
 						const typename CImageResizerFilterStep::
 							CResizePos* rpos = &(*fs.RPosBuf)[0];
 
 						const typename CImageResizerFilterStep::
 							CResizePos* const rpose = rpos + fs.OutLen;
 
+						int j = 0;
+						int oldPos = 0;
+						int startValue = abs(abs(rpos->SrcOffs) - oldPos);
 						int positionSrc = 0;
-						int i = 0;
 						while (rpos < rpose)
 						{
+							int i = 0;
 							const float* const ftp = rpos->ftp;
-							paramResize->PositionTab.push_back(rpos->SrcOffs);
 
-							for (int j = 0;j < IntFltLen; j++)
+							positionSrc = positionSrc + abs(abs(rpos->SrcOffs) - oldPos);
+							oldPos = abs(rpos->SrcOffs);
+							paramResize->PositionTab[j] = abs(oldPos - startValue);
+							if (paramUpSample != nullptr)
+								paramResize->PositionTab[j] = paramResize->PositionTab[j] + paramUpSample->OutPrefix * 4;
+
+
+							/*
+							if(rpos->SrcOffs > 0)
+								paramResize->PositionTab[j] = rpos->SrcOffs;
+							else
+								paramResize->PositionTab[j] = positionSrc;
+							*/
+
+							//paramResize->PositionTab[j] = rpos->SrcOffs;
+
+
+
+							for (int i = 0; i < IntFltLen; i++)
 							{
-								const float xx = ftp[j];
-								paramResize->ftp.push_back(xx);
+								const float xx = ftp[i];
+								paramResize->ftp[j * IntFltLen + i] = xx;
 							}
-							rpos++;
-							i++;
+							rpos++; j++;
 						}
-						
-						cv::UMat out = CAvirFilterOpenCL::doResizeOpenCL2D(src, paramResize->width, paramResize->height, paramResize->PositionTab, paramResize->ftp, paramResize->IntFltLen);
-						*/
 
 
+						cv::UMat out = CAvirFilterOpenCL::doResizeOpenCL2D(src, paramResize->width, paramResize->height, paramResize->PositionTab, paramResize->posTabSize, paramResize->ftp, paramResize->ftpTabSize, paramResize->IntFltLen);
 
-						//delete[] PositionTab2;
-						//delete[] ftpTab2;
+							
+
 
 						end = clock();
 
@@ -6406,7 +6397,7 @@ public:
 						return out;
 					}
 
-					UMat doResize2OpenCL(UMat src, const CFilterStep& fs, CAvirStepResize2 * paramResize)
+					UMat doResize2OpenCL(UMat src, const CFilterStep& fs, CAvirStepResize2 * paramResize, CAvirStepUpSample* paramUpSample)
 					{
 
 
@@ -6415,7 +6406,7 @@ public:
 
 						//int positionSrc = 0;
 						const int IntFltLen0 = fs.FltBank->getFilterLen();
-						paramResize->width = fs.OutLen;
+						paramResize->width = fs.OutLen + fs.OutPrefix + fs.OutSuffix;
 						paramResize->height = QueueLen;
 						paramResize->posTabSize = fs.OutLen;
 						paramResize->ftpTabSize = fs.OutLen * (IntFltLen0 / 2);
@@ -6423,6 +6414,48 @@ public:
 						paramResize->ftp = new float[paramResize->ftpTabSize];
 						paramResize->IntFltLen = IntFltLen0;
 
+						const typename CImageResizerFilterStep::
+							CResizePos* rpos = &(*fs.RPosBuf)[0];
+
+						const typename CImageResizerFilterStep::
+							CResizePos* const rpose = rpos + fs.OutLen;
+
+						int j = 0;
+						int oldPos = 0;
+						int startValue = abs(abs(rpos->SrcOffs) - oldPos);
+						int positionSrc = 0;
+						while (rpos < rpose)
+						{
+							int i = 0;
+							const float* const ftp = rpos->ftp;
+							positionSrc = positionSrc + abs(abs(rpos->SrcOffs) - oldPos);
+							oldPos = abs(rpos->SrcOffs);
+
+							paramResize->PositionTab[j] = abs(oldPos - startValue);
+							if (paramUpSample != nullptr)
+								paramResize->PositionTab[j] = paramResize->PositionTab[j] + paramUpSample->OutPrefix * 4;
+							/*
+							positionSrc = positionSrc + abs(abs(rpos->SrcOffs) - oldPos);
+							oldPos = abs(rpos->SrcOffs);
+							/*
+							if (rpos->SrcOffs > 0)
+								paramResize->PositionTab[j] = rpos->SrcOffs;
+							else
+								paramResize->PositionTab[j] = positionSrc;
+							*/
+							//paramResize->PositionTab[j] = positionSrc;
+
+							//paramResize->PositionTab[j] = rpos->SrcOffs;
+
+							for (int k = 0; k < IntFltLen0; k += 2)
+							{
+								const float xx = ftp[k];
+								paramResize->ftp[j * (IntFltLen0 / 2) + i++] = xx;
+							}
+							rpos++; j++;
+						}
+
+						/*
 						tbb::parallel_for(0, fs.OutLen, [&](int j)
 							{
 								int i = 0;
@@ -6434,9 +6467,8 @@ public:
 									const float xx = ftp[k];
 									paramResize->ftp[j * (IntFltLen0 / 2) + i++] = xx;
 								}
-								rpos++;
 							});
-
+						*/
 
 
 						cv::UMat out = CAvirFilterOpenCL::doResize2OpenCL2D(src, paramResize->width, paramResize->height, paramResize->PositionTab, paramResize->posTabSize, paramResize->ftp, paramResize->ftpTabSize, paramResize->IntFltLen);
@@ -6488,7 +6520,7 @@ public:
 					{
 						//output = CAvirFilterOpenCL::ConvertToFloat(src, SrcLen, QueueLen);
 						output = src;
-
+						CAvirStepUpSample* paramUpSampleLocal = nullptr;
 						for (int j = 0; j < Steps->getItemCount(); j++)
 						{
 							const CFilterStep& fs = (*Steps)[j];
@@ -6507,6 +6539,7 @@ public:
 									CAvirStepUpSample * paramUpSample = new CAvirStepUpSample();
 									output = doUpsampleOpenCL(output, fs, paramUpSample);
 									param->stepH.push_back(paramUpSample);
+									paramUpSampleLocal = paramUpSample;
 								}
 								else
 								{
@@ -6520,13 +6553,13 @@ public:
 								if (Vars->IsResize2)
 								{
 									CAvirStepResize2* paramResize = new CAvirStepResize2();
-									output = doResize2OpenCL(output, fs, paramResize);
+									output = doResize2OpenCL(output, fs, paramResize, paramUpSampleLocal);
 									param->stepH.push_back(paramResize);
 								}
 								else
 								{
 									CAvirStepResize* paramResize = new CAvirStepResize();
-									output = doResizeOpenCL(output, fs, paramResize);
+									output = doResizeOpenCL(output, fs, paramResize, paramUpSampleLocal);
 									param->stepH.push_back(paramResize);
 								}
 							}
@@ -6604,7 +6637,7 @@ public:
 						//float* dest = new float[SrcLen];
 
 						//output = CAvirFilterOpenCL::GetDataOpenCLHtoV2D(output);
-
+						CAvirStepUpSample* paramUpSampleLocal = nullptr;
 						for (int j = 0; j < Steps->getItemCount(); j++)
 						{
 							const CFilterStep& fs = (*Steps)[j];
@@ -6620,6 +6653,7 @@ public:
 									CAvirStepUpSample* paramUpSample = new CAvirStepUpSample();
 									output = doUpsampleOpenCL(output, fs, paramUpSample);
 									param->stepV.push_back(paramUpSample);
+									paramUpSampleLocal = paramUpSample;
 								}
 								else
 								{
@@ -6636,13 +6670,13 @@ public:
 								if (Vars->IsResize2)
 								{
 									CAvirStepResize2* paramResize = new CAvirStepResize2();
-									output = doResize2OpenCL(output, fs, paramResize);
+									output = doResize2OpenCL(output, fs, paramResize, paramUpSampleLocal);
 									param->stepV.push_back(paramResize);
 								}
 								else
 								{
 									CAvirStepResize* paramResize = new CAvirStepResize();
-									output = doResizeOpenCL(output, fs, paramResize);
+									output = doResizeOpenCL(output, fs, paramResize, paramUpSampleLocal);
 									param->stepV.push_back(paramResize);
 								}
 							}
