@@ -58,7 +58,10 @@ extern cv::ocl::OpenCLExecutionContext clExecCtx;
 using namespace Regards::OpenCL;
 using namespace cv;
 
+#define BITDECALAGE_RESIZE 12
+#define BITDECALAGE_RESIZE2 16
 
+//#define BITDECALAGE_RESIZE2 128
 #if __cplusplus >= 201103L
 
 #include <cstdint>
@@ -6342,7 +6345,7 @@ public:
 							{
 								CImageResizerFilterStep::CResizePos* rpos = &(*fs.RPosBuf)[j];
 								const float* const ftp = rpos->ftp;
-								paramResize->PositionTab[j] = rpos->SrcOffs;
+								paramResize->PositionTab[j] = rpos->SrcOffs - BITDECALAGE_RESIZE;
 								for (int i = 0; i < IntFltLen; i++)
 								{
 									const float xx = ftp[i];
@@ -6425,7 +6428,7 @@ public:
 								int i = 0;
 								CImageResizerFilterStep::CResizePos* rpos = &(*fs.RPosBuf)[j];
 								const float* const ftp = rpos->ftp;
-								paramResize->PositionTab[j] = rpos->SrcOffs;
+								paramResize->PositionTab[j] = rpos->SrcOffs + BITDECALAGE_RESIZE2;
 								for (int k = 0; k < IntFltLen0; k += 2)
 								{
 									const float xx = ftp[k];
