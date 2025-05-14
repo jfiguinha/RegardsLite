@@ -6340,32 +6340,21 @@ public:
 						const typename CImageResizerFilterStep::
 							CResizePos* const rpose = rpos + fs.OutLen;
 
+						/*
 						int j = 0;
 						int oldPos = 0;
+						int posStart = abs(rpos->SrcOffs);
 						int startValue = abs(abs(rpos->SrcOffs) - oldPos);
 						int positionSrc = 0;
+						int k = 0;
 						while (rpos < rpose)
 						{
 							int i = 0;
 							const float* const ftp = rpos->ftp;
-
-							positionSrc = positionSrc + abs(abs(rpos->SrcOffs) - oldPos);
+							int diffValue = abs(abs(rpos->SrcOffs) - oldPos);
+							positionSrc += diffValue;
 							oldPos = abs(rpos->SrcOffs);
-							paramResize->PositionTab[j] = abs(oldPos - startValue);
-							if (paramUpSample != nullptr)
-								paramResize->PositionTab[j] = paramResize->PositionTab[j] + paramUpSample->OutPrefix * 4;
-
-
-							/*
-							if(rpos->SrcOffs > 0)
-								paramResize->PositionTab[j] = rpos->SrcOffs;
-							else
-								paramResize->PositionTab[j] = positionSrc;
-							*/
-
-							//paramResize->PositionTab[j] = rpos->SrcOffs;
-
-
+							paramResize->PositionTab[j] = rpos->SrcOffs;// positionSrc;// -posStart;
 
 							for (int i = 0; i < IntFltLen; i++)
 							{
@@ -6374,7 +6363,34 @@ public:
 							}
 							rpos++; j++;
 						}
+						*/
 
+						//Calcul diff entre deux positions
+						const typename CImageResizerFilterStep::CResizePos* rpos1 = &(*fs.RPosBuf)[0];
+						const typename CImageResizerFilterStep::CResizePos* rpos2 = &(*fs.RPosBuf)[1];
+						int diff = abs(abs(rpos1->SrcOffs) - abs(rpos2->SrcOffs));
+
+						int startPos = abs(rpos->SrcOffs);
+						int j = 0;
+						while (rpos < rpose)
+						{
+							int i = 0;
+							const float* const ftp = rpos->ftp;
+							paramResize->PositionTab[j] = rpos->SrcOffs;
+							
+							//if (startPos >= 24)
+							{
+								paramResize->PositionTab[j] -= diff;
+							}
+							
+							for (int i = 0; i < IntFltLen; i++)
+							{
+								const float xx = ftp[i];
+								paramResize->ftp[j * IntFltLen + i] = xx;
+							}
+
+							rpos++; j++;
+						}
 
 						cv::UMat out = CAvirFilterOpenCL::doResizeOpenCL2D(src, paramResize->width, paramResize->height, paramResize->PositionTab, paramResize->posTabSize, paramResize->ftp, paramResize->ftpTabSize, paramResize->IntFltLen);
 
@@ -6420,32 +6436,52 @@ public:
 						const typename CImageResizerFilterStep::
 							CResizePos* const rpose = rpos + fs.OutLen;
 
+						/*
 						int j = 0;
 						int oldPos = 0;
+						int posStart = abs(rpos->SrcOffs);
 						int startValue = abs(abs(rpos->SrcOffs) - oldPos);
 						int positionSrc = 0;
 						while (rpos < rpose)
 						{
 							int i = 0;
 							const float* const ftp = rpos->ftp;
-							positionSrc = positionSrc + abs(abs(rpos->SrcOffs) - oldPos);
+							int diffValue = abs(abs(rpos->SrcOffs) - oldPos);
+							positionSrc += diffValue;
 							oldPos = abs(rpos->SrcOffs);
 
-							paramResize->PositionTab[j] = abs(oldPos - startValue);
-							if (paramUpSample != nullptr)
-								paramResize->PositionTab[j] = paramResize->PositionTab[j] + paramUpSample->OutPrefix * 4;
-							/*
-							positionSrc = positionSrc + abs(abs(rpos->SrcOffs) - oldPos);
-							oldPos = abs(rpos->SrcOffs);
-							/*
-							if (rpos->SrcOffs > 0)
-								paramResize->PositionTab[j] = rpos->SrcOffs;
+							if (paramUpSample->start > 10)
+								paramResize->PositionTab[j] = positionSrc - posStart + paramUpSample->start;
 							else
-								paramResize->PositionTab[j] = positionSrc;
-							*/
-							//paramResize->PositionTab[j] = positionSrc;
+								paramResize->PositionTab[j] = positionSrc - posStart;
 
-							//paramResize->PositionTab[j] = rpos->SrcOffs;
+							for (int k = 0; k < IntFltLen0; k += 2)
+							{
+								const float xx = ftp[k];
+								paramResize->ftp[j * (IntFltLen0 / 2) + i++] = xx;
+							}
+							rpos++; j++;
+						}
+						*/
+						const typename CImageResizerFilterStep::CResizePos* rpos1 = &(*fs.RPosBuf)[0];
+						const typename CImageResizerFilterStep::CResizePos* rpos2 = &(*fs.RPosBuf)[1];
+						int diff = abs(abs(rpos1->SrcOffs) - abs(rpos2->SrcOffs));
+						int j = 0;
+						int startPos = abs(rpos->SrcOffs);
+						while (rpos < rpose)
+						{
+							int i = 0;
+							const float* const ftp = rpos->ftp;
+							paramResize->PositionTab[j] = rpos->SrcOffs;
+							if (startPos > 24)
+							{
+								if (paramUpSample != nullptr)
+									paramResize->PositionTab[j] += paramUpSample->OutPrefix * 4;
+							}
+							else
+							{
+								//paramResize->PositionTab[j] += diff;
+							}
 
 							for (int k = 0; k < IntFltLen0; k += 2)
 							{
