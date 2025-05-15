@@ -1640,42 +1640,10 @@ UMat COpenCLFilter::Interpolation(const int& widthOut, const int& heightOut, con
 				cout << " sec " << endl;
 #endif
 				
-				/*
-				{
-					cv::Mat inBuf, outBuf(Size(widthOut, heightOut), CV_8UC4, Scalar(0, 0, 0));
-					cvtColor(cvImage, inBuf, cv::COLOR_BGR2BGRA);
-
-					avir::CImageResizer ImageResizer(8);
-					avir::CImageResizerVars Vars;
-					Vars.UseSRGBGamma = true;
-					ImageResizer.resizeImage(
-						reinterpret_cast<uint8_t*>(inBuf.data), inBuf.cols, inBuf.rows, inBuf.step,
-						reinterpret_cast<uint8_t*>(outBuf.data), widthOut, heightOut, 4, 0, &Vars
-					);
-
-					cvtColor(outBuf, cvImage, cv::COLOR_BGRA2BGR);
-				}
-				*/
 				
 			}
 			catch (...)
 			{
-				/*
-				
-				cv::Mat inBuf, outBuf(Size(widthOut, heightOut), CV_8UC4, Scalar(0, 0, 0));
-				cvtColor(cvImage, inBuf, cv::COLOR_BGR2BGRA);
-
-				avir::CImageResizer ImageResizer(8);
-				avir::CImageResizerVars Vars;
-				Vars.UseSRGBGamma = true;
-				ImageResizer.resizeImage(
-					reinterpret_cast<uint8_t*>(inBuf.data), inBuf.cols, inBuf.rows, inBuf.step,
-					reinterpret_cast<uint8_t*>(outBuf.data), widthOut, heightOut, 4, 0, &Vars
-				);
-
-				cvtColor(outBuf, cvImage, cv::COLOR_BGRA2BGR);
-				*/
-
 				if (cvImage.cols != widthOut || cvImage.rows != heightOut)
 				{
 					resize(cvImage, cvImage, Size(widthOut, heightOut), method);
