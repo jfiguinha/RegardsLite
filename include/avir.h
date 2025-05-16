@@ -4001,54 +4001,10 @@ namespace avir {
 
 					cv::UMat output = param->stepH[param->stepH.size() - 1]->picture;
 
-					/*
 					if (output.rows != param->widthOut)
 					{
-						output = CAvirFilterOpenCL::GetDataOpenCLHtoV2D(output);
-					}
-
-					for (int j = 0; j < param->stepV.size(); j++)
-					{
-						bool isLastStep = false;
-						if (j == param->stepV.size() - 1)
-						{
-							isLastStep = true;
-						}
-						CAvirStep* fs = param->stepV[j];
-
-						if (j > 0)
-							_src = param->stepV[j - 1]->picture;
-						else
-							_src = output;
-
-
-						if (fs->GetType() == 1)
-						{
-							CAvirStepDoFilter* fs1 = (CAvirStepDoFilter*)fs;
-							if (isLastStep)
-								return CAvirFilterOpenCL::doFilterOpenCL2DLastStep(output, fs1->f, fs1->flen, fs1->step, param->gm, param->PkOut, param->TrMul);
-							CAvirFilterOpenCL::doFilterOpenCL2D(fs->picture, _src, output.size().width, fs1->height, fs1->f, fs1->flen, fs1->step);
-						}
-						else if (fs->GetType() == 2)
-						{
-							CAvirStepResize* fs1 = (CAvirStepResize*)fs;
-							CAvirFilterOpenCL::doResizeOpenCL2D(fs->picture, _src, fs1->width, fs1->height, fs1->PositionTab, fs1->posTabSize, fs1->ftp, fs1->ftpTabSize, fs1->IntFltLen);
-						}
-						else if (fs->GetType() == 3)
-						{
-							CAvirStepResize2* fs1 = (CAvirStepResize2*)fs;
-							CAvirFilterOpenCL::doResize2OpenCL2D(fs->picture, _src, fs1->width, fs1->height, fs1->PositionTab, fs1->posTabSize, fs1->ftp, fs1->ftpTabSize, fs1->IntFltLen);
-						}
-						else if (fs->GetType() == 4)
-						{
-							CAvirStepUpSample* fs1 = (CAvirStepUpSample*)fs;
-							CAvirFilterOpenCL::UpSample2D(fs->picture, _src, fs1->width, fs1->height, fs1->widthSrc, fs1->start, fs1->outLen, fs1->ResampleFactor);
-						}
-					}*/
-
-					if (output.rows != param->widthOut)
-					{
-						output = CAvirFilterOpenCL::GetDataOpenCLHtoV2D(output);
+						CAvirFilterOpenCL::GetDataOpenCLHtoV2D(param->srcV, output);
+						output = param->srcV;
 					}
 
 					for (int j = 0; j < param->stepV.size(); j++)
@@ -4063,7 +4019,11 @@ namespace avir {
 						{
 							CAvirStepDoFilter* fs1 = (CAvirStepDoFilter*)fs;
 							if (isLastStep)
-								return CAvirFilterOpenCL::doFilterOpenCL2DLastStep(output, fs1->f, fs1->flen, fs1->step, param->gm, param->PkOut, param->TrMul);
+							{
+								CAvirFilterOpenCL::doFilterOpenCL2DLastStep(fs1->picture, output, fs1->f, fs1->flen, fs1->step, param->gm, param->PkOut, param->TrMul);
+								return fs1->picture;
+							}
+								
 							CAvirFilterOpenCL::doFilterOpenCL2D(fs1->picture, output, output.size().width, fs1->height, fs1->f, fs1->flen, fs1->step);
 
 							output = fs1->picture;
@@ -4090,7 +4050,8 @@ namespace avir {
 						}
 					}
 
-					return CAvirFilterOpenCL::GetDataOpenCLHtoVDither2D(output, param->gm, param->PkOut, param->TrMul);
+					CAvirFilterOpenCL::GetDataOpenCLHtoVDither2D(param->dest, output, param->gm, param->PkOut, param->TrMul);
+					return param->dest;
 				}
 				
 				/*
@@ -4368,7 +4329,9 @@ namespace avir {
 
 					if (td.output.rows != NewWidth)
 					{
-						td.output = CAvirFilterOpenCL::GetDataOpenCLHtoV2D(td.output);
+						param->srcV.create(td.output.size().width, td.output.size().height, CV_32FC4);
+						CAvirFilterOpenCL::GetDataOpenCLHtoV2D(param->srcV, td.output);
+						td.output = param->srcV;
 					}
 
 					start = clock();
@@ -4473,7 +4436,9 @@ namespace avir {
 
 					if (td.output.type() != CV_8UC4)
 					{
-						td.output = CAvirFilterOpenCL::GetDataOpenCLHtoVDither2D(td.output, gm, PkOut, TrMul);
+						param->dest.create(td.output.size().width, td.output.size().height, CV_8UC4);
+						CAvirFilterOpenCL::GetDataOpenCLHtoVDither2D(param->dest, td.output, gm, PkOut, TrMul);
+						td.output = param->dest;
 					}
 					end = clock();
 

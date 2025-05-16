@@ -34,6 +34,12 @@ public:
 		{
 			delete step;
 		}
+
+		if (!srcV.empty())
+			srcV.release();
+
+		if (!dest.empty())
+			dest.release();
 	};
 
 	vector<CAvirStep*> stepH;
@@ -47,6 +53,7 @@ public:
 	int widthOut;
 	int heightOut;
 
+	cv::UMat srcV;
 	cv::UMat dest;
 };
 
