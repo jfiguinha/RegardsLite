@@ -83,7 +83,7 @@ wxString COpenCLContext::GetDeviceInfo(cl_device_id device, cl_device_info param
 cv::ocl::Program COpenCLContext::GetProgram(const wxString & programName)
 {
 	cv::ocl::Program program;
-	cv::String module_name = "REGARDS";
+	cv::String module_name = "";
 	cv::ocl::Context context = clExecCtx.getContext();
 	std::map<wxString, vector<char>>::iterator it;
 	it = openclBinaryMapping.find(programName);

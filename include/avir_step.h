@@ -5,7 +5,10 @@ class CAvirStep
 {
 public:
 	CAvirStep() {};
-	~CAvirStep() {};
+	~CAvirStep() {
+		if (!picture.empty())
+			picture.release();
+	};
 
 	virtual int GetType() { return 0; };
 
@@ -43,6 +46,8 @@ public:
 	int height;
 	int widthOut;
 	int heightOut;
+
+	cv::UMat dest;
 };
 
 class CAvirStepDoFilter : public CAvirStep
