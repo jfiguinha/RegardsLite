@@ -168,6 +168,7 @@ CPanelInfosWnd::CPanelInfosWnd(wxWindow* parent, wxWindowID id)
 
 	if (webBrowser == nullptr)
 	{
+#ifdef WIN32
 #if wxUSE_WEBVIEW_EDGE
 		// Check if a fixed version of edge is present in
 		// $executable_path/edge_fixed and use it
@@ -180,7 +181,7 @@ CPanelInfosWnd::CPanelInfosWnd(wxWindow* parent, wxWindowID id)
 			wxLogMessage("Using fixed edge version");
 		}
 #endif
-
+#endif
 		webBrowser = wxWebView::New(this, wxID_ANY);
 		webBrowser->Show(false);
 

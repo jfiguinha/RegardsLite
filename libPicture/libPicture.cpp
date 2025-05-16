@@ -2,13 +2,16 @@
 #include <header.h>
 // DllPicture.cpp : définit les fonctions exportées pour l'application DLL.
 //
+
+
 #ifdef __APPLE__
+//using std::char_traits<unsigned short> = std::char_traits<uchar>;
 #include <ReadImage.h>
 #endif
 #include "libPicture.h"
 #include <wx/filename.h>
 #include <wx/progdlg.h>
-#include <wx/pdfdocument.h>
+
 #define __FREEIMAGE__
 #include <FreeImage.h>
 #include <OpenEXR/ImfRgbaFile.h>
@@ -25,7 +28,8 @@
 #ifdef ROTDETECT
 #include <rotdetect.h>
 #endif
-#include <wx/wxpoppler.h>
+
+
 #include <ImageVideoThumbnail.h>
 #include <ImageLoadingFormat.h>
 #include <ConvertUtility.h>
@@ -43,6 +47,10 @@
 #endif
 
 
+#ifndef __APPLE__
+#include <wx/wxpoppler.h>
+#include <wx/pdfdocument.h>
+#endif 
 #include "PictureData.h"
 //#include <SqlPhotos.h>
 
