@@ -3952,7 +3952,7 @@ namespace avir {
 				 * value range), `double` (`0..1` value range). Larger integer types are
 				 * treated as `uint16_t`. Signed integer types are unsupported.
 				 */
-				
+#ifdef WIN32
 				cv::UMat resizeImageOpenCLWithStep(cv::UMat src, CAvirFilterParam * param)
 				{
 					cv::UMat _src;
@@ -4053,8 +4053,7 @@ namespace avir {
 					CAvirFilterOpenCL::GetDataOpenCLHtoVDither2D(param->dest, output, param->gm, param->PkOut, param->TrMul);
 					return param->dest;
 				}
-				
-				/*
+#else
 				cv::UMat resizeImageOpenCLWithStep(cv::UMat src, CAvirFilterParam* param)
 				{
 					cv:UMat output = src;
@@ -4133,7 +4132,7 @@ namespace avir {
 
 					return CAvirFilterOpenCL::GetDataOpenCLHtoVDither2D(output, param->gm, param->PkOut, param->TrMul);
 				}
-				*/
+#endif
 
 
 				cv::UMat resizeImageOpenCL(cv::UMat src, const int SrcWidth,
@@ -4432,6 +4431,7 @@ namespace avir {
 					param->PkOut = PkOut;
 					param->TrMul = TrMul;
 
+
 					td.processScanlineQueueOpenCL(param);
 
 					if (td.output.type() != CV_8UC4)
@@ -4440,6 +4440,7 @@ namespace avir {
 						CAvirFilterOpenCL::GetDataOpenCLHtoVDither2D(param->dest, td.output, gm, PkOut, TrMul);
 						td.output = param->dest;
 					}
+        
 					end = clock();
 
 					return td.output;
