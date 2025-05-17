@@ -15,65 +15,8 @@ cv::UMat CAvirFilterOpenCL::GetDataOpenCLHtoV2D(cv::UMat& src)
 	return paramOutput;
 }
 
-UMat CAvirFilterOpenCL::UpSample2D(cv::UMat& src, const int& width, const int& height, int widthSrc, int start, int outLen, int ResampleFactor)
-{
-	UMat paramSrc(height, width, CV_32FC4);
-	UpSample2D(paramSrc, src, width, height, widthSrc, start, outLen, ResampleFactor);
-	return paramSrc;
-}
-
-UMat CAvirFilterOpenCL::doResize2OpenCL2D(cv::UMat& src, const int& width, const int& height,
-	int* PositionTab, int posTabSize, float* ftp, int ftpTabSize, int IntFltLen)
-{
-	UMat paramOutput(height, width, CV_32FC4);
-	doResize2OpenCL2D(paramOutput, src, width, height, PositionTab, posTabSize, ftp, ftpTabSize, IntFltLen);
-	return paramOutput;
-}
-
-UMat CAvirFilterOpenCL::doResizeOpenCL2D(cv::UMat& src, const int& width, const int& height, int* PositionTab, int posTabSize, float* ftp, int ftpTabSize, int IntFltLen)
-{
-	UMat paramOutput(height, width, CV_32FC4);
-	doResizeOpenCL2D(paramOutput, src, width, height, PositionTab, posTabSize, ftp, ftpTabSize, IntFltLen);
-	return paramOutput;
-}
-
-UMat CAvirFilterOpenCL::GetDataOpenCLHtoVDither2D(cv::UMat& src, float gm, float PkOut, float TrMul0)
-{
-	UMat paramOutput(src.size().width, src.size().height, CV_8UC4);
-	GetDataOpenCLHtoVDither2D(paramOutput, src, gm, PkOut, TrMul0);
-	return paramOutput;
-}
-
-
-UMat CAvirFilterOpenCL::doFilterOpenCL2D(cv::UMat& src, const int& width, const int& height,
-	const float* f, int flen, int step)
-{
-	UMat paramOutput(height, width, CV_32FC4);
-	doFilterOpenCL2D(paramOutput, src, width, height, f, flen, step);
-	return paramOutput;
-}
-
-
-UMat CAvirFilterOpenCL::doFilterOpenCL2DV(cv::UMat& src, const float* f, int flen, int step)
-{
-	UMat paramOutput(src.size().width, src.size().height, CV_32FC4);
-	doFilterOpenCL2DV(paramOutput, src, f, flen, step);
-	return paramOutput;
-}
-
-UMat CAvirFilterOpenCL::doFilterOpenCL2DLastStep(cv::UMat& src, const float* f, int flen, int step, float gm, float PkOut, float TrMul0)
-{
-	UMat paramOutput(src.size().width, src.size().height, CV_8UC4);
-	doFilterOpenCL2DLastStep(paramOutput, src, f, flen, step, gm, PkOut, TrMul0);
-	return paramOutput;
-}
-
-
 void CAvirFilterOpenCL::GetDataOpenCLHtoV2D(cv::UMat& dest, cv::UMat& src)
 {
-	if(dest.empty() || dest.type() != CV_32FC4 || dest.size().height != src.size().width || src.size().height != src.size().height)
-		dest.create(src.size().width, src.size().height, CV_32FC4);
-
 	cl_mem_flags flag;
 	{
 
@@ -142,11 +85,6 @@ void CAvirFilterOpenCL::GetDataOpenCLHtoV2D(cv::UMat& dest, cv::UMat& src)
 
 void CAvirFilterOpenCL::UpSample2D(cv::UMat& dest, cv::UMat& src, const int& width, const int& height, int widthSrc, int start, int outLen, int ResampleFactor)
 {
-	if (dest.empty() || dest.type() != CV_32FC4 || dest.size().height != height || dest.size().width != width)
-	{
-		dest.create(height, width, CV_32FC4);
-	}
-
 	cl_mem_flags flag;
 	{
 		bool useMemory = (cv::ocl::Device::getDefault().type() == CL_DEVICE_TYPE_GPU) ? false : true;
@@ -238,13 +176,6 @@ void CAvirFilterOpenCL::UpSample2D(cv::UMat& dest, cv::UMat& src, const int& wid
 void CAvirFilterOpenCL::doResize2OpenCL2D(cv::UMat& dest, cv::UMat& src, const int& width, const int& height,
 	int* PositionTab, int posTabSize, float* ftp, int ftpTabSize, int IntFltLen)
 {
-
-	if (dest.empty() || dest.type() != CV_32FC4 || dest.size().height != height || dest.size().width != width)
-	{
-		//UMat paramOutput(height, width, CV_32FC4);
-		dest.create(height, width, CV_32FC4);
-	}
-
 	cl_mem_flags flag;
 	{
 		bool useMemory = (cv::ocl::Device::getDefault().type() == CL_DEVICE_TYPE_GPU) ? false : true;
@@ -329,12 +260,6 @@ void CAvirFilterOpenCL::doResize2OpenCL2D(cv::UMat& dest, cv::UMat& src, const i
 
 void CAvirFilterOpenCL::doResizeOpenCL2D(cv::UMat& dest, cv::UMat& src, const int& width, const int& height, int* PositionTab, int posTabSize, float* ftp, int ftpTabSize, int IntFltLen)
 {
-	if (dest.empty() || dest.type() != CV_32FC4 || dest.size().height != height || dest.size().width != width)
-	{
-		//UMat paramOutput(height, width, CV_32FC4);
-		dest.create(height, width, CV_32FC4);
-	}
-
 	cl_mem_flags flag;
 	{
 		bool useMemory = (cv::ocl::Device::getDefault().type() == CL_DEVICE_TYPE_GPU) ? false : true;
@@ -430,12 +355,6 @@ void CAvirFilterOpenCL::doResizeOpenCL2D(cv::UMat& dest, cv::UMat& src, const in
 void CAvirFilterOpenCL::doFilterOpenCL2D(cv::UMat& dest, cv::UMat& src, const int& width, const int& height,
 	const float* f, int flen, int step)
 {
-	if (dest.empty() || dest.type() != CV_32FC4 || dest.size().height != height || dest.size().width != width)
-	{
-		// UMat paramOutput(height, width, CV_32FC4);  
-		dest.create(height, width, CV_32FC4);
-	}
-
 	cl_mem_flags flag;
 	{
 		bool useMemory = (cv::ocl::Device::getDefault().type() == CL_DEVICE_TYPE_GPU) ? false : true;
@@ -531,11 +450,6 @@ void CAvirFilterOpenCL::doFilterOpenCL2D(cv::UMat& dest, cv::UMat& src, const in
 
 void CAvirFilterOpenCL::doFilterOpenCL2DV(cv::UMat& dest, cv::UMat& src, const float* f, int flen, int step)
 {
-	if (dest.empty() || dest.type() != CV_32FC4 || dest.size().height != src.size().width || dest.size().width != src.size().height)
-	{
-		//UMat paramOutput(src.size().width, src.size().height, CV_32FC4);
-		dest.create(src.size().width, src.size().height, CV_32FC4);
-	}
 	cl_mem_flags flag;
 	{
 		bool useMemory = (cv::ocl::Device::getDefault().type() == CL_DEVICE_TYPE_GPU) ? false : true;
@@ -626,12 +540,6 @@ void CAvirFilterOpenCL::doFilterOpenCL2DV(cv::UMat& dest, cv::UMat& src, const f
 
 void CAvirFilterOpenCL::doFilterOpenCL2DLastStep(cv::UMat& dest, cv::UMat& src, const float* f, int flen, int step, float gm, float PkOut, float TrMul0)
 {
-	if (dest.empty() || dest.type() != CV_8UC4 || dest.size().height != src.size().width || dest.size().width != src.size().height)
-	{
-		//UMat paramOutput(src.size().width, src.size().height, CV_8UC4);
-		dest.create(src.size().width, src.size().height, CV_8UC4);
-	}
-
 	cl_mem_flags flag;
 	{
 		bool useMemory = (cv::ocl::Device::getDefault().type() == CL_DEVICE_TYPE_GPU) ? false : true;
@@ -736,14 +644,38 @@ void CAvirFilterOpenCL::doFilterOpenCL2DLastStep(cv::UMat& dest, cv::UMat& src, 
 	}
 }
 
+UMat CAvirFilterOpenCL::UpSample2D(cv::UMat& src, const int& width, const int& height, int widthSrc, int start, int outLen, int ResampleFactor)
+{
+	UMat paramSrc(height, width, CV_32FC4);
+	UpSample2D(paramSrc, src, width, height, widthSrc, start, outLen, ResampleFactor);
+	return paramSrc;
+}
+
+UMat CAvirFilterOpenCL::doResize2OpenCL2D(cv::UMat& src, const int& width, const int& height,
+	int* PositionTab, int posTabSize, float* ftp, int ftpTabSize, int IntFltLen)
+{
+	UMat paramOutput(height, width, CV_32FC4);
+	doResize2OpenCL2D(paramOutput, src, width, height, PositionTab, posTabSize, ftp, ftpTabSize, IntFltLen);
+	return paramOutput;
+}
+
+UMat CAvirFilterOpenCL::doResizeOpenCL2D(cv::UMat& src, const int& width, const int& height, int* PositionTab, int posTabSize, float* ftp, int ftpTabSize, int IntFltLen)
+{
+	UMat paramOutput(height, width, CV_32FC4);
+	doResizeOpenCL2D(paramOutput, src, width, height, PositionTab, posTabSize, ftp, ftpTabSize, IntFltLen);
+	return paramOutput;
+}
+
+UMat CAvirFilterOpenCL::GetDataOpenCLHtoVDither2D(cv::UMat& src, float gm, float PkOut, float TrMul0)
+{
+	UMat paramOutput(src.size().width, src.size().height, CV_8UC4);
+	GetDataOpenCLHtoVDither2D(paramOutput, src, gm, PkOut, TrMul0);
+	return paramOutput;
+}
 
 void CAvirFilterOpenCL::GetDataOpenCLHtoVDither2D(cv::UMat& dest, cv::UMat& src, float gm, float PkOut, float TrMul0)
 {
-	if (dest.empty() || dest.type() != CV_8UC4 || dest.size().height != src.size().width || dest.size().width != src.size().height)
-	{
-		//UMat paramOutput(src.size().width, src.size().height, CV_8UC4);
-		dest.create(src.size().width, src.size().height, CV_8UC4);
-	}
+	
 	cl_mem_flags flag;
 	{
 
@@ -826,3 +758,25 @@ void CAvirFilterOpenCL::GetDataOpenCLHtoVDither2D(cv::UMat& dest, cv::UMat& src,
 
 }
 
+UMat CAvirFilterOpenCL::doFilterOpenCL2D(cv::UMat& src, const int& width, const int& height,
+	const float* f, int flen, int step)
+{
+    UMat paramOutput(height, width, CV_32FC4);  
+    doFilterOpenCL2D(paramOutput, src, width, height, f, flen, step);  
+    return paramOutput;  
+}
+
+
+UMat CAvirFilterOpenCL::doFilterOpenCL2DV(cv::UMat& src, const float* f, int flen, int step)
+{
+	UMat paramOutput(src.size().width, src.size().height, CV_32FC4);
+	doFilterOpenCL2DV(paramOutput, src, f, flen, step);
+	return paramOutput;
+}
+
+UMat CAvirFilterOpenCL::doFilterOpenCL2DLastStep(cv::UMat& src, const float* f, int flen, int step, float gm, float PkOut, float TrMul0)
+{
+	UMat paramOutput(src.size().width, src.size().height, CV_8UC4);
+	doFilterOpenCL2DLastStep(paramOutput, src, f, flen, step, gm, PkOut, TrMul0);
+	return paramOutput;
+}
