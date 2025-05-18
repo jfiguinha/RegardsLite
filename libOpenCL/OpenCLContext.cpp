@@ -82,25 +82,18 @@ wxString COpenCLContext::GetDeviceInfo(cl_device_id device, cl_device_info param
 
 cv::ocl::Program COpenCLContext::GetProgram(const wxString & programName)
 {
-	//cv::ocl::Program program;
 	cv::String module_name = "REGARDS";
 
 	std::map<wxString, cv::ocl::Program>::iterator it;
-	//it = openclBinaryMapping.find(programName);
-	//if (it == openclBinaryMapping.end())
-	//{
-        wxString kernelSource = CLibResource::GetOpenCLUcharProgram(programName);
-        cv::ocl::ProgramSource programSource(kernelSource);
-        cv::ocl::Context context = clExecCtx.getContext();//ocl::Context::getDefault(false);
 
-        // Compile the kernel code
-        cv::String errmsg;
-        //openclBinaryMapping[programName] = context.getProg(programSource, buildOption, errmsg);
-        return context.getProg(programSource, buildOption, errmsg);
-	//}
+    wxString kernelSource = CLibResource::GetOpenCLUcharProgram(programName);
+    cv::ocl::ProgramSource programSource(kernelSource);
+    cv::ocl::Context context = clExecCtx.getContext();//ocl::Context::getDefault(false);
 
-
-	//return openclBinaryMapping[programName];
+    // Compile the kernel code
+    cv::String errmsg;
+    //openclBinaryMapping[programName] = context.getProg(programSource, buildOption, errmsg);
+    return context.getProg(programSource, buildOption, errmsg);
 }
 
 

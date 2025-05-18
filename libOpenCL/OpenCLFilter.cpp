@@ -1633,15 +1633,7 @@ UMat COpenCLFilter::Interpolation(const int& widthOut, const int& heightOut, con
                 }
                 cout << "COpenCLFilter::Interpolation : end "<< endl;
 					
-                cv::Mat color;
-                out.copyTo(color);
-                
-                //color.copyTo(cvImage);
-				//cvtColor(cvImage, cvImage, cv::COLOR_BGRA2BGR);
-                if (cvImage.cols != widthOut || cvImage.rows != heightOut)
-				{
-					resize(cvImage, cvImage, Size(widthOut, heightOut), method);
-				}
+                cvtColor(out, cvImage, cv::COLOR_BGR2BGRA);
                 
                 cout << "COpenCLFilter::Interpolation Conversion "<< endl;
 
