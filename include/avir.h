@@ -61,7 +61,6 @@ using namespace cv;
 #define BITDECALAGE_RESIZE 0
 #define BITDECALAGE_RESIZE2 0
 
-#define TEST
 
 //#define BITDECALAGE_RESIZE2 128
 #if __cplusplus >= 201103L
@@ -4052,8 +4051,9 @@ namespace avir {
 						}
 					}
 
-					CAvirFilterOpenCL::GetDataOpenCLHtoVDither2DV(param->dest, output, param->gm, param->PkOut, param->TrMul);
-					return param->dest;
+					//CAvirFilterOpenCL::GetDataOpenCLHtoVDither2DV(param->dest, output, param->gm, param->PkOut, param->TrMul);
+					param->dest = CAvirFilterOpenCL::GetDataOpenCLHtoV2D(output);
+					return CAvirFilterOpenCL::GetDataOpenCLHtoVDither2D(param->dest, param->gm, param->PkOut, param->TrMul);
 				}
 
 
@@ -4356,22 +4356,12 @@ namespace avir {
 
 					td.processScanlineQueueOpenCL(param);
                     
-#ifdef TEST
-                    cout << "resizeImageOpenCL td.processScanlineQueueOpenCL begin type : " << td.output.type() << endl;
-                    cv::Mat test;
-                    td.output.copyTo(test);
-                    cout << "resizeImageOpenCL td.processScanlineQueueOpenCL end" << endl;
-#endif
 
 					if (td.output.type() != CV_8UC4)
 					{
-						cout << "resizeImageOpenCL td.output begin type : " << td.output.type() << td.output.size().width << " " << td.output.size().height << endl;
-                        //td.output = CAvirFilterOpenCL::GetDataOpenCLHtoV2D(td.output);
-
-                        param->dest = CAvirFilterOpenCL::GetDataOpenCLHtoVDither2DV(td.output, gm, PkOut, TrMul);
-                        cout << "resizeImageOpenCL param->dest type : " << param->dest.type() << param->dest.size().width << " " << param->dest.size().height << endl;
-                        cout << "resizeImageOpenCL td.output begin type : " << td.output.type() << td.output.size().width << " " << td.output.size().height << endl;
-						return param->dest;//.copyTo(td.output);
+						td.output = CAvirFilterOpenCL::GetDataOpenCLHtoV2D(td.output);
+                        param->dest = CAvirFilterOpenCL::GetDataOpenCLHtoVDither2D(td.output, gm, PkOut, TrMul);
+						return param->dest;
 					}
         
 					end = clock();
@@ -6484,6 +6474,7 @@ public:
 							int i = 0;
 							const float* const ftp = rpos->ftp;
 							paramResize->PositionTab[j] = rpos->SrcOffs;
+
 							if (startPos > 24)
 							{
 								if (paramUpSample != nullptr)
@@ -6491,9 +6482,9 @@ public:
 							}
 							else
 							{
-								//paramResize->PositionTab[j] += diff;
+								paramResize->PositionTab[j] += 19;
 							}
-
+							
 							for (int k = 0; k < IntFltLen0; k += 2)
 							{
 								const float xx = ftp[k];
