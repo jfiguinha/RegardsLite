@@ -1,14 +1,14 @@
 [DEBREATE-0.8-dev9]
 <<CTRL>>
 Package: RegardsLiteViewer
-Version: 2.0.0.5
+Version: 2.0.1.0
 Maintainer: Figuinha Jacques <appt.jf@outlook.fr>
 Section: graphics
 Source: https://github.com/jfiguinha/RegardsLite.git
 Homepage: https://jfiguinha.pagesperso-orange.fr/
 Architecture: amd64
 Priority: standard
-Depends: libwebkit2gtk-4.0-dev, freeglut3-dev, mesa-common-dev, libsdl2-dev, liblzma-dev,  libgnutls28-dev, libunistring-dev, libva-dev, libvdpau-dev
+Depends: libwebkit2gtk-4.1-dev, freeglut3-dev, mesa-common-dev, libsdl2-dev, liblzma-dev,  libgnutls28-dev, libunistring-dev, libva-dev, libvdpau-dev
 Description: RegardsLiteViewer is a picture viewer and video player
  RegardsLite is a modern photo viewer.
  Support highDPI definition screen.

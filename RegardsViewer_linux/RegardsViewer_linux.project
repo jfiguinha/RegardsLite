@@ -78,6 +78,47 @@
     <Project Name="ffplay"/>
     <Project Name="libVideoEffect"/>
   </Dependencies>
+  <Dependencies Name="Release">
+    <Project Name="CxImage"/>
+    <Project Name="libControl"/>
+    <Project Name="libWindow"/>
+    <Project Name="libViewer"/>
+    <Project Name="libVideoThumbnail"/>
+    <Project Name="libVideoFFMpeg"/>
+    <Project Name="libUtility"/>
+    <Project Name="libSqlEngine"/>
+    <Project Name="libTheme"/>
+    <Project Name="libSqlData"/>
+    <Project Name="libPicture"/>
+    <Project Name="libOpenCL"/>
+    <Project Name="libParameter"/>
+    <Project Name="libGeolocalisation"/>
+    <Project Name="libFiltre"/>
+    <Project Name="libExif"/>
+    <Project Name="libEmail"/>
+    <Project Name="libDialog"/>
+    <Project Name="libFiltreInterface"/>
+    <Project Name="wxCheckTree"/>
+    <Project Name="libOpenGL"/>
+    <Project Name="libJbig"/>
+    <Project Name="libPsd"/>
+    <Project Name="libavutil"/>
+    <Project Name="libbpg"/>
+    <Project Name="libavcodec"/>
+    <Project Name="libRegardsBpg_unix"/>
+    <Project Name="FaceRecognition"/>
+    <Project Name="FaceRecognition_unix"/>
+    <Project Name="wxIA"/>
+    <Project Name="wxPDFDoc"/>
+    <Project Name="libScanner"/>
+    <Project Name="libDeepLearning"/>
+    <Project Name="libavif"/>
+    <Project Name="libheif"/>
+    <Project Name="libResource"/>
+    <Project Name="libffmpeg"/>
+    <Project Name="libVideoConverter"/>
+    <Project Name="libVideoEffect"/>
+  </Dependencies>
   <Settings Type="Executable">
     <GlobalSettings>
       <Compiler Options="-Wall;$(shell ../libextern/wxconfig_cpp.sh);-Wall;-std=gnu++14;-pthread;-finstrument-functions;" C_Options=";-Wall" Assembler="">
@@ -132,7 +173,7 @@
         <Preprocessor Value="SDL2"/>
         <Preprocessor Value="LIBBPG"/>
       </Compiler>
-      <Linker Options="-Wl,-rpath,'$$ORIGIN' -Wl,-z,origin;-lexpat;-Wl,--allow-multiple-definition;-lwebkit2gtk-4.0;-ljavascriptcoregtk-4.0;-pthread">
+      <Linker Options="-Wl,-rpath,'$$ORIGIN' -Wl,-z,origin;-lexpat;-Wl,--allow-multiple-definition;-lwebkit2gtk-4.1;-ljavascriptcoregtk-4.1;-pthread">
         <LibraryPath Value="../libextern/heif-master/srcs/lib"/>
         <Library Value="Viewer"/>
         <Library Value="ffmpeg"/>
@@ -187,7 +228,7 @@
         <Library Value="SM"/>
         <Library Value="curl"/>
         <Library Value="dl"/>
-        <Library Value="webkit2gtk-4.0"/>
+        <Library Value="webkit2gtk-4.1"/>
         <Library Value="wxPDFDoc"/>
         <Library Value="poppler-cpp"/>
         <Library Value="poppler"/>
@@ -541,45 +582,4 @@
       </Completion>
     </Configuration>
   </Settings>
-  <Dependencies Name="Release">
-    <Project Name="CxImage"/>
-    <Project Name="libControl"/>
-    <Project Name="libWindow"/>
-    <Project Name="libViewer"/>
-    <Project Name="libVideoThumbnail"/>
-    <Project Name="libVideoFFMpeg"/>
-    <Project Name="libUtility"/>
-    <Project Name="libSqlEngine"/>
-    <Project Name="libTheme"/>
-    <Project Name="libSqlData"/>
-    <Project Name="libPicture"/>
-    <Project Name="libOpenCL"/>
-    <Project Name="libParameter"/>
-    <Project Name="libGeolocalisation"/>
-    <Project Name="libFiltre"/>
-    <Project Name="libExif"/>
-    <Project Name="libEmail"/>
-    <Project Name="libDialog"/>
-    <Project Name="libFiltreInterface"/>
-    <Project Name="wxCheckTree"/>
-    <Project Name="libOpenGL"/>
-    <Project Name="libJbig"/>
-    <Project Name="libPsd"/>
-    <Project Name="libavutil"/>
-    <Project Name="libbpg"/>
-    <Project Name="libavcodec"/>
-    <Project Name="libRegardsBpg_unix"/>
-    <Project Name="FaceRecognition"/>
-    <Project Name="FaceRecognition_unix"/>
-    <Project Name="wxIA"/>
-    <Project Name="wxPDFDoc"/>
-    <Project Name="libScanner"/>
-    <Project Name="libDeepLearning"/>
-    <Project Name="libavif"/>
-    <Project Name="libheif"/>
-    <Project Name="libResource"/>
-    <Project Name="libffmpeg"/>
-    <Project Name="libVideoConverter"/>
-    <Project Name="libVideoEffect"/>
-  </Dependencies>
 </CodeLite_Project>

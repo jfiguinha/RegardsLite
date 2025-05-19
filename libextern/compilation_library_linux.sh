@@ -57,6 +57,7 @@ cd ..
 cd ..
 
 unzip ffmpeg-master_linux.zip
+unzip opencl_dll.zip
 
 #Compile qpdf
 FILE=release-qpdf-10.3.2.zip
