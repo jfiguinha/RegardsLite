@@ -333,7 +333,8 @@ HRESULT CMFTEncodingPimp::WriteFrame(
 
 
 	cv::Mat mat(height, width, CV_8UC4, pData);
-	openclEffectVideo.SetMatrix(Regards::Picture::CPictureArray(mat));
+	Regards::Picture::CPictureArray pictureArray = Regards::Picture::CPictureArray(mat);
+	openclEffectVideo.SetMatrix(pictureArray);
 
 	bool stabilizeFrame = videoCompressOption->videoEffectParameter.stabilizeVideo;
 	bool correctedContrast = videoCompressOption->videoEffectParameter.autoConstrast;

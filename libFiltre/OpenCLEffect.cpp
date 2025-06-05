@@ -103,11 +103,7 @@ void COpenCLEffect::SetBitmap(CImageLoadingFormat* bitmap)
 			local.copyTo(input);
 
 		filename = bitmap->GetFilename();
-		//vector<cv::Mat> channels;
-		//cv::extractChannel(local, alphaChannel, 3);
-		//cv::cvtColor(local, input, cv::COLOR_BGRA2BGR);
-		//local.copyTo(input);
-		//delete _bitmap;
+
 		preview = false;
 	}
 }

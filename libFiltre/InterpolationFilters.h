@@ -330,7 +330,7 @@ private:
 	double P1(double x)
 	{
 	  double p, q;
-	  register long i;
+	  long i;
 
 	  p=Pone[5];
 	  q=Qone[5];
@@ -346,7 +346,7 @@ private:
 	{
 	  double p, q;
 
-	  register long i;
+	   long i;
 
 	  p=Pone[5];
 	  q=Qone[5];
@@ -362,7 +362,7 @@ private:
 	{
 	  double p, q;
 
-	  register long i;
+	   long i;
 
 	  const double
 		Pone[] =
