@@ -1964,7 +1964,8 @@ void CLibPicture::LoadPicture(const wxString& fileName, const bool& isThumbnail,
 							{
 								CMetadataExiv2 metadata(fileName);
 								orientation = metadata.GetOrientation();
-
+								int thumbWidth = 0;
+								int thumbHeight = 0;
 								int width = 0;
 								int height = 0;
 								CHeic::GetPictureDimension(CConvertUtility::ConvertToUTF8(fileName), width, height);
@@ -1972,16 +1973,18 @@ void CLibPicture::LoadPicture(const wxString& fileName, const bool& isThumbnail,
 								float ratio = 1.0f;
 
 								if (orientation > 4)
+								{
 									ratio = CalculRatio(height, width);
+									thumbHeight = static_cast<int>(width * ratio);
+									thumbWidth = static_cast<int>(height * ratio);
+								}
 								else
+								{
 									ratio = CalculRatio(width, height);
+									thumbWidth = static_cast<int>(width * ratio);
+									thumbHeight = static_cast<int>(height * ratio);
+								}
 
-								int thumbWidth = static_cast<int>(width * ratio);
-								int thumbHeight = static_cast<int>(height * ratio);
-
-								if (orientation > 4)
-									picture = CAvif::GetPictureThumb(CConvertUtility::ConvertToUTF8(fileName), thumbHeight, thumbWidth);
-								else
 									picture = CAvif::GetPictureThumb(CConvertUtility::ConvertToUTF8(fileName), thumbWidth, thumbHeight);
 							}	
 							else
@@ -2006,28 +2009,7 @@ void CLibPicture::LoadPicture(const wxString& fileName, const bool& isThumbnail,
 				}
 				break;
 			}
-            /*
-		case AVIF:
-			{
-				cv::Mat picture;
 
-				if (numPicture == 0)
-				{
-					picture = CAvif::GetPicture(CConvertUtility::ConvertToUTF8(fileName), isThumbnail);
-				}
-				else
-				{
-					int delay = 4;
-					picture = CAvif::GetPicture(CConvertUtility::ConvertToUTF8(fileName), delay, numPicture);
-				}
-
-				if (!picture.empty())
-				{
-					bitmap->SetPicture(picture);
-					bitmap->SetFilename(fileName);
-				}
-			}
-			break;*/
 #endif
 
 		case JXL:
