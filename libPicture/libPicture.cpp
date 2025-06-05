@@ -205,6 +205,47 @@ CLibPicture::~CLibPicture()
 #endif
 }
 
+float CLibPicture::CalculRatio(const int& width, const int& height)
+{
+
+#ifdef WIN32
+
+	HDC screen = GetDC(nullptr);
+	RECT rcClip;
+	GetClipBox(screen, &rcClip);
+	ReleaseDC(nullptr, screen);
+
+	int widthThumbnail = max(static_cast<int32_t>(rcClip.right / 4), 200);
+	int heightThumbnail = max(static_cast<int32_t>(rcClip.bottom / 4), 200);
+
+#else
+	int widthThumbnail = max(wxSystemSettings::GetMetric(wxSYS_SCREEN_X) / 4, 200);
+	int heightThumbnail = max(wxSystemSettings::GetMetric(wxSYS_SCREEN_Y) / 4, 200);
+#endif
+
+	float newRatio;
+	//int left = 0;
+	//int top = 0;
+
+	if (width > height)
+		newRatio = static_cast<float>(widthThumbnail) / static_cast<float>(width);
+	else
+		newRatio = static_cast<float>(heightThumbnail) / static_cast<float>(height);
+
+	if ((height * newRatio) > heightThumbnail)
+	{
+		newRatio = static_cast<float>(heightThumbnail) / static_cast<float>(height);
+	}
+
+	if ((width * newRatio) > widthThumbnail)
+	{
+		newRatio = static_cast<float>(widthThumbnail) / static_cast<float>(width);
+	}
+
+
+	return newRatio;
+}
+
 
 CImageLoadingFormat* CLibPicture::LoadPictureToBGRA(const wxString& filename, bool& pictureOK, const int& resizeWidth,
                                                     const int& resizeHeight)
@@ -1655,14 +1696,10 @@ CImageLoadingFormat* CLibPicture::LoadThumbnail(const wxString& fileName, const 
 			imageLoading->SetFilename(fileName);
 			imageLoading->SetPicture(bitmap);
 			imageLoading->SetRotation(angle);
-			if (imageLoading != nullptr && imageLoading->IsOk())
-			{
-				imageLoading->Resize(widthThumbnail, heightThumbnail, 1);
-			}
 		}
 		else
 		{
-			notThumbnail = true;
+			imageLoading = LoadPicture(fileName, true);
 		}
 
 	}
@@ -1679,37 +1716,21 @@ CImageLoadingFormat* CLibPicture::LoadThumbnail(const wxString& fileName, const 
 		{
 			jpegImage = pictureMetadata.DecodeThumbnail(extension, orientation);
 		}
-		if (!jpegImage.IsOk() && !fromExifOnly)
+		if (!jpegImage.IsOk() && !fromExifOnly && iFormat == JPEG)
 		{
-			imageLoading = new CImageLoadingFormat();
-			imageLoading->SetFilename(fileName);
 			imageLoading = LoadPicture(fileName, true);
-			if (imageLoading != nullptr && imageLoading->IsOk())
-			{
-				imageLoading->Resize(widthThumbnail, heightThumbnail, 1);
-				//imageLoading->ApplyExifOrientation();
-			}
 		}
-		else if (jpegImage.IsOk())
+		else if (jpegImage.IsOk() && jpegImage.GetWidth() > 0 && jpegImage.GetHeight() > 0)
 		{
 			printf("File to process : %s \n", CConvertUtility::ConvertToUTF8(fileName));
-
-			if (jpegImage.GetWidth() > 0 && jpegImage.GetHeight() > 0)
-			{
-				imageLoading = new CImageLoadingFormat();
-				imageLoading->SetFilename(fileName);
-				imageLoading->SetPicture(jpegImage);
-				imageLoading->SetOrientation(orientation);
-				if (imageLoading->IsOk())
-				{
-					imageLoading->Resize(widthThumbnail, heightThumbnail, 1);
-				}
-			}
-			else
-			{
-				notThumbnail = true;
-			}
-
+			imageLoading = new CImageLoadingFormat();
+			imageLoading->SetFilename(fileName);
+			imageLoading->SetPicture(jpegImage);
+			imageLoading->SetOrientation(orientation);
+		}
+		else
+		{
+			notThumbnail = true;
 		}
 
 
@@ -1941,15 +1962,28 @@ void CLibPicture::LoadPicture(const wxString& fileName, const bool& isThumbnail,
                         {
 							if (isThumbnail)
 							{
+								CMetadataExiv2 metadata(fileName);
+								orientation = metadata.GetOrientation();
 
 								int width = 0;
 								int height = 0;
 								CHeic::GetPictureDimension(CConvertUtility::ConvertToUTF8(fileName), width, height);
 
-								CalculThumbSizeFromScreenDef(width, height);
+								float ratio = 1.0f;
 
-								picture = CAvif::GetPictureThumb(CConvertUtility::ConvertToUTF8(fileName), width, height);
-							}
+								if (orientation > 4)
+									ratio = CalculRatio(height, width);
+								else
+									ratio = CalculRatio(width, height);
+
+								int thumbWidth = static_cast<int>(width * ratio);
+								int thumbHeight = static_cast<int>(height * ratio);
+
+								if (orientation > 4)
+									picture = CAvif::GetPictureThumb(CConvertUtility::ConvertToUTF8(fileName), thumbHeight, thumbWidth);
+								else
+									picture = CAvif::GetPictureThumb(CConvertUtility::ConvertToUTF8(fileName), thumbWidth, thumbHeight);
+							}	
 							else
 								picture = CAvif::GetPicture(CConvertUtility::ConvertToUTF8(fileName));
                             applyExif = true;

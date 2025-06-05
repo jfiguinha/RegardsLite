@@ -33,6 +33,18 @@
       <Configuration>Release_avx</Configuration>
       <Platform>x64</Platform>
     </ProjectConfiguration>
+    <ProjectConfiguration Include="Release_cllang|ARM64">
+      <Configuration>Release_cllang</Configuration>
+      <Platform>ARM64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release_cllang|Win32">
+      <Configuration>Release_cllang</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release_cllang|x64">
+      <Configuration>Release_cllang</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
     <ProjectConfiguration Include="Release_windows10|ARM64">
       <Configuration>Release_windows10</Configuration>
       <Platform>ARM64</Platform>
@@ -128,7 +140,9 @@
     <ClCompile Include="..\..\include\header.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release_cllang|ARM64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release_cllang|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="src\pdfannotation.cpp" />
@@ -213,6 +227,13 @@
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_cllang|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_avx|Win32'" Label="Configuration">
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
@@ -244,7 +265,15 @@
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
-    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <WholeProgramOptimization>PGOptimize</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+    <UseInteloneTBB>true</UseInteloneTBB>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_cllang|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>ClangCL</PlatformToolset>
+    <WholeProgramOptimization>PGOptimize</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
     <UseInteloneTBB>true</UseInteloneTBB>
   </PropertyGroup>
@@ -279,6 +308,10 @@
     <PlatformToolset>v143</PlatformToolset>
     <ConfigurationType>StaticLibrary</ConfigurationType>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_cllang|ARM64'" Label="Configuration">
+    <PlatformToolset>v143</PlatformToolset>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+  </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <ImportGroup Label="ExtensionSettings">
   </ImportGroup>
@@ -291,6 +324,9 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release_cllang|Win32'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release_avx|Win32'" Label="PropertySheets">
@@ -306,6 +342,9 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release_cllang|x64'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release_avx|x64'" Label="PropertySheets">
@@ -340,6 +379,11 @@
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
     <IntDir>$(Platform)\$(Configuration)\</IntDir>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_cllang|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(Platform)\$(Configuration)\</IntDir>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_avx|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
@@ -355,6 +399,11 @@
     <IncludePath>$(IncludePath);$(SolutionDir)libextern\vcpkg\installed\x64-windows\include\poppler\cpp\;$(SolutionDir)libextern\vcpkg\installed\x64-windows\include;$(VC_IncludePath);$(WindowsSDK_71A_IncludePath)</IncludePath>
     <ExecutablePath>$(ICInstallDir)bin\Intel64;$(ICInstallDir)bin;$(VC_ExecutablePath_x64);$(CommonExecutablePath)</ExecutablePath>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_cllang|x64'">
+    <LinkIncremental>false</LinkIncremental>
+    <IncludePath>$(IncludePath);$(SolutionDir)libextern\vcpkg\installed\x64-windows\include\poppler\cpp\;$(SolutionDir)libextern\vcpkg\installed\x64-windows\include;$(VC_IncludePath);$(WindowsSDK_71A_IncludePath)</IncludePath>
+    <ExecutablePath>$(LLVMInstallDir)\bin;$(ICInstallDir)bin\Intel64;$(ICInstallDir)bin;$(VC_ExecutablePath_x64);$(CommonExecutablePath)</ExecutablePath>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_avx|x64'">
     <LinkIncremental>false</LinkIncremental>
     <IncludePath>$(IncludePath);$(SolutionDir)libextern\vcpkg\installed\x64-windows\include;$(SolutionDir)\libExtern\wxWidgets-master\lib\vc_x64_lib\mswud;$(SolutionDir)\libExtern\wxWidgets-master\include;$(VC_IncludePath);$(WindowsSDK_71A_IncludePath)</IncludePath>
@@ -369,6 +418,11 @@
     <IncludePath>$(SolutionDir)libextern\vcpkg\installed\arm64-windows\include;$(SolutionDir)libextern\vcpkg\installed\arm64-windows\include\poppler\cpp;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+    <IncludePath>C:\Program Files\LLVM\include;$(SolutionDir)libextern\vcpkg\installed\arm64-windows\include;$(SolutionDir)libextern\vcpkg\installed\arm64-windows\include\poppler\cpp;$(IncludePath)</IncludePath>
+    <ExecutablePath>C:\Program Files\LLVM\bin;$(LLVMInstallDir)\bin;$(ExecutablePath)</ExecutablePath>
+    <LibraryPath>C:\Program Files\LLVM\lib;$(VC_LibraryPath_ARM64);$(WindowsSDK_LibraryPath_ARM64)</LibraryPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release_cllang|ARM64'">
     <IncludePath>C:\Program Files\LLVM\include;$(SolutionDir)libextern\vcpkg\installed\arm64-windows\include;$(SolutionDir)libextern\vcpkg\installed\arm64-windows\include\poppler\cpp;$(IncludePath)</IncludePath>
     <ExecutablePath>C:\Program Files\LLVM\bin;$(LLVMInstallDir)\bin;$(ExecutablePath)</ExecutablePath>
     <LibraryPath>C:\Program Files\LLVM\lib;$(VC_LibraryPath_ARM64);$(WindowsSDK_LibraryPath_ARM64)</LibraryPath>
@@ -463,6 +517,24 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_cllang|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_avx|Win32'">
     <ClCompile>
       <PrecompiledHeader>Use</PrecompiledHeader>
@@ -500,6 +572,42 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>wxUSE_PDF;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>false</ConformanceMode>
+      <AdditionalIncludeDirectories>.;$(SolutionDir)include;$(SolutionDir)libResource;include;$(SolutionDir)libUtility</AdditionalIncludeDirectories>
+      <PrecompiledHeaderFile>header.h</PrecompiledHeaderFile>
+      <WholeProgramOptimization>false</WholeProgramOptimization>
+      <InterproceduralOptimization>NoIPO</InterproceduralOptimization>
+      <OpenMP>GenerateParallelCode</OpenMP>
+      <LanguageStandard>stdcpp14</LanguageStandard>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <StructMemberAlignment>16Bytes</StructMemberAlignment>
+      <StringPooling>true</StringPooling>
+      <FloatingPointModel>Fast</FloatingPointModel>
+      <FloatingPointExceptions>false</FloatingPointExceptions>
+      <OptimizeForWindowsApplication>true</OptimizeForWindowsApplication>
+      <PrecompiledHeaderOutputFile>$(IntDir)$(TargetName).pch</PrecompiledHeaderOutputFile>
+      <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
+      <OpenMPSupport>true</OpenMPSupport>
+      <Optimization>Full</Optimization>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_cllang|x64'">
     <ClCompile>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
@@ -615,7 +723,32 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
     </ClCompile>
   </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_cllang|ARM64'">
+    <ClCompile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+    </ClCompile>
+  </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+    <ClCompile>
+      <PrecompiledHeaderFile>header.h</PrecompiledHeaderFile>
+      <AdditionalIncludeDirectories>.;$(SolutionDir)include;$(SolutionDir)libResource;include;$(SolutionDir)libUtility</AdditionalIncludeDirectories>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <EnableFiberSafeOptimizations>false</EnableFiberSafeOptimizations>
+      <StructMemberAlignment>16Bytes</StructMemberAlignment>
+      <FloatingPointModel>Fast</FloatingPointModel>
+      <PreprocessorDefinitions>;_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
+      <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
+      <MinimalRebuild>false</MinimalRebuild>
+      <SmallerTypeCheck>false</SmallerTypeCheck>
+      <OpenMPSupport>true</OpenMPSupport>
+      <EnforceTypeConversionRules>true</EnforceTypeConversionRules>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release_cllang|ARM64'">
     <ClCompile>
       <PrecompiledHeaderFile>header.h</PrecompiledHeaderFile>
       <AdditionalIncludeDirectories>.;$(SolutionDir)include;$(SolutionDir)libResource;include;$(SolutionDir)libUtility</AdditionalIncludeDirectories>

@@ -28,8 +28,8 @@ public:
 		return false;
 	}
 
-	void SetMouseOn();
-	void SetMouseOut();
+	void SetMouseOn() override;
+	void SetMouseOut() override;
 
 	cv::Mat GetImage(bool& isDefault) override;
 	int GetNbFrame() override;
