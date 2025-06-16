@@ -55,7 +55,7 @@
     <Project Name="libVideoConverter" Path="libVideoConverter/libVideoConverter.project" Active="No"/>
   </VirtualDirectory>
   <VirtualDirectory Name="include">
-    <Project Name="include" Path="include.project"/>
+    <Project Name="include" Path="include/include.project"/>
   </VirtualDirectory>
   <BuildMatrix>
     <WorkspaceConfiguration Name="Debug">
@@ -133,6 +133,7 @@
       <Project Name="RegardsViewer_linux_cuda" ConfigName="Debug"/>
       <Project Name="RegardsLiteViewer_macsilicon" ConfigName="Debug"/>
       <Project Name="include" ConfigName="Debug"/>
+      <Project Name="include" ConfigName="Debug"/>
     </WorkspaceConfiguration>
     <WorkspaceConfiguration Name="Release">
       <Environment/>
@@ -207,6 +208,7 @@
       <Project Name="RegardsViewer_linux" ConfigName="Release"/>
       <Project Name="RegardsViewer_linux_cuda" ConfigName="Release"/>
       <Project Name="RegardsLiteViewer_macsilicon" ConfigName="Release"/>
+      <Project Name="include" ConfigName="Release"/>
       <Project Name="include" ConfigName="Release"/>
     </WorkspaceConfiguration>
   </BuildMatrix>

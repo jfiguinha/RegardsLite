@@ -24,7 +24,7 @@ class CAvirFilterParam
 public:
 
 	CAvirFilterParam() {};
-	~CAvirFilterParam() {
+	virtual ~CAvirFilterParam() {
 		for (CAvirStep* step : stepH)
 		{
 			delete step;

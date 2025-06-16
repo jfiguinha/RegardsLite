@@ -79,6 +79,7 @@
     <Project Name="libVideoEffect"/>
   </Dependencies>
   <Dependencies Name="Release">
+    <Project Name="include"/>
     <Project Name="CxImage"/>
     <Project Name="libControl"/>
     <Project Name="libWindow"/>

@@ -1169,6 +1169,7 @@ void CMainWindow::ProcessIdle()
 		folderProcess->RefreshFolder(folderChange, nbFile);
 		if (folderChange || nbFile > 0)
 		{
+            printf("UpdateFolderStatic \n");
 			UpdateFolderStatic();
 			processIdle = true;
 
