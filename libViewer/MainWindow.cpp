@@ -341,10 +341,10 @@ CMainWindow::CMainWindow(wxWindow* parent, wxWindowID id, IStatusBarInterface* s
 	openExternalFileThread = new std::thread(OpenExternalFile, this);
 
 	isCheckNewVersion = true;
-	/*
+
 	refreshFolder = true;
 	processIdle = true;
-	*/
+	
 	endApplication = false;
 
 	bool find = false;
