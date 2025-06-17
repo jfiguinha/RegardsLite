@@ -148,7 +148,7 @@ namespace Regards::Viewer
 		bool onExit;
 		bool m_fsWatcher = true;
 		wxString fileToOpen ="";
-        
+        wxString lastFolder = "";
         int oldWidth = 0;
         int oldHeight = 0;
 		

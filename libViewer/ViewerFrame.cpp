@@ -279,6 +279,19 @@ CViewerFrame::CViewerFrame(const wxString& title, const wxPoint& pos, const wxSi
 	Connect(TIMER_LOADPICTUREEND, wxEVT_TIMER, wxTimerEventHandler(CViewerFrame::OnTimerEndLoadPicture), nullptr, this);
 	Connect(TIMER_LOADPICTURE, wxEVT_TIMER, wxTimerEventHandler(CViewerFrame::OnTimerLoadPicture), nullptr, this);
 	Connect(wxEVT_FULLSCREEN,  wxCommandEventHandler(CViewerFrame::OnWindowFullScreen));
+    
+    wxString firstFileToShow = "";
+	CMainParam* config = CMainParamInit::getInstance();
+	if (config != nullptr)
+		firstFileToShow = config->GetLastShowPicture();
+	if (fileToOpen != "")
+		firstFileToShow = fileToOpen;
+
+    if(firstFileToShow != "")
+    {
+        wxFileName filename(firstFileToShow);
+        lastFolder = filename.GetPath();
+    }
 
 	UpdateMenuCheck();
 }
@@ -419,15 +432,16 @@ void CViewerFrame::OnOpenFile(wxCommandEvent& event)
 {
 	wxString openPicture = CLibResource::LoadStringFromResource(L"LBLOPENPICTUREFILE", 1);
 
-	wxFileDialog openFileDialog(nullptr, openPicture, "", "",
+	wxFileDialog openFileDialog(nullptr, openPicture, lastFolder, "",
 		"*.*", wxFD_OPEN | wxFD_FILE_MUST_EXIST);
 
 	if (openFileDialog.ShowModal() == wxID_CANCEL)
 		return; // the user changed idea..
 
-
+	wxFileName filename(openFileDialog.GetPath());
+	lastFolder = filename.GetPath();
 	//int filterIndex = openFileDialog.Ge
-
+    
 	mainWindow->OpenFile(openFileDialog.GetPath());
 }
 
@@ -435,14 +449,15 @@ void CViewerFrame::OnOpenFolder(wxCommandEvent& event)
 {
 	wxString openPicture = CLibResource::LoadStringFromResource(L"LBLOPENPICTUREFILE", 1);
 	
-	wxDirDialog openFileDialog(NULL, "Choose input directory", "",
+	wxDirDialog openFileDialog(NULL, "Choose input directory", lastFolder,
 		wxDD_DEFAULT_STYLE | wxDD_DIR_MUST_EXIST);
 
 
 	if (openFileDialog.ShowModal() == wxID_CANCEL)
 		return; // the user changed idea..
 
-	mainWindow->OpenFolder(openFileDialog.GetPath());
+    lastFolder = openFileDialog.GetPath();
+	mainWindow->OpenFolder(lastFolder);
 }
 
 
