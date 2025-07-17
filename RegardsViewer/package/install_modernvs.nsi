@@ -16,10 +16,11 @@ ReserveFile `${NSISDIR}\Plugins\EmbeddedLists.dll`
 
 ;--------------------------------
 ;General
-!define MUI_PRODUCT "RegardsLite Viewer 2.0.1.2"
+!define MUI_PRODUCT "RegardsLiteViewer 2.0"
 !define MUI_FILE "RegardsLite"
 !define MUI_ICON "regardsliteicon.ico"
 !define UninstId "RegardsLiteViewer2" ; You might want to use a GUID here
+!define MUI_VERSION "2.0.1.2"
 
   ;Name and file
   Name "Regards Viewer 2.0.1.2"
@@ -134,13 +135,13 @@ Call openLinkNewWindow
 
 ;--------------------------------
 ;Installer Sections
-Section "RegardsLite Viewer 2.0.1.2" SecRegardsViewer
+Section "RegardsLiteViewer" SecRegardsViewer
 
   SetOutPath "$INSTDIR"
 
 
   ;ADD YOUR OWN FILES HERE...
-  DetailPrint "*** Installing RegardsLite Viewer 2.0.0..."
+  DetailPrint "*** Installing RegardsLite Viewer 2.0.1.2 ..."
   File "Prerequisites\RegardsLiteViewer2.zip"
   ZipDLL::extractall "$INSTDIR\RegardsLiteViewer2.zip" $INSTDIR
   ;Store installation folder
@@ -163,7 +164,10 @@ Section "RegardsLite Viewer 2.0.1.2" SecRegardsViewer
   ;write uninstall information to the registry
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${MUI_PRODUCT}" "DisplayName" "${MUI_PRODUCT} (remove only)"
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${MUI_PRODUCT}" "UninstallString" "$INSTDIR\Uninstall.exe"
-
+  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${MUI_PRODUCT}" "DisplayVersion" "${MUI_VERSION}"
+  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${MUI_PRODUCT}" "Publisher" "FIGUINHA"
+  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${MUI_PRODUCT}" "DisplayIcon" "$INSTDIR\Resources\regardsliteicon.ico"
+  WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${MUI_PRODUCT}" "EstimatedSize" 0x00050800
   WriteUninstaller "$INSTDIR\Uninstall.exe"
 
 
@@ -205,7 +209,7 @@ Section "Uninstall"
 
   RMDIR /r "$INSTDIR"
 
-  DeleteRegKey /ifempty HKCU "Software\RegardsLiteViewer2"
+  DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${MUI_PRODUCT}"
 
 SectionEnd
 

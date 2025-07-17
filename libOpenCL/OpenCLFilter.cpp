@@ -1522,8 +1522,6 @@ UMat COpenCLFilter::Interpolation(const int& widthOut, const int& heightOut, con
 		return Interpolation(widthOut, heightOut, rc, localMethod, inputData, inputData.cols, inputData.rows, flipH, flipV, angle);
 	}
 
-	UMat cvImage;
-
 	try
 	{
 		float ratioX = static_cast<float>(inputData.cols) / rc.width;
@@ -1577,33 +1575,33 @@ UMat COpenCLFilter::Interpolation(const int& widthOut, const int& heightOut, con
 		}
 
 		//cv::UMat crop;
-		inputData(rectGlobal).copyTo(cvImage);
+		inputData(rectGlobal).copyTo(cvDestBgra);
 		//Mat global;
-		//cvImage.copyTo(global);
-		//crop.copyTo(cvImage);
-		//cvImage = cvImage(rectGlobal);
+		//cvDestBgra.copyTo(global);
+		//crop.copyTo(cvDestBgra);
+		//cvDestBgra = cvDestBgra(rectGlobal);
 
 		if (angle == 270)
 		{
 			if (flipV && flipH)
-				cv::rotate(cvImage, cvImage, ROTATE_90_CLOCKWISE);
+				cv::rotate(cvDestBgra, cvDestBgra, ROTATE_90_CLOCKWISE);
 			else if (flipV || flipH)
-				cv::rotate(cvImage, cvImage, ROTATE_90_COUNTERCLOCKWISE);
+				cv::rotate(cvDestBgra, cvDestBgra, ROTATE_90_COUNTERCLOCKWISE);
 			else
-				cv::rotate(cvImage, cvImage, ROTATE_90_CLOCKWISE);
+				cv::rotate(cvDestBgra, cvDestBgra, ROTATE_90_CLOCKWISE);
 		}
 		else if (angle == 90)
 		{
 			if (flipV && flipH)
-				cv::rotate(cvImage, cvImage, ROTATE_90_COUNTERCLOCKWISE);
+				cv::rotate(cvDestBgra, cvDestBgra, ROTATE_90_COUNTERCLOCKWISE);
 			else if (flipV || flipH)
-				cv::rotate(cvImage, cvImage, ROTATE_90_CLOCKWISE);
+				cv::rotate(cvDestBgra, cvDestBgra, ROTATE_90_CLOCKWISE);
 			else
-				cv::rotate(cvImage, cvImage, ROTATE_90_COUNTERCLOCKWISE);
+				cv::rotate(cvDestBgra, cvDestBgra, ROTATE_90_COUNTERCLOCKWISE);
 		}
 		else if (angle == 180)
 		{
-			cv::rotate(cvImage, cvImage, ROTATE_180);
+			cv::rotate(cvDestBgra, cvDestBgra, ROTATE_180);
 		}
 
 
@@ -1636,7 +1634,7 @@ UMat COpenCLFilter::Interpolation(const int& widthOut, const int& heightOut, con
 				clock_t start, end;
 				start = clock();
 				cv::UMat src;
-				cvtColor(cvImage, src, cv::COLOR_BGR2BGRA);
+				cvtColor(cvDestBgra, src, cv::COLOR_BGR2BGRA);
 				avir::CImageResizer ImageResizer(8);
 				avir::CImageResizerVars Vars;
 				Vars.UseSRGBGamma = true;
@@ -1680,7 +1678,7 @@ UMat COpenCLFilter::Interpolation(const int& widthOut, const int& heightOut, con
 				
 				//out = ImageResizer.resizeImageOpenCL(src, src.cols, src.rows, widthOut, heightOut, 4, 0, param, &Vars);
 					
-                cvtColor(out, cvImage, cv::COLOR_BGRA2BGR);
+                cvtColor(out, cvDestBgra, cv::COLOR_BGRA2BGR);
 
 				end = clock();
 
@@ -1700,17 +1698,17 @@ UMat COpenCLFilter::Interpolation(const int& widthOut, const int& heightOut, con
 			}
 			catch (...)
 			{
-				if (cvImage.cols != widthOut || cvImage.rows != heightOut)
+				if (cvDestBgra.cols != widthOut || cvDestBgra.rows != heightOut)
 				{
-					resize(cvImage, cvImage, Size(widthOut, heightOut), method);
+					resize(cvDestBgra, cvDestBgra, Size(widthOut, heightOut), method);
 				}
 			}
         }
         else
         {
-            if (cvImage.cols != widthOut || cvImage.rows != heightOut)
+            if (cvDestBgra.cols != widthOut || cvDestBgra.rows != heightOut)
             {
-                resize(cvImage, cvImage, Size(widthOut, heightOut), method);
+                resize(cvDestBgra, cvDestBgra, Size(widthOut, heightOut), method);
             }
         }
         
@@ -1721,16 +1719,16 @@ UMat COpenCLFilter::Interpolation(const int& widthOut, const int& heightOut, con
 		if (flipH)
 		{
 			if (angle == 90 || angle == 270)
-				flip(cvImage, cvImage, 0);
+				flip(cvDestBgra, cvDestBgra, 0);
 			else
-				flip(cvImage, cvImage, 1);
+				flip(cvDestBgra, cvDestBgra, 1);
 		}
 		if (flipV)
 		{
 			if (angle == 90 || angle == 270)
-				flip(cvImage, cvImage, 1);
+				flip(cvDestBgra, cvDestBgra, 1);
 			else
-				flip(cvImage, cvImage, 0);
+				flip(cvDestBgra, cvDestBgra, 0);
 		}
 	}
 	catch (Exception& e)
@@ -1739,8 +1737,8 @@ UMat COpenCLFilter::Interpolation(const int& widthOut, const int& heightOut, con
 		std::cerr << "Invalid file format. Please input the name of an IMAGE file." << std::endl;
 
 		// Retourne une image vide en cas d'erreur
-		cvImage.create(heightOut, widthOut, CV_8UC3);
+		cvDestBgra.create(heightOut, widthOut, CV_8UC3);
 	}
 
-	return cvImage;
+	return cvDestBgra;
 }
