@@ -1513,7 +1513,7 @@ UMat COpenCLFilter::Interpolation(const int& widthOut, const int& heightOut, con
 {
 
     bool useSuperDNN = false;
-    cout << "COpenCLFilter::Interpolation : " << method << endl;
+    //cout << "COpenCLFilter::Interpolation : " << method << endl;
     
 	if (method > 7 && !useSuperDNN)
 	{
