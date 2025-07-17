@@ -141,7 +141,7 @@ Section "RegardsLiteViewer" SecRegardsViewer
 
 
   ;ADD YOUR OWN FILES HERE...
-  DetailPrint "*** Installing RegardsLite Viewer 2.0.1.2 ..."
+  DetailPrint "*** Installing RegardsLiteViewer 2.0.1.2 ..."
   File "Prerequisites\RegardsLiteViewer2.zip"
   ZipDLL::extractall "$INSTDIR\RegardsLiteViewer2.zip" $INSTDIR
   ;Store installation folder
@@ -175,7 +175,7 @@ SectionEnd
 
 ;--------------------------------
 ;Installer Sections
-Section "Visual Studio 2017 Redistribuable x64" SecVisualStudio
+Section "Visual Studio 2017 Redistribuable" SecVisualStudio
   SetOutPath "$INSTDIR"
   ;ADD YOUR OWN FILES HERE...
   DetailPrint "*** Installing Visual Studio 2017 Redistribuable x64..."
@@ -188,8 +188,8 @@ SectionEnd
 ;Descriptions
 
   ;Language strings
-  LangString DESC_SecRegardsViewer ${LANG_ENGLISH} "Regards Viewer 2.0.1.2"
-  LangString DESC_SecVisualStudio ${LANG_ENGLISH} "Visual Studio 2017 Redistribuable x64"
+  LangString DESC_SecRegardsViewer ${LANG_ENGLISH} "RegardsLiteViewer"
+  LangString DESC_SecVisualStudio ${LANG_ENGLISH} "Visual Studio 2017 Redistribuable"
   ;Assign language strings to sections
   !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
   !insertmacro MUI_DESCRIPTION_TEXT ${SecRegardsViewer} $(DESC_SecRegardsViewer)
@@ -322,7 +322,7 @@ Function ListViewLeave
 
 	${For} $1 1 $0
 		Pop $2
-		${registerExtension} "$INSTDIR\RegardsViewer.exe" $2 "RegardsViewer.Files"
+		${registerExtension} "$INSTDIR\RegardsLite.exe" $2 "RegardsLite.Files"
 		#MessageBox MB_OK "Element #$1: $2"
 	${Next}
 

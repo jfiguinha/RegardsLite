@@ -16,20 +16,21 @@ ReserveFile `${NSISDIR}\Plugins\EmbeddedLists.dll`
 
 ;--------------------------------
 ;General
-!define MUI_PRODUCT "Regards Viewer 2.82.0"
-!define MUI_FILE "RegardsViewer"
-!define MUI_ICON "viewer.ico"
-!define UninstId "RegardsViewer2" ; You might want to use a GUID here
+!define MUI_PRODUCT "RegardsLiteViewer 2.0"
+!define MUI_FILE "RegardsLite"
+!define MUI_ICON "regardsliteicon.ico"
+!define UninstId "RegardsLiteViewer2" ; You might want to use a GUID here
+!define MUI_VERSION "2.0.1.2"
 
   ;Name and file
-  Name "Regards Viewer 2.82.0"
-  OutFile "RegardsViewer2_arm64_win.exe"
+  Name "RegardsLiteViewer 2.0.1.2"
+  OutFile "RegardsLiteViewer2Setup.exe"
 
   ;Default installation folder
-  InstallDir "$PROGRAMFILES64\RegardsViewer2"
+  InstallDir "$PROGRAMFILES64\RegardsLiteViewer2"
 
   ;Get installation folder from registry if available
-  InstallDirRegKey HKCU "Software\RegardsViewer2" ""
+  InstallDirRegKey HKCU "Software\RegardsLiteViewer2" ""
 
   ;Request application privileges for Windows Vista
   RequestExecutionLevel admin
@@ -74,10 +75,10 @@ ${AndIf} ${Cmd} `MessageBox MB_YESNO|MB_ICONQUESTION "Uninstall previous version
 
   RMDIR /r "$INSTDIR"
 
-  DeleteRegKey /ifempty HKCU "Software\RegardsViewer2"
+  DeleteRegKey /ifempty HKCU "Software\RegardsLiteViewer2"
 ${EndIf}
 file_not_found:
-	DetailPrint "Uninstall Regards Viewer"
+	DetailPrint "Uninstall RegardsLiteViewer2"
 
  InitPluginsDir
  File `/oname=$PLUGINSDIR\ListView_CheckBoxes.ini` `ListView_CheckBoxes.ini`
@@ -134,23 +135,23 @@ Call openLinkNewWindow
 
 ;--------------------------------
 ;Installer Sections
-Section "Regards Viewer 2.82.0" SecRegardsViewer
+Section "RegardsLiteViewer" SecRegardsViewer
 
   SetOutPath "$INSTDIR"
 
 
   ;ADD YOUR OWN FILES HERE...
-  DetailPrint "*** Installing Regards Viewer 2.82.0..."
-  File "Prerequisites\RegardsViewer2.zip"
-  ZipDLL::extractall "$INSTDIR\RegardsViewer2.zip" $INSTDIR
+  DetailPrint "*** Installing RegardsLiteViewer 2.0.1.2 ..."
+  File "Prerequisites\RegardsLiteViewer2.zip"
+  ZipDLL::extractall "$INSTDIR\RegardsLiteViewer2.zip" $INSTDIR
   ;Store installation folder
-  WriteRegStr HKCU "Software\RegardsViewer2" "" $INSTDIR
+  WriteRegStr HKCU "Software\RegardsLiteViewer2" "" $INSTDIR
 
   ;Create uninstaller
   WriteUninstaller "$INSTDIR\Uninstall.exe"
 
   DetailPrint "*** Remove zip installer ..."
-  Delete "$INSTDIR\RegardsViewer2.zip"
+  Delete "$INSTDIR\RegardsLiteViewer2.zip"
 
   ;create desktop shortcut
   CreateShortCut "$DESKTOP\${MUI_PRODUCT}.lnk" "$INSTDIR\${MUI_FILE}.exe" ""
@@ -163,7 +164,10 @@ Section "Regards Viewer 2.82.0" SecRegardsViewer
   ;write uninstall information to the registry
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${MUI_PRODUCT}" "DisplayName" "${MUI_PRODUCT} (remove only)"
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${MUI_PRODUCT}" "UninstallString" "$INSTDIR\Uninstall.exe"
-
+  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${MUI_PRODUCT}" "DisplayVersion" "${MUI_VERSION}"
+  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${MUI_PRODUCT}" "Publisher" "FIGUINHA"
+  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${MUI_PRODUCT}" "DisplayIcon" "$INSTDIR\Resources\regardsliteicon.ico"
+  WriteRegDWORD HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${MUI_PRODUCT}" "EstimatedSize" 0x00050800
   WriteUninstaller "$INSTDIR\Uninstall.exe"
 
 
@@ -171,7 +175,7 @@ SectionEnd
 
 ;--------------------------------
 ;Installer Sections
-Section "Visual Studio 2017 Redistribuable arm64" SecVisualStudio
+Section "Visual Studio 2017 Redistribuable" SecVisualStudio
   SetOutPath "$INSTDIR"
   ;ADD YOUR OWN FILES HERE...
   DetailPrint "*** Installing Visual Studio 2017 Redistribuable arm64..."
@@ -184,8 +188,8 @@ SectionEnd
 ;Descriptions
 
   ;Language strings
-  LangString DESC_SecRegardsViewer ${LANG_ENGLISH} "Regards Viewer 2.82.0"
-  LangString DESC_SecVisualStudio ${LANG_ENGLISH} "Visual Studio 2017 Redistribuable arm64"
+  LangString DESC_SecRegardsViewer ${LANG_ENGLISH} "RegardsLiteViewer"
+  LangString DESC_SecVisualStudio ${LANG_ENGLISH} "Visual Studio 2017 Redistribuable"
   ;Assign language strings to sections
   !insertmacro MUI_FUNCTION_DESCRIPTION_BEGIN
   !insertmacro MUI_DESCRIPTION_TEXT ${SecRegardsViewer} $(DESC_SecRegardsViewer)
@@ -205,7 +209,7 @@ Section "Uninstall"
 
   RMDIR /r "$INSTDIR"
 
-  DeleteRegKey /ifempty HKCU "Software\RegardsViewer2"
+  DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\${MUI_PRODUCT}"
 
 SectionEnd
 
@@ -318,7 +322,7 @@ Function ListViewLeave
 
 	${For} $1 1 $0
 		Pop $2
-		${registerExtension} "$INSTDIR\RegardsViewer.exe" $2 "RegardsViewer.Files"
+		${registerExtension} "$INSTDIR\RegardsLite.exe" $2 "RegardsLite.Files"
 		#MessageBox MB_OK "Element #$1: $2"
 	${Next}
 
