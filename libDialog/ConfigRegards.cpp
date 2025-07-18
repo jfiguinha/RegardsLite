@@ -62,8 +62,8 @@ ConfigRegards::ConfigRegards(wxWindow* parent)
 	txtMusicDiaporamaPath = static_cast<wxTextCtrl*>(FindWindow(XRCID("ID_TXTMUSICDIAPORAMAPATH")));
 	btMusicDiaporamaPath = static_cast<wxButton*>(FindWindow(XRCID("ID_MUSICDIAPORAMAPATH")));
 
-
-
+	
+	rbInverseVideoRot = static_cast<wxRadioBox*>(FindWindow(XRCID("ID_RBINVERSEROTVIDEO")));
 	rbVideoEncoderHard = static_cast<wxComboBox*>(FindWindow(XRCID("ID_CBVIDEOENCODERHARD")));
 	rbVideoDecoderHard = static_cast<wxComboBox*>(FindWindow(XRCID("ID_CBVIDEODECODERHARD")));
 
@@ -282,8 +282,16 @@ void ConfigRegards::init()
 		oldAccelerator = "CPU";
 	}
 
+
 	int skinMode = regardsParam->GetSkinWindowMode();
 	rbSkin->SetSelection(skinMode);
+
+	int inverseVideoRot = regardsParam->GetInverseVideoRotation();
+	if(inverseVideoRot == 0)
+		rbInverseVideoRot->SetSelection(1);
+	else
+		rbInverseVideoRot->SetSelection(0);
+
 }
 
 void ConfigRegards::OnbtnOkClick(wxCommandEvent& event)
@@ -318,6 +326,12 @@ void ConfigRegards::OnbtnOkClick(wxCommandEvent& event)
 		regardsParam->SetAutoConstrast(1);
 	else
 		regardsParam->SetAutoConstrast(0);
+
+	int inverseVideoRot = rbInverseVideoRot->GetSelection();
+	if (inverseVideoRot == 0)
+		regardsParam->SetInverseVideoRotation(1);
+	else
+		regardsParam->SetInverseVideoRotation(0);
 
 	int interpolation = rbInterpolation->GetSelection();
 	regardsParam->SetInterpolationType(interpolation);

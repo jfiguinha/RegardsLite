@@ -50,6 +50,7 @@ public:
 	wxRadioBox* rbOpenCLOpenGLInterop;
 	wxComboBox* rbVideoEncoderHard;
 	wxComboBox* rbVideoDecoderHard;
+	wxRadioBox* rbInverseVideoRot;
 	//*)
 
 	wxComboBox* rbSkin;

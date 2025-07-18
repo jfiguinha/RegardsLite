@@ -432,6 +432,15 @@ void CRegardsConfigParam::SetOpenCLPlatformName(const wxString& platformName)
 	openCLPlatformName = platformName;
 }
 
+void CRegardsConfigParam::SetInverseVideoRotation(const int& inverseRot)
+{
+	inverseRotation = inverseRot;
+}
+int CRegardsConfigParam::GetInverseVideoRotation()
+{
+	return inverseRotation;
+}
+
 int CRegardsConfigParam::GetEffect()
 {
 	if (numEffect < 300)
@@ -483,6 +492,7 @@ void CRegardsConfigParam::SetImageLibrary(xml_node<>* sectionPosition)
 	sectionPosition->append_node(node("isThumbnailOpenCV", to_string(isThumbnailOpenCV)));
 	sectionPosition->append_node(node("cudaSupport", to_string(cudaSupport)));
     sectionPosition->append_node(node("useCuda", to_string(useCuda)));
+	sectionPosition->append_node(node("inverseRotation", to_string(inverseRotation)));
 }
 
 void CRegardsConfigParam::SetVideoEffectParameter(xml_node<>* sectionPosition)
@@ -535,8 +545,8 @@ void CRegardsConfigParam::GetVideoEffectParameter(xml_node<>* position_node)
         xml_node<>* child_node = position_node->first_node(listParam[i]);
         if (child_node != nullptr)
         {
-            value = child_node->value();
-            nodeName = child_node->name();
+            
+            
             if(listParam[i] == "effectEnable")
                 videoEffectParameter->effectEnable = atoi(child_node->value());
             else if(listParam[i] == "sharpness")
@@ -625,32 +635,32 @@ void CRegardsConfigParam::GetVideoLibrary(xml_node<>* position_node)
 	xml_node<>* child_node = position_node->first_node("NumLibrary");
 	if (child_node != nullptr)
 	{
-		value = child_node->value();
-		nodeName = child_node->name();
+		
+		
 		numLibVideo = atoi(child_node->value());
 	}
 
 	child_node = position_node->first_node("HardwareDecoder");
 	if (child_node != nullptr)
 	{
-		value = child_node->value();
-		nodeName = child_node->name();
+		
+		
 		videoDecoderHardware = child_node->value();
 	}
 
 	child_node = position_node->first_node("HardwareEncoder");
 	if (child_node != nullptr)
 	{
-		value = child_node->value();
-		nodeName = child_node->name();
+		
+		
 		videoEncoderHardware = child_node->value();
 	}
 
 	child_node = position_node->first_node("SoundVolume");
 	if (child_node != nullptr)
 	{
-		value = child_node->value();
-		nodeName = child_node->name();
+		
+		
 		soundVolume = atoi(child_node->value());
 	}
 }
@@ -662,72 +672,68 @@ void CRegardsConfigParam::GetEffectLibrary(xml_node<>* position_node)
 	xml_node<>* child_node = position_node->first_node("NumLibrary");
 	if (child_node != nullptr)
 	{
-		value = child_node->value();
-		nodeName = child_node->name();
+		
+		
 		numLibEffect = atoi(child_node->value());
 	}
 
 	child_node = position_node->first_node("NumEffect");
 	if (child_node != nullptr)
 	{
-		value = child_node->value();
-		nodeName = child_node->name();
+
+
 		numEffect = atoi(child_node->value());
 	}
 
 	child_node = position_node->first_node("NbProcessThumbnail");
 	if (child_node != nullptr)
 	{
-		value = child_node->value();
-		nodeName = child_node->name();
+		
+		
 		nbProcessThumbnail = atoi(child_node->value());
 	}
 
 	child_node = position_node->first_node("NbProcessExif");
 	if (child_node != nullptr)
 	{
-		value = child_node->value();
-		nodeName = child_node->name();
+		
+		
 		nbProcessExif = atoi(child_node->value());
 	}
 
 	child_node = position_node->first_node("NbProcessFace");
 	if (child_node != nullptr)
 	{
-		value = child_node->value();
-		nodeName = child_node->name();
+		
+		
 		nbProcessFace = atoi(child_node->value());
 	}
 
 	child_node = position_node->first_node("GpsFileByMinute");
 	if (child_node != nullptr)
 	{
-		value = child_node->value();
-		nodeName = child_node->name();
+		
+		
 		nbGpsFileByMinute = atoi(child_node->value());
 	}
 
 	child_node = position_node->first_node("videoFaceDetection");
 	if (child_node != nullptr)
 	{
-		value = child_node->value();
-		nodeName = child_node->name();
+		
+		
 		videoFaceDetection = atoi(child_node->value());
 	}
 
 	child_node = position_node->first_node("FaceDetection");
 	if (child_node != nullptr)
 	{
-		value = child_node->value();
-		nodeName = child_node->name();
 		faceDetection = atoi(child_node->value());
 	}
 
 	child_node = position_node->first_node("FastFaceDetection");
 	if (child_node != nullptr)
 	{
-		value = child_node->value();
-		nodeName = child_node->name();
 		fastFaceDetection = atoi(child_node->value());
 	}
 }
@@ -739,128 +745,124 @@ void CRegardsConfigParam::GetImageLibrary(xml_node<>* position_node)
 	xml_node<>* child_node = position_node->first_node("NumLibrary");
 	if (child_node != nullptr)
 	{
-		value = child_node->value();
-		nodeName = child_node->name();
 		numLibPreview = atoi(child_node->value());
 	}
 
 	child_node = position_node->first_node("OpenCLNumIndex");
 	if (child_node != nullptr)
 	{
-		value = child_node->value();
-		nodeName = child_node->name();
 		openCLNumIndex = atoi(child_node->value());
 	}
 
 	child_node = position_node->first_node("OpenCLPlatformName");
 	if (child_node != nullptr)
 	{
-		value = child_node->value();
-		nodeName = child_node->name();
+		
+		
 		openCLPlatformName = child_node->value();
 	}
 
 	child_node = position_node->first_node("LoadFromBinaries");
 	if (child_node != nullptr)
 	{
-		value = child_node->value();
-		nodeName = child_node->name();
+		
+		
 		loadFromBinaries = atoi(child_node->value());
 	}
 
 	child_node = position_node->first_node("NumInterpolation");
 	if (child_node != nullptr)
 	{
-		value = child_node->value();
-		nodeName = child_node->name();
+		
+		
 		numInterpolation = atoi(child_node->value());
 	}
 
 	child_node = position_node->first_node("OpenCLSupport");
 	if (child_node != nullptr)
 	{
-		value = child_node->value();
-		nodeName = child_node->name();
 		openCLSupport = atoi(child_node->value());
 	}
 
 	child_node = position_node->first_node("cudaSupport");
 	if (child_node != nullptr)
 	{
-		value = child_node->value();
-		nodeName = child_node->name();
 		cudaSupport = atoi(child_node->value());
 	}
     
 	child_node = position_node->first_node("useCuda");
 	if (child_node != nullptr)
 	{
-		value = child_node->value();
-		nodeName = child_node->name();
 		useCuda = atoi(child_node->value());
+	}
+
+	child_node = position_node->first_node("inverseRotation");
+	if (child_node != nullptr)
+	{
+		inverseRotation = atoi(child_node->value());
 	}
 
 	child_node = position_node->first_node("openCLOpenGLInteropSupport");
 	if (child_node != nullptr)
 	{
-		value = child_node->value();
-		nodeName = child_node->name();
+		
+		
 		openCLOpenGLInteropSupport = atoi(child_node->value());
 	}
 
 	child_node = position_node->first_node("openGLOutputColor");
 	if (child_node != nullptr)
 	{
-		value = child_node->value();
-		nodeName = child_node->name();
+		
+		
 		openGLOutputColor = child_node->value();
 	}
     
 	child_node = position_node->first_node("detectOrientation");
 	if (child_node != nullptr)
 	{
-		value = child_node->value();
-		nodeName = child_node->name();
+		
+		
 		detectOrientation = atoi(child_node->value());
 	}
 
 	child_node = position_node->first_node("autoContrast");
 	if (child_node != nullptr)
 	{
-		value = child_node->value();
-		nodeName = child_node->name();
+		
+		
 		autoContrast = atoi(child_node->value());
 	}
 
 	child_node = position_node->first_node("openCLFaceSupport");
 	if (child_node != nullptr)
 	{
-		value = child_node->value();
-		nodeName = child_node->name();
+		
+		
 		openCLFaceSupport = atoi(child_node->value());
 	}
 
 	child_node = position_node->first_node("useSuperResolution");
 	if (child_node != nullptr)
 	{
-		value = child_node->value();
-		nodeName = child_node->name();
+		
+		
 		useSuperResolution = atoi(child_node->value());
 	}
 
 	child_node = position_node->first_node("numSuperResolution");
 	if (child_node != nullptr)
 	{
-		value = child_node->value();
-		nodeName = child_node->name();
+		
+		
 		numSuperResolution = atoi(child_node->value());
 	}
 
 	child_node = position_node->first_node("isThumbnailOpenCV");
 	if (child_node != nullptr)
 	{
-		value = child_node->value();
-		nodeName = child_node->name();
+		
+		
 		isThumbnailOpenCV = atoi(child_node->value());
 	}
 }
@@ -935,8 +937,8 @@ void CRegardsConfigParam::GetWindowParameter(xml_node<>* position_node)
 	xml_node<>* child_node = position_node->first_node("Mode");
 	if (child_node != nullptr)
 	{
-		value = child_node->value();
-		nodeName = child_node->name();
+		
+		
 		skinWindowMode = static_cast<int>(atoi(child_node->value()));
 	}
 }
@@ -1003,8 +1005,8 @@ void CRegardsConfigParam::GetIconParameter(xml_node<>* position_node)
 	xml_node<>* child_node = position_node->first_node("Ratio");
 	if (child_node != nullptr)
 	{
-		value = child_node->value();
-		nodeName = child_node->name();
+		
+		
 		iconSizeRatio = static_cast<float>(atof(child_node->value()));
 	}
 }
@@ -1023,16 +1025,16 @@ void CRegardsConfigParam::GetDatabaseParameter(xml_node<>* position_node)
 	xml_node<>* child_node = position_node->first_node("InMemory");
 	if (child_node != nullptr)
 	{
-		value = child_node->value();
-		nodeName = child_node->name();
+		
+		
 		dataInMemory = atoi(child_node->value());
 	}
 
 	child_node = position_node->first_node("Language");
 	if (child_node != nullptr)
 	{
-		value = child_node->value();
-		nodeName = child_node->name();
+		
+		
 		numLanguage = atoi(child_node->value());
 	}
 }
@@ -1052,7 +1054,7 @@ void CRegardsConfigParam::GetDiaporamaParameter(xml_node<>* position_node)
 	xml_node<>* child_node = position_node->first_node("Time");
 	if (child_node != nullptr)
 	{
-		value = child_node->value();
+		
 		node_name = child_node->name();
 		diaporamaTime = atoi(child_node->value());
 	}
@@ -1060,7 +1062,7 @@ void CRegardsConfigParam::GetDiaporamaParameter(xml_node<>* position_node)
 	child_node = position_node->first_node("Effect");
 	if (child_node != nullptr)
 	{
-		value = child_node->value();
+		
 		node_name = child_node->name();
 		diaporamaEffect = atoi(child_node->value());
 	}
@@ -1068,7 +1070,7 @@ void CRegardsConfigParam::GetDiaporamaParameter(xml_node<>* position_node)
 	child_node = position_node->first_node("Fullscreen");
 	if (child_node != nullptr)
 	{
-		value = child_node->value();
+		
 		node_name = child_node->name();
 		diaporamaFullscreen = atoi(child_node->value());
 	}
@@ -1076,7 +1078,7 @@ void CRegardsConfigParam::GetDiaporamaParameter(xml_node<>* position_node)
 	child_node = position_node->first_node("MusicDiaporama");
 	if (child_node != nullptr)
 	{
-		value = child_node->value();
+		
 		node_name = child_node->name();
 		musicDiaporama = child_node->value();
 	}
@@ -1124,8 +1126,8 @@ void CRegardsConfigParam::GetGeolocalisationServer(xml_node<>* position_node)
 	xml_node<>* child_node = position_node->first_node("Url");
 	if (child_node != nullptr)
 	{
-		value = child_node->value();
-		nodeName = child_node->name();
+		
+		
 		geolocUrl = child_node->value();
 	}
 }
@@ -1146,32 +1148,32 @@ void CRegardsConfigParam::GetThumbnail(xml_node<>* position_node)
 	xml_node<>* child_node = position_node->first_node("Quality");
 	if (child_node != nullptr)
 	{
-		value = child_node->value();
-		nodeName = child_node->name();
+		
+		
 		thumbnailQuality = atoi(child_node->value());
 	}
 
 	child_node = position_node->first_node("IconeCache");
 	if (child_node != nullptr)
 	{
-		value = child_node->value();
-		nodeName = child_node->name();
+		
+		
 		thumbnailIconeCache = atoi(child_node->value());
 	}
 
 	child_node = position_node->first_node("FacePictureSize");
 	if (child_node != nullptr)
 	{
-		value = child_node->value();
-		nodeName = child_node->name();
+		
+		
 		pictureSize = atoi(child_node->value());
 	}
 
 	child_node = position_node->first_node("BufferCache");
 	if (child_node != nullptr)
 	{
-		value = child_node->value();
-		nodeName = child_node->name();
+		
+		
 		bufferSize = atoi(child_node->value());
 	}
 }

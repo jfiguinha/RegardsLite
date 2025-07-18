@@ -734,19 +734,30 @@ void CVideoControlSoft::SetRotation(const int& rotation)
 
 void CVideoControlSoft::VideoRotation(wxCommandEvent& event)
 {
+	int inverseRotation = 0;
 	long rotation = event.GetExtraLong();
-	if (rotation == 90)
-		angle = 270;
-	else if (rotation == -90)
-		angle = 270;
-	else if (rotation == -180)
-		angle = 180;
-	else if (rotation == 180)
-		angle = 180;
-	else if (rotation == -270)
-		angle = 90;
-	else if (rotation == 270)
-		angle = 90;
+	CRegardsConfigParam* config = CParamInit::getInstance();
+	if (config != nullptr)
+		inverseRotation = config->GetInverseVideoRotation();
+	if (inverseRotation == 0)
+	{
+		if (rotation == 90)
+			angle = 270;
+		else if (rotation == -90)
+			angle = 270;
+		else if (rotation == -180)
+			angle = 180;
+		else if (rotation == 180)
+			angle = 180;
+		else if (rotation == -270)
+			angle = 90;
+		else if (rotation == 270)
+			angle = 90;
+	}
+	else
+	{
+		angle = rotation;
+	}
 
 	CSqlPhotos sqlPhotos;
 	int exif = sqlPhotos.GetPhotoExif(filename);

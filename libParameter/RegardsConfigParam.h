@@ -38,6 +38,9 @@ public:
 	int GetVideoLibrary();
 	void SetVideoLibrary(const int& numLib);
 
+	int GetInverseVideoRotation();
+	void SetInverseVideoRotation(const int& inverseRot);
+
 	int GetSuperResolutionType();
 	void SetSuperResolutionType(const int& value);
 
@@ -195,6 +198,7 @@ protected:
 	wxString geolocUrl;
 
 	int dataInMemory;
+	int inverseRotation = 0;
 
 	int nbProcessThumbnail;
 	int nbProcessExif;
