@@ -138,9 +138,7 @@ wxString CBitmapInfos::GenerateDefaultTimeStamp()
 {
 	wxFileName file = wxFileName(filename);
 	wxDateTime dt = file.GetModificationTime();
-
-	wxDateTime now = wxDateTime::Now();
-	wxString str = now.Format(wxT("%Y-%m-%d"), wxDateTime::CET);
+	wxString str = dt.Format(wxT("%Y-%m-%d"), wxDateTime::CET);
 
 	return str;
 }
@@ -164,10 +162,7 @@ void CBitmapInfos::UpdateData()
 
 	if (dateInfos == "")
 	{
-		wxStructStat strucStat;
-		wxStat(filename, &strucStat);
-		wxDateTime last_modified_time(strucStat.st_mtime);
-		wxString str = last_modified_time.Format(wxT("%F"), wxDateTime::CET);//GenerateDefaultTimeStamp();
+		wxString str = GenerateDefaultTimeStamp();
 		SetDateInfos(str, '-');
 	}
 	else

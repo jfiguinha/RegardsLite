@@ -508,6 +508,11 @@ void COpenCLContext::CreateDefaultOpenCLContext()
 		//cv::ocl::Device(context.device(0));
 		clExecCtx = cv::ocl::OpenCLExecutionContext::getCurrent();
 		platformName = clExecCtx.getDevice().vendorName();
+
+		CRegardsConfigParam* regardsParam = CParamInit::getInstance();
+		if(regardsParam != nullptr)
+			regardsParam->SetOpenCLPlatformName(platformName);
+		//wxMessageBox(wxString::Format("OpenCL initialized with platform: %s", platformName), "OpenCL Info", wxOK | wxICON_INFORMATION);
 	}
 }
 

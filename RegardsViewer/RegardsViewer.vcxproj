@@ -155,7 +155,7 @@
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
-    <WholeProgramOptimization>PGOptimize</WholeProgramOptimization>
+    <WholeProgramOptimization>false</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
     <UseIntelIPP>Parallel_Dynamic</UseIntelIPP>
     <UseInteloneTBB>true</UseInteloneTBB>
