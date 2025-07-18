@@ -118,6 +118,10 @@ void CRenderOpenGL::Init(wxGLCanvas* canvas)
 						COpenCLContext::CreateDefaultOpenCLContext();
 					}
 
+					CRegardsConfigParam* regardsParam = CParamInit::getInstance();
+					if (regardsParam != nullptr)
+						regardsParam->SetOpenCLPlatformName(platformName);
+
 				}
 
 
