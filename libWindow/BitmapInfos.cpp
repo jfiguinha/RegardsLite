@@ -151,7 +151,7 @@ void CBitmapInfos::UpdateData()
 	//printf("UpdateData \n");
 
 	CMetadataExiv2 metadata(filename);
-
+	dateInfos = "";
 	bool hasGps;
 	bool hasDataTime;
 	wxString latitudeGps;
@@ -164,7 +164,10 @@ void CBitmapInfos::UpdateData()
 
 	if (dateInfos == "")
 	{
-		wxString str = GenerateDefaultTimeStamp();
+		wxStructStat strucStat;
+		wxStat(filename, &strucStat);
+		wxDateTime last_modified_time(strucStat.st_mtime);
+		wxString str = last_modified_time.Format(wxT("%F"), wxDateTime::CET);//GenerateDefaultTimeStamp();
 		SetDateInfos(str, '-');
 	}
 	else
