@@ -55,7 +55,7 @@
     <Project Name="libVideoConverter" Path="libVideoConverter/libVideoConverter.project" Active="No"/>
   </VirtualDirectory>
   <VirtualDirectory Name="include">
-    <Project Name="include" Path="include/include.project"/>
+    <Project Name="include" Path="include/include.project" Active="No"/>
   </VirtualDirectory>
   <BuildMatrix>
     <WorkspaceConfiguration Name="Debug">
