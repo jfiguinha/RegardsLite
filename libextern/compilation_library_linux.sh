@@ -7,30 +7,15 @@ echo $LOCALPATH
 
 export PKG_CONFIG_PATH=$HOME/ffmpeg_build/lib/pkgconfig
 
-echo "Cuda not found in system"
-cp header.h ../include/header.h
-
-unzip vcpkg-2024.08.23_linux.zip
-mv vcpkg-2024.08.23 vcpkg
-
-unzip ports_vcpkg.zip
-
-x11=$XDG_SESSION_TYPE
-echo $x11
-
-if [ "$x11" = "x11" ]
-then
-    cp ports_vcpkg/x11/wxwidgets/portfile.cmake vcpkg/ports/wxwidgets/portfile.cmake 
-fi
-
-cp -r ports_vcpkg/opencv4 vcpkg/ports
+unzip vcpkg-2025.09.17_linux.zip
+mv vcpkg-2025.09.17 vcpkg
 
 cd vcpkg
 ./bootstrap-vcpkg.sh
-./vcpkg install wxwidgets
+./vcpkg install wxwidgets[webview]
 ./vcpkg install x265
 ./vcpkg install libde265
-./vcpkg install opencv4[contrib,core,ffmpeg,ipp,jpeg,openmp,png,tiff,webp,openexr,opengl,gtk]
+./vcpkg install opencv4[contrib,core,ffmpeg,ipp,jpeg,openmp,png,tiff,webp,openexr,opengl,opencl,gtk]
 ./vcpkg install opencl
 ./vcpkg install tbb
 ./vcpkg install exiv2[video,xmp,bmff]
@@ -44,6 +29,8 @@ cd vcpkg
 ./vcpkg install freeimage
 ./vcpkg install libjxl
 ./vcpkg install libepoxy
+./vcpkg install openal-soft
+./vcpkg install ncnn[vulkan]
 ./vcpkg install boost-lexical-cast
 cd ..
 
@@ -57,13 +44,18 @@ cd ..
 cd ..
 
 unzip ffmpeg-master_linux.zip
-unzip opencl_dll.zip
 
 #Compile qpdf
 FILE=release-qpdf-10.3.2.zip
 if [ ! -f FILE ]; then
     wget https://github.com/qpdf/qpdf/archive/refs/tags/release-qpdf-10.3.2.zip
     unzip release-qpdf-10.3.2.zip
+fi
+
+FILe=oneapi-tbb-2022.0.0-lin.tgz
+if [ ! -f FILE ]; then
+    wget https://github.com/uxlfoundation/oneTBB/releases/download/v2022.0.0/oneapi-tbb-2022.0.0-lin.tgz
+    tar -zxvf oneapi-tbb-2022.0.0-lin.tgz
 fi
 
 #LOCALPATH=$HOME/developpement/git/Regards/libextern
@@ -83,7 +75,5 @@ sudo make install
 cd ..
 
 rm $LOCALPATH/vcpkg/installed/x64-linux/lib/libpng.a
-rm $LOCALPATH/vcpkg/installed/x64-linux/include/nanosvg.h
-rm $LOCALPATH/vcpkg/installed/x64-linux/include/nanosvgrast.h
-rm $LOCALPATH/vcpkg/installed/x64-linux/lib/libpng.a
+unzip opencl_dll.zip
 

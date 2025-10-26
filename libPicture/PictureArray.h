@@ -29,9 +29,6 @@ namespace Regards
 			void copyTo(cv::UMat& m);
 
 		protected:
-
-
-			cv::Size getSize();
 			cv::_InputArray::KindFlag kind;
 			cv::UMat umat;
 			cv::Mat mat;

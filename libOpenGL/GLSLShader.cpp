@@ -250,7 +250,7 @@ bool GLSLShader::SetTexture(const char* pParamName_i, const int nTextureID_i)
 	glBindTexture(GL_TEXTURE_2D, nTextureID_i);
 	glUniform1i(nParamObj, nTextureID_i);
 	GLenum glErr = glGetError();
-	//printf("SetTexture glError %p \n", gluErrorString(glErr));
+	printf("SetTexture glError %p \n", gluErrorString(glErr));
 	return (GL_NO_ERROR == glErr);
 }
 

@@ -798,7 +798,9 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release_cllang|x64'">Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="..\libextern\CvPlot\src\cvplot.cpp" />
+    <ClCompile Include="..\libextern\CvPlot\src\cvplot.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">NotUsing</PrecompiledHeader>
+    </ClCompile>
     <ClCompile Include="AnimationToolbar.cpp" />
     <ClCompile Include="CheckVersion.cpp" />
     <ClCompile Include="CentralWindow.cpp" />

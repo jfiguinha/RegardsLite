@@ -9,7 +9,9 @@
 #include "header.h"
 #include <wx/wx.h>
 #include <wx/rawbmp.h>
+
 #include <opencv2/core/mat.hpp>
+
 #include "convertmattowxbmp.h"
 
 #ifdef __WXMSW__
@@ -17,82 +19,90 @@
 namespace
 {
 
-    // Version optimisée pour Microsoft Windows.
-    // matBitmap doit être continu et matBitmap.cols % 4 doit être égal à 0
-    // car SetDIBits() nécessite que les lignes DIB soient alignées sur DWORD.
-    bool ConvertMatBitmapTowxBitmapMSW(const cv::Mat& matBitmap, wxBitmap& bitmap)
-    {
-        const HDC hScreenDC = ::GetDC(nullptr);
-        if (!hScreenDC) {
-            wxLogError("Failed to get screen DC.");
-            return false;
-        }
+// Version optimized for Microsoft Windows.
+// matBitmap must be continous and matBitmap.cols % 4 must equal 0
+// as SetDIBits() requires the DIB rows to be DWORD-aligned.
+// Should not be called directly but only from ConvertMatBitmapTowxBitmap()
+// which does all the necessary debug checks.
+bool ConvertMatBitmapTowxBitmapMSW(const cv::Mat& matBitmap, wxBitmap& bitmap)
+{
+    const HDC  hScreenDC = ::GetDC(nullptr);
+    BITMAPINFO bitmapInfo{0};
+    bool       success;
 
-        BITMAPINFO bitmapInfo{ 0 };
-        bitmapInfo.bmiHeader.biSize = sizeof(BITMAPINFO) - sizeof(RGBQUAD);
-        bitmapInfo.bmiHeader.biWidth = bitmap.GetWidth();
-        bitmapInfo.bmiHeader.biHeight = -bitmap.GetHeight(); // Negative for top-down DIB
-        bitmapInfo.bmiHeader.biPlanes = 1;
-        bitmapInfo.bmiHeader.biBitCount = 24;
-        bitmapInfo.bmiHeader.biCompression = BI_RGB;
+    bitmapInfo.bmiHeader.biSize        = sizeof(BITMAPINFO) - sizeof(RGBQUAD);
+    bitmapInfo.bmiHeader.biWidth       = bitmap.GetWidth();
+    bitmapInfo.bmiHeader.biHeight      = 0 - bitmap.GetHeight();
+    bitmapInfo.bmiHeader.biPlanes      = 1;
+    bitmapInfo.bmiHeader.biBitCount    = 24;
+    bitmapInfo.bmiHeader.biCompression = BI_RGB;
 
-        bool success = ::SetDIBits(hScreenDC, bitmap.GetHBITMAP(), 0, bitmap.GetHeight(),
-            matBitmap.data, &bitmapInfo, DIB_RGB_COLORS) != 0;
-        ::ReleaseDC(nullptr, hScreenDC);
+    success = ::SetDIBits(hScreenDC, bitmap.GetHBITMAP(), 0, bitmap.GetHeight(),
+                          matBitmap.data, &bitmapInfo, DIB_RGB_COLORS) != 0;
+    ::ReleaseDC(nullptr, hScreenDC);
 
-        if (!success) {
-            wxLogError("Failed to set DIB bits.");
-        }
+    return success;
+}
 
-        return success;
-    }
+} // unnamed namespace
 
-} // namespace
+#endif // #ifndef __WXMSW__
 
-#endif // __WXMSW__
-
+// See the function description in the header file.
 bool ConvertMatBitmapTowxBitmap(const cv::Mat& matBitmap, wxBitmap& bitmap)
 {
-    // Vérifications des préconditions
-    wxCHECK_MSG(!matBitmap.empty(), false, "Input Mat is empty.");
-    wxCHECK_MSG(matBitmap.type() == CV_8UC3, false, "Input Mat must be of type CV_8UC3.");
-    wxCHECK_MSG(matBitmap.dims == 2, false, "Input Mat must have 2 dimensions.");
-    wxCHECK_MSG(bitmap.IsOk(), false, "wxBitmap is not valid.");
-    wxCHECK_MSG(bitmap.GetWidth() == matBitmap.cols && bitmap.GetHeight() == matBitmap.rows, false,
-        "wxBitmap dimensions do not match Mat dimensions.");
-    wxCHECK_MSG(bitmap.GetDepth() == 24, false, "wxBitmap must have a depth of 24.");
+    wxCHECK(!matBitmap.empty(), false);
+    wxCHECK(matBitmap.type() == CV_8UC3, false);
+    wxCHECK(matBitmap.dims == 2, false);
+    wxCHECK(bitmap.IsOk(), false);
+    wxCHECK(bitmap.GetWidth() == matBitmap.cols && bitmap.GetHeight() == matBitmap.rows, false);
+    wxCHECK(bitmap.GetDepth() == 24, false);
 
 #ifdef __WXMSW__
-    if (bitmap.IsDIB() && matBitmap.isContinuous() && matBitmap.cols % 4 == 0) {
+    if (  bitmap.IsDIB()
+          && matBitmap.isContinuous()
+          && matBitmap.cols % 4 == 0 )
+    {
         return ConvertMatBitmapTowxBitmapMSW(matBitmap, bitmap);
     }
 #endif
 
-    wxNativePixelData pixelData(bitmap);
-    if (!pixelData) {
-        wxLogError("Failed to access wxBitmap pixel data.");
-        return false;
-    }
-
+    wxNativePixelData           pixelData(bitmap);
     wxNativePixelData::Iterator pixelDataIt(pixelData);
 
-    const uchar* bgr = matBitmap.data;
-    const bool isContinuous = matBitmap.isContinuous();
+    if ( matBitmap.isContinuous() )
+    {
+        const uchar* bgr = matBitmap.data;
 
-    for (int row = 0; row < pixelData.GetHeight(); ++row) {
-        pixelDataIt.MoveTo(pixelData, 0, row);
+        for ( int row = 0; row < pixelData.GetHeight(); ++row )
+        {
+            pixelDataIt.MoveTo(pixelData, 0, row);
 
-        for (int col = 0; col < pixelData.GetWidth(); ++col, ++pixelDataIt) {
-            if (isContinuous) {
-                pixelDataIt.Blue() = *bgr++;
+            for ( int col = 0;
+                  col < pixelData.GetWidth();
+                  ++col, ++pixelDataIt )
+            {
+                pixelDataIt.Blue()  = *bgr++;
                 pixelDataIt.Green() = *bgr++;
-                pixelDataIt.Red() = *bgr++;
+                pixelDataIt.Red()   = *bgr++;
             }
-            else {
-                const cv::Vec3b& pixel = matBitmap.at<cv::Vec3b>(row, col);
-                pixelDataIt.Blue() = pixel[0];
-                pixelDataIt.Green() = pixel[1];
-                pixelDataIt.Red() = pixel[2];
+        }
+    }
+    else // Is it even possible for Mat with image to be not continous?
+    {
+        auto matBitmapIt = matBitmap.begin<cv::Vec3b>();
+
+        for ( int row = 0; row < pixelData.GetHeight(); ++row )
+        {
+            pixelDataIt.MoveTo(pixelData, 0, row);
+
+            for ( int col = 0;
+                  col < pixelData.GetWidth();
+                  ++col, ++pixelDataIt, ++matBitmapIt )
+            {
+                pixelDataIt.Blue()  = (*matBitmapIt)[0];
+                pixelDataIt.Green() = (*matBitmapIt)[1];
+                pixelDataIt.Red()   = (*matBitmapIt)[2];
             }
         }
     }

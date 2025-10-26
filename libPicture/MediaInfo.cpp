@@ -159,53 +159,59 @@ public:
     
     void OpenFile(wxString fileName)
     {
-        printf("MediaInfo OpenFile \n");
-        if (wxFile::Exists(fileName))
+        try
         {
-            size_t taille = MI.Open(CConvertUtility::ConvertToStdWstring(fileName));
-            if (taille == 0)
+            printf("MediaInfo OpenFile \n");
+            if (wxFile::Exists(fileName))
             {
-                //From: preparing an example file for reading
-                wxFile file(fileName);
-
-                //From: preparing a memory buffer for reading
-                uchar From_Buffer[4096]; //Note: you can do your own buffer
-                size_t From_Buffer_Size; //The size of the read file buffer
-
-                int64 F_Size = file.Length();
-                int64 posSeek = 0;
-                //Preparing to fill MediaInfo with a buffer
-                MI.Open_Buffer_Init(F_Size, 0);
-
-                //The parsing loop
-                do
+                size_t taille = MI.Open(CConvertUtility::ConvertToStdWstring(fileName));
+                if (taille == 0)
                 {
-                    //Reading data somewhere, do what you want for this.
-                    From_Buffer_Size = file.Read(From_Buffer, 4096);
+                    //From: preparing an example file for reading
+                    wxFile file(fileName);
 
-                    //Sending the buffer to MediaInfo
-                    size_t Status = MI.Open_Buffer_Continue(From_Buffer, From_Buffer_Size);
-                    if (Status & 0x08) //Bit3=Finished
-                        break;
+                    //From: preparing a memory buffer for reading
+                    uchar From_Buffer[4096]; //Note: you can do your own buffer
+                    size_t From_Buffer_Size; //The size of the read file buffer
 
-                    //Testing if there is a MediaInfo request to go elsewhere
-                    if (MI.Open_Buffer_Continue_GoTo_Get() != -1)
+                    int64 F_Size = file.Length();
+                    int64 posSeek = 0;
+                    //Preparing to fill MediaInfo with a buffer
+                    MI.Open_Buffer_Init(F_Size, 0);
+
+                    //The parsing loop
+                    do
                     {
-                        posSeek = MI.Open_Buffer_Continue_GoTo_Get();
-                        file.Seek(posSeek);   //Position the file
-                        MI.Open_Buffer_Init(F_Size, file.Tell());                          //Informing MediaInfo we have seek
-                    }
-                } while (From_Buffer_Size > 0);
+                        //Reading data somewhere, do what you want for this.
+                        From_Buffer_Size = file.Read(From_Buffer, 4096);
 
-                //Finalizing
-                MI.Open_Buffer_Finalize(); //This is the end of the stream, MediaInfo must finnish some work
+                        //Sending the buffer to MediaInfo
+                        size_t Status = MI.Open_Buffer_Continue(From_Buffer, From_Buffer_Size);
+                        if (Status & 0x08) //Bit3=Finished
+                            break;
 
-                //delete[] From_Buffer;
-                file.Close();
+                        //Testing if there is a MediaInfo request to go elsewhere
+                        if (MI.Open_Buffer_Continue_GoTo_Get() != -1)
+                        {
+                            posSeek = MI.Open_Buffer_Continue_GoTo_Get();
+                            file.Seek(posSeek);   //Position the file
+                            MI.Open_Buffer_Init(F_Size, file.Tell());                          //Informing MediaInfo we have seek
+                        }
+                    } while (From_Buffer_Size > 0);
 
-                isOk = true;
+                    //Finalizing
+                    MI.Open_Buffer_Finalize(); //This is the end of the stream, MediaInfo must finnish some work
+
+                    //delete[] From_Buffer;
+                    file.Close();
+
+                    isOk = true;
+                }
             }
         }
+        catch(...)
+        { }
+
     }
         
     tbb::concurrent_vector<CMetadata> GetMetadata()
@@ -218,7 +224,7 @@ public:
     {
         int64 duration = -1000;
         std:wstring To_Display = MI.Get(Stream_General, 0, __T("Duration"), Info_Text, Info_Name).c_str();
-        if (To_Display != "")
+        if (To_Display != L"")
         {
             try
             {
@@ -240,7 +246,7 @@ public:
         to_width = MI.Get(Stream_Video, 0, __T("Width"), Info_Text, Info_Name).c_str();
         to_height = MI.Get(Stream_Video, 0, __T("Height"), Info_Text, Info_Name).c_str();
       //  MI.Close();
-        if (to_width != "")
+        if (to_width != L"")
         {
             try
             {
@@ -251,7 +257,7 @@ public:
             }
         }
 
-        if (to_height != "")
+        if (to_height != L"")
         {
             try
             {
@@ -268,7 +274,7 @@ public:
         AspectRatio aspectRatio;
         wstring To_Display;
         To_Display = MI.Get(Stream_Video, 0, __T("Display_aspect_ratio"), Info_Text, Info_Name).c_str();
-        if (To_Display == "")
+        if (To_Display == L"")
         {          
             tbb::concurrent_vector<CMetadata> vectorMeta = GetMetadata();
             tbb::concurrent_vector<CMetadata>::iterator it = std::find_if(vectorMeta.begin(), vectorMeta.end(), [&](CMetadata val) -> bool {return val.key == "Video.Display aspect ratio"; });
@@ -288,7 +294,7 @@ public:
         }
        
 
-        if (To_Display != "")
+        if (To_Display != L"")
         {
             try
             {
@@ -327,7 +333,7 @@ public:
         wstring To_Display;
         To_Display = MI.Get(Stream_Video, 0, __T("Rotation"), Info_Text, Info_Name).c_str();
 
-        if (To_Display != "")
+        if (To_Display != L"")
         {
             try
             {

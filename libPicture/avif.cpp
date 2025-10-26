@@ -3,125 +3,205 @@
 #include "avif/avif.h"
 using namespace Regards::Picture;
 
-CAvif::CAvif() {}
 
-CAvif::~CAvif() {}
 
-cv::Mat DecodeAvifImage(avifDecoder* decoder, avifImage* decoded, bool scale = false, int width = 0, int height = 0)
+CAvif::CAvif()
 {
-    cv::Mat out;
-
-    if (!decoder || !decoded) {
-        std::cerr << "Invalid decoder or image.\n";
-        return out;
-    }
-
-    if (scale) {
-        avifBool scaleResult = avifImageScale(decoded, width, height, decoder->imageSizeLimit, decoder->imageDimensionLimit, &decoder->diag);
-        if (scaleResult != AVIF_TRUE) {
-            std::cerr << "Failed to scale image.\n";
-            return out;
-        }
-    }
-
-    avifRGBImage dstRGB;
-    avifRGBImageSetDefaults(&dstRGB, decoded);
-    dstRGB.format = AVIF_RGB_FORMAT_BGRA;
-    dstRGB.depth = 8;
-    avifRGBImageAllocatePixels(&dstRGB);
-
-    if (avifImageYUVToRGB(decoded, &dstRGB) == AVIF_RESULT_OK) {
-        out.create(dstRGB.height, dstRGB.width, CV_8UC4);
-        memcpy(out.data, dstRGB.pixels, dstRGB.height * dstRGB.width * 4);
-    }
-    else {
-        std::cerr << "Failed to convert YUV to RGB.\n";
-    }
-
-    avifRGBImageFreePixels(&dstRGB);
-    return out;
+    
 }
 
-cv::Mat ProcessAvifFile(const char* filename, avifDecoder* decoder, bool scale = false, int width = 0, int height = 0)
+CAvif::~CAvif()
+{
+}
+
+
+
+
+cv::Mat GetPictureLocal(const char * filename, avifDecoder * decoder)
 {
     cv::Mat out;
-
-    if (!decoder) {
-        std::cerr << "Decoder is null.\n";
+    if(decoder == nullptr)
         return out;
-    }
 
     avifImage* decoded = avifImageCreateEmpty();
-    if (!decoded) {
-        std::cerr << "Failed to create empty AVIF image.\n";
-        return out;
-    }
-
-    avifResult result = avifDecoderSetIOFile(decoder, filename);
+    avifResult result;
+    result = avifDecoderSetIOFile(decoder, filename);
+        
     if (result != AVIF_RESULT_OK) {
-        std::cerr << "Cannot open file for read: " << filename << "\n";
-        avifImageDestroy(decoded);
-        return out;
+        fprintf(stderr, "Cannot open file for read: %s\n", filename);
+        goto cleanup;
     }
 
     result = avifDecoderParse(decoder);
+
     if (result != AVIF_RESULT_OK) {
-        std::cerr << "Failed to parse image: " << avifResultToString(result) << "\n";
-        avifImageDestroy(decoded);
-        return out;
+        fprintf(stderr, "Failed to decode image: %s\n", avifResultToString(result));
+        goto cleanup;
     }
 
-    result = avifDecoderRead(decoder, decoded);
-    if (result == AVIF_RESULT_OK) {
-        out = DecodeAvifImage(decoder, decoded, scale, width, height);
-    }
-    else {
-        std::cerr << "Failed to decode image: " << avifResultToString(result) << "\n";
-    }
+    if (decoder != nullptr)
+    {
+        avifResult decodeResult;
+        decodeResult = avifDecoderRead(decoder, decoded);
 
+        if (decodeResult == AVIF_RESULT_OK)
+        {
+            avifRGBImage dstRGB;
+            avifRGBImageSetDefaults(&dstRGB, decoded);
+            dstRGB.format = AVIF_RGB_FORMAT_BGRA; // See choices in avif.h
+            dstRGB.depth = 8; // [8, 10, 12, 16]; Does not need to match image->depth.
+            avifRGBImageAllocatePixels(&dstRGB);
+
+            if (avifImageYUVToRGB(decoded, &dstRGB) == AVIF_RESULT_OK)
+            {
+                int image_width = dstRGB.width;
+                int image_height = dstRGB.height;
+
+                out.create(image_height, image_width, CV_8UC4);
+                memcpy(out.data, dstRGB.pixels, image_height * image_width * 4);
+                //cv::flip(out, out, 0);
+            }
+            avifRGBImageFreePixels(&dstRGB);
+        }
+        
+    }
+    
+cleanup:
     avifImageDestroy(decoded);
-    return out;
+        
+	return out;
 }
 
-cv::Mat CAvif::GetPicture(const char* filename)
+
+cv::Mat GetPictureThumbnail(const char* filename, const int &width, const int &height, avifDecoder* decoder)
 {
-    avifDecoder* decoder = avifDecoderCreate();
-    if (!decoder) {
-        std::cerr << "Failed to create AVIF decoder.\n";
-        return cv::Mat();
+    cv::Mat out;
+    if (decoder == nullptr)
+        return out;
+
+    avifImage* decoded = avifImageCreateEmpty();
+    avifResult result;
+    result = avifDecoderSetIOFile(decoder, filename);
+
+    if (result != AVIF_RESULT_OK) {
+        fprintf(stderr, "Cannot open file for read: %s\n", filename);
+        goto cleanup;
     }
 
-#if defined(__APPLE_) || defined(__ARM64__)
-    decoder->codecChoice = AVIF_CODEC_CHOICE_AUTO;
-#else
-    decoder->codecChoice = AVIF_CODEC_CHOICE_DAV1D;
-#endif
+    result = avifDecoderParse(decoder);
 
-    cv::Mat out = ProcessAvifFile(filename, decoder);
-    avifDecoderDestroy(decoder);
-    return out;
-}
-
-cv::Mat CAvif::GetPictureThumb(const char* filename, const int& width, const int& height)
-{
-    avifDecoder* decoder = avifDecoderCreate();
-    if (!decoder) {
-        std::cerr << "Failed to create AVIF decoder.\n";
-        return cv::Mat();
+    if (result != AVIF_RESULT_OK) {
+        fprintf(stderr, "Failed to decode image: %s\n", avifResultToString(result));
+        goto cleanup;
     }
 
-#if defined(__APPLE_) || defined(__ARM64__)
-    decoder->codecChoice = AVIF_CODEC_CHOICE_AUTO;
-#else
-    decoder->codecChoice = AVIF_CODEC_CHOICE_DAV1D;
-#endif
+    if (decoder != nullptr)
+    {
+        avifResult decodeResult;
+        decodeResult = avifDecoderRead(decoder, decoded);
 
-    cv::Mat out = ProcessAvifFile(filename, decoder, true, width, height);
-    avifDecoderDestroy(decoder);
+        if (decodeResult == AVIF_RESULT_OK)
+        {
+            avifDiagnostics diag;
+
+
+            decodeResult = avifImageScale(decoded, width, height,
+                &decoder->diag);
+                
+            if (decodeResult != AVIF_RESULT_OK)
+                 goto cleanup;
+
+            avifRGBImage dstRGB;
+            avifRGBImageSetDefaults(&dstRGB, decoded);
+            dstRGB.format = AVIF_RGB_FORMAT_BGRA; // See choices in avif.h
+            dstRGB.depth = 8; // [8, 10, 12, 16]; Does not need to match image->depth.
+            avifRGBImageAllocatePixels(&dstRGB);
+
+            if (result == AVIF_TRUE)
+            {
+                if (avifImageYUVToRGB(decoded, &dstRGB) == AVIF_RESULT_OK)
+                {
+                    int image_width = dstRGB.width;
+                    int image_height = dstRGB.height;
+
+                    out.create(image_height, image_width, CV_8UC4);
+                    memcpy(out.data, dstRGB.pixels, image_height * image_width * 4);
+                    //cv::flip(out, out, 0);
+                }
+            }
+            avifRGBImageFreePixels(&dstRGB);
+        }
+
+    }
+
+cleanup:
+    avifImageDestroy(decoded);
+
     return out;
 }
+
 
 bool CAvif::IsOccupied()
 {
     return false;
 }
+
+cv::Mat CAvif::GetPicture(const char * filename)
+{
+    cv::Mat out;
+
+    avifDecoder* decoder = avifDecoderCreate(); 
+#if defined(__APPLE_) || defined(__ARM64__) 
+    decoder->codecChoice = AVIF_CODEC_CHOICE_AUTO;
+#else
+    decoder->codecChoice = AVIF_CODEC_CHOICE_DAV1D;
+#endif  
+    out = GetPictureLocal(filename, decoder);
+    avifDecoderDestroy(decoder);
+
+        
+	return out;
+}
+
+
+
+cv::Mat CAvif::GetPictureThumb(const char* filename, const int &width, const int &heigth)
+{
+    /*
+    cv::Mat out;
+
+    muPicture.lock();
+    isOccupied = true;
+    if (decoderThumb == nullptr)
+    {
+        decoderThumb = avifDecoderCreate();
+#if defined(__APPLE_) || defined(__ARM64__) 
+        decoderThumb->codecChoice = AVIF_CODEC_CHOICE_AUTO;
+#else
+        decoderThumb->codecChoice = AVIF_CODEC_CHOICE_DAV1D;
+#endif
+    }
+
+    out = GetPictureThumbnail(filename, width, heigth, decoderThumb);
+    isOccupied = false;
+    muPicture.unlock();
+
+    return out;
+    */
+
+    cv::Mat out;
+
+    avifDecoder* decoder = avifDecoderCreate();
+#if defined(__APPLE_) || defined(__ARM64__) 
+    decoder->codecChoice = AVIF_CODEC_CHOICE_AUTO;
+#else
+    decoder->codecChoice = AVIF_CODEC_CHOICE_DAV1D;
+#endif  
+    out = GetPictureThumbnail(filename, width, heigth, decoder);
+    avifDecoderDestroy(decoder);
+
+
+    return out;
+}
+
+
