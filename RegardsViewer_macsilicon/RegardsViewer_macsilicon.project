@@ -260,12 +260,12 @@
         <Library Value="png16"/>
         <Library Value="raw_r"/>
         <Library Value="openjp2"/>
-        <Library Value="Iex-3_2"/>
-        <Library Value="IMath-3_1"/>
-        <Library Value="IlmThread-3_2"/>
-        <Library Value="OpenEXRCore-3_2"/>
-        <Library Value="OpenEXR-3_2"/>
-        <Library Value="OpenEXRUtil-3_2"/>
+        <Library Value="Iex-3_3"/>
+        <Library Value="IMath-3_2"/>
+        <Library Value="IlmThread-3_3"/>
+        <Library Value="OpenEXRCore-3_3"/>
+        <Library Value="OpenEXR-3_3"/>
+        <Library Value="OpenEXRUtil-3_3"/>
         <Library Value="deflate"/>
         <Library Value="turbojpeg"/>
         <Library Value="webp"/>
@@ -304,6 +304,8 @@
         <Library Value="zstd"/>
         <Library Value="zen"/>
         <Library Value="tinyxml2"/>
+        <Library Value="ssl"/>
+        <Library Value="crypto"/>
       </Linker>
       <ResourceCompiler Options=""/>
     </GlobalSettings>
