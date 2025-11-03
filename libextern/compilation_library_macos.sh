@@ -8,8 +8,8 @@ echo $LOCALPATH
 
 export PKG_CONFIG_PATH=$HOME/ffmpeg_build/lib/pkgconfig
 
-unzip vcpkg-2025.09.17_mac.zip
-mv vcpkg-2025.09.17 vcpkg
+unzip vcpkg-2025.10.17_macos.zip
+mv vcpkg-2025.10.17 vcpkg
 
 #unzip ports_vcpkg_macos.zip
 #cp -r ports_vcpkg/opencv4 vcpkg/ports
@@ -60,7 +60,6 @@ cd ..
 cd ..
 
 rm $LOCALPATH/vcpkg/installed/arm64-osx/lib/libpng.a
-cp $LOCALPATH/ports_vcpkg/include/poppler-global.h $LOCALPATH/vcpkg/installed/arm64-osx/include/poppler
 
 
 
