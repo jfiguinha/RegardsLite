@@ -9,7 +9,7 @@ COpenCVVideoPlayer::COpenCVVideoPlayer(const wxString& fileName) : IVideoPlayer(
 {
 	filename = CConvertUtility::ConvertToStdString(fileName);
 	capture = new cv::VideoCapture(filename, cv::CAP_FFMPEG);
-
+    capture->set(CAP_PROP_ORIENTATION_AUTO, false);
 	isOpen = capture->isOpened();
 
 	/*

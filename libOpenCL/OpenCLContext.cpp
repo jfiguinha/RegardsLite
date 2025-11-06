@@ -208,7 +208,7 @@ void COpenCLContext::initializeContextFromGL()
 	cl_platform_id platform = platforms[0];
 	std::string platformName = cv::ocl::PlatformInfo(&platform).name();
 
-	cv::ocl::OpenCLExecutionContext clExecCtx = cv::ocl::OpenCLExecutionContext::create(platformName, platform, context, device);
+	clExecCtx = cv::ocl::OpenCLExecutionContext::create(platformName, platform, context, device);
 
 	cv::ocl::Device(cv::ocl::Device::fromHandle(device));
 
