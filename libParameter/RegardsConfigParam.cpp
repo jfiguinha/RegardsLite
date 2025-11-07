@@ -22,7 +22,9 @@ CRegardsConfigParam::CRegardsConfigParam()
 	diaporamaFullscreen = 1;
 	openCLPlatformName = "";
 	dataInMemory = 0;
+	apiKey = "";
 	geolocUrl = "http://www.geoplugin.net";
+	geolocInverseURL = "https://api.geoapify.com";
 	thumbnailQuality = 1;
 	thumbnailIconeCache = 1;
 	pictureSize = 0;
@@ -356,9 +358,21 @@ void CRegardsConfigParam::SetThumbnailIconeCache(const int& iconeCache)
 	thumbnailIconeCache = iconeCache;
 }
 
+wxString CRegardsConfigParam::GetApiKey()
+{
+	wxString value = apiKey;
+	return value;
+}
+
 wxString CRegardsConfigParam::GetUrlServer()
 {
 	wxString value = geolocUrl;
+	return value;
+}
+
+wxString CRegardsConfigParam::GetGeoLocUrlServer()
+{
+	wxString value = geolocInverseURL;
 	return value;
 }
 
@@ -1117,6 +1131,8 @@ void CRegardsConfigParam::SetDiaporamaFullscreen(const int& diaporamaFullscreen)
 void CRegardsConfigParam::SetGeolocalisationServer(xml_node<>* sectionPosition)
 {
 	sectionPosition->append_node(node("Url", geolocUrl));
+	sectionPosition->append_node(node("GeoLoc", geolocInverseURL));
+	sectionPosition->append_node(node("ApiKey", apiKey));
 }
 
 void CRegardsConfigParam::GetGeolocalisationServer(xml_node<>* position_node)
@@ -1125,10 +1141,18 @@ void CRegardsConfigParam::GetGeolocalisationServer(xml_node<>* position_node)
 	wxString nodeName;
 	xml_node<>* child_node = position_node->first_node("Url");
 	if (child_node != nullptr)
-	{
-		
-		
+	{	
 		geolocUrl = child_node->value();
+	}
+	child_node = position_node->first_node("GeoLoc");
+	if (child_node != nullptr)
+	{
+		geolocInverseURL = child_node->value();
+	}
+	child_node = position_node->first_node("ApiKey");
+	if (child_node != nullptr)
+	{
+		apiKey = child_node->value();
 	}
 }
 

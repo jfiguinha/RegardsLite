@@ -13,7 +13,7 @@ namespace Regards
 		class CFileGeolocation
 		{
 		public:
-			CFileGeolocation(const wxString& urlServer);
+			CFileGeolocation(const wxString& urlServer, const wxString &apiKey);
 
 			~CFileGeolocation(void)
 			{
@@ -48,6 +48,7 @@ namespace Regards
 
 			void ImportCountry();
 			wxString dateTimeInfos;
+			wxString apiKey;
 			bool hasGps;
 			bool hasDataTime;
 			wxString latitudeGps;

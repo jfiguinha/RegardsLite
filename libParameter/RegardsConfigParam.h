@@ -78,6 +78,8 @@ public:
 	void SetEffect(const int& numEffect);
 
 	wxString GetUrlServer();
+	wxString GetApiKey();
+	wxString GetGeoLocUrlServer();
 	int GetNbGpsIterationByMinute();
 
 	int GetDiaporamaTime();
@@ -195,7 +197,9 @@ protected:
 
 	float iconSizeRatio;
 	wxString openCLPlatformName;
+	wxString geolocInverseURL;
 	wxString geolocUrl;
+	wxString apiKey;
 
 	int dataInMemory;
 	int inverseRotation = 0;

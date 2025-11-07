@@ -40,19 +40,21 @@ CCriteriaTreeWnd::CCriteriaTreeWnd(wxWindow* parent, wxWindowID id, const int& m
                                    const CThemeTree& theme, const CThemeScrollBar& themeScroll)
 	: CTreeWithScrollbar("CCriteriaTreeWnd", parent, id, themeScroll, theme)
 {
+	wxString apiKey = "";
 	wxString urlServer = "";
 	//Géolocalisation
 	CRegardsConfigParam* param = CParamInit::getInstance();
 	if (param != nullptr)
 	{
-		urlServer = param->GetUrlServer();
+		urlServer = param->GetGeoLocUrlServer();
+		apiKey = param->GetApiKey();
 	}
 
 	criteriaTree = nullptr;
 	oldCriteriaTree = nullptr;
 	numPhotoId = 0;
 	this->mainWindowID = mainWindowID;
-	fileGeolocalisation = new CFileGeolocation(urlServer);
+	fileGeolocalisation = new CFileGeolocation(urlServer, apiKey);
 
 
 	Connect(wxEVT_SHOWCALENDAR, wxCommandEventHandler(CCriteriaTreeWnd::ShowCalendar));

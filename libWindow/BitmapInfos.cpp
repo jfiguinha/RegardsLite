@@ -44,11 +44,13 @@ CBitmapInfos::CBitmapInfos(wxWindow* parent, wxWindowID id, const CThemeBitmapIn
 void CBitmapInfos::GetGpsInfos(void* data)
 {
 	wxString urlServer = "";
+	wxString apiKey = "";
 	//Géolocalisation
 	CRegardsConfigParam* param = CParamInit::getInstance();
 	if (param != nullptr)
 	{
-		urlServer = param->GetUrlServer();
+		urlServer = param->GetGeoLocUrlServer();
+		apiKey = param->GetApiKey();
 	}
 
 	InfosGps * infosGps = static_cast<InfosGps*>(data);
@@ -58,7 +60,7 @@ void CBitmapInfos::GetGpsInfos(void* data)
 		if (wxFileName::FileExists(infosGps->filename))
 		{
 			wxString notGeo = CLibResource::LoadStringFromResource("LBLNOTGEO", 1);
-			CFileGeolocation fileGeolocalisation(urlServer);
+			CFileGeolocation fileGeolocalisation(urlServer, apiKey);
 			fileGeolocalisation.SetFile(infosGps->filename, notGeo);
 			infosGps->gpsInfos = fileGeolocalisation.Geolocalize();
 			//infosGps->gpsInfos = fileGeolocalisation.GetGpsInformation();
@@ -168,9 +170,14 @@ void CBitmapInfos::UpdateData()
 	else
 		SetDateInfos(dateInfos, '.');
 
+	wxString apiKey = "";
+	CRegardsConfigParam* param = CParamInit::getInstance();
+	if (param != nullptr)
+	{
+		apiKey = param->GetApiKey();
+	}
 
-
-	if (hasGps)
+	if (hasGps && apiKey != "")
 	{
 		gpsTimer->StartOnce(100);
 	}

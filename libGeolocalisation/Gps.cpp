@@ -81,10 +81,15 @@ public:
 
 //Test parameter /extras/location.gp?lat=48.896168&long=2.387500&format=xml wxString server = L"www.geoplugin.net";
 
-CGps::CGps(const wxString& server)
+CGps::CGps(const wxString& server, const wxString& apiKey)
 {
 	serverHttp = server;
 	gpsUrl = new CGpscurl();
+	this->apiKey = apiKey;
+	if(apiKey != L"")
+		isLocalisationAvailable = true;
+	else
+		isLocalisationAvailable = false;
 	//OpenHttpRequest(server, error);
 }
 
@@ -153,6 +158,13 @@ float CGps::GetFLongitude()
 bool CGps::GeolocalisationGPS(const wxString& latitude, const wxString& longitude)
 {
 	bool returnValue = true;
+
+	if (!isLocalisationAvailable)
+	{
+		return false;
+	}
+
+	
 	try
 	{
 		printf("CGps GeolocalisationGPS \n");
@@ -161,14 +173,17 @@ bool CGps::GeolocalisationGPS(const wxString& latitude, const wxString& longitud
 		this->latitude = latitude;
 		this->longitude = longitude;
 
+		//https://api.geoapify.com/v1/geocode/reverse?"; //lat=52.478117501285965&lon=13.47717282413089&type=postcode&apiKey=
 		//wxString xml = L"";
 		wxString httpAdress = serverHttp;
-		httpAdress.append(L"/extras/location.gp?lat=");
+		httpAdress.append(L"/v1/geocode/reverse?lat=");
 		httpAdress.append(latitude);
-		httpAdress.append(L"&long=");
+		httpAdress.append(L"&lon=");
 		httpAdress.append(longitude);
-		httpAdress.append(L"&format=xml");
-
+		httpAdress.append("&format=xml");
+		httpAdress.append(L"&type=postcode");
+		httpAdress.append(L"&apiKey=");
+		httpAdress.append(apiKey);
 		struct url_data data;
 		data.size = 0;
 		data.data = static_cast<char*>(malloc(4096)); /* reasonable size initial buffer */
@@ -189,7 +204,7 @@ bool CGps::GeolocalisationGPS(const wxString& latitude, const wxString& longitud
 		printf("Data : %s \n", data.data);
 
 		geoPluginVector.clear();
-		ImportationGeoPlugin(xml);
+		ImportationGeocodePlugin(xml);
 
 		free(data.data);
 
@@ -222,7 +237,7 @@ wxString CGps::FindElement(const wxString& xml, const wxString& baliseBegin, con
 	return xml.substr(i, j - i);
 }
 
-
+/*
 bool CGps::ImportationGeoPlugin(const wxString& xml)
 {
 	//int j = 0;
@@ -255,6 +270,60 @@ bool CGps::ImportationGeoPlugin(const wxString& xml)
 		}
 	}
 	while (data != L"");
+
+	return true;
+}
+*/
+
+bool CGps::ImportationGeocodePlugin(const wxString& xml)
+{
+	//int j = 0;
+	wxString data = L"";
+	wxString value = L"";
+	wxString xmlData = xml;
+	wxString baliseBegin = L"<results>";
+	wxString baliseEnd = L"</results>";
+
+	std::size_t found = xml.find("Bad Request");
+	if (found != std::string::npos)
+	{
+		CGeoPluginValue geoValue;
+		geoValue.SetAddress("not found");
+		geoValue.SetPlace("not found");
+		geoValue.SetCountryCode(value);
+		geoValue.SetCity(value);
+		geoValue.SetRegion(value);
+		geoPluginVector.push_back(geoValue);
+	}
+	else
+	{
+		do
+		{
+			data = FindElement(xmlData, baliseBegin, baliseEnd);
+			if (data != L"")
+			{
+				CGeoPluginValue geoValue;
+				value = FindElement(data, L"<formatted>", L"</formatted>");
+				geoValue.SetAddress(value);
+				value = FindElement(data, L"<address_line1>", L"</address_line1>");
+				geoValue.SetPlace(value);
+				value = FindElement(data, L"<country_code>", L"</country_code>");
+				geoValue.SetCountryCode(value);
+				value = FindElement(data, L"<city>", L"</city>");
+				geoValue.SetCity(value);
+				value = FindElement(data, L"<state>", L"</state>");
+				geoValue.SetRegion(value);
+				geoPluginVector.push_back(geoValue);
+
+				int i = static_cast<int>(xmlData.find(baliseEnd));
+				if (i != -1)
+				{
+					i += baliseEnd.length();
+				}
+				xmlData = xml.substr(i, xml.size() - i);
+			}
+		} while (data != L"");
+	}
 
 	return true;
 }

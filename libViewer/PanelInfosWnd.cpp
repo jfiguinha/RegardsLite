@@ -269,14 +269,16 @@ void CPanelInfosWnd::SetVideoFile(const wxString& filename)
 		this->filename = filename;
 
 		wxString urlServer;
+		wxString apiKey = "";
 		CRegardsConfigParam* param = CParamInit::getInstance();
 		if (param != nullptr)
 		{
-			urlServer = param->GetUrlServer();
+			urlServer = param->GetGeoLocUrlServer();
+			apiKey = param->GetApiKey();
 		}
 
 		wxString notGeo = CLibResource::LoadStringFromResource("LBLNOTGEO", 1);
-		auto fileGeolocalisation = new CFileGeolocation(urlServer);
+		auto fileGeolocalisation = new CFileGeolocation(urlServer, apiKey);
 		fileGeolocalisation->SetFile(filename, notGeo);
 
 		if (!this->isVideo)
@@ -321,13 +323,15 @@ void CPanelInfosWnd::SetBitmapFile(const wxString& filename, const bool& isThumb
 	if (this->filename != filename)
 	{
 		wxString notGeo = CLibResource::LoadStringFromResource("LBLNOTGEO", 1);
-		wxString urlServer;
+		wxString urlServer = "";
+		wxString apiKey = "";
 		CRegardsConfigParam* param = CParamInit::getInstance();
 		if (param != nullptr)
 		{
-			urlServer = param->GetUrlServer();
+			urlServer = param->GetGeoLocUrlServer();
+			apiKey = param->GetApiKey();
 		}
-		auto fileGeolocalisation = new CFileGeolocation(urlServer);
+		auto fileGeolocalisation = new CFileGeolocation(urlServer, apiKey);
 
 		infosToolbar->SetEffectParameterInactif();
 		this->filename = filename;
@@ -543,14 +547,16 @@ void CPanelInfosWnd::HistogramUpdate()
 wxString CPanelInfosWnd::MapsUpdate()
 {
 	wxString urlServer;
+	wxString apiKey = "";
 	CRegardsConfigParam* param = CParamInit::getInstance();
 	if (param != nullptr)
 	{
-		urlServer = param->GetUrlServer();
+		urlServer = param->GetGeoLocUrlServer();
+		apiKey = param->GetApiKey();
 	}
 
 	wxString notGeo = CLibResource::LoadStringFromResource("LBLNOTGEO", 1);
-	auto fileGeolocalisation = new CFileGeolocation(urlServer);
+	auto fileGeolocalisation = new CFileGeolocation(urlServer, apiKey);
 	fileGeolocalisation->SetFile(filename, notGeo);
 	wxString url = L"http://www.openstreetmap.org/?mlat="; // NOLINT(clang-diagnostic-shadow)
 	url.append(fileGeolocalisation->GetLatitude());

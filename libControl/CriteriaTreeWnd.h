@@ -32,5 +32,6 @@ namespace Regards::Control
 		wxString filename;
 		int numPhotoId;
 		int mainWindowID;
+
 	};
 }
