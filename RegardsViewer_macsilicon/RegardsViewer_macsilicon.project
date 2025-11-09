@@ -320,7 +320,7 @@
         <Command Enabled="yes">mkdir -p ./Debug/RegardsLiteViewer.app/Contents/Resources</Command>
         <Command Enabled="yes">sed -e "s/IDENTIFIER/`echo . | sed -e 's,\.\./,,g' | sed -e 's,/,.,g'`/" \
 	-e "s/EXECUTABLE/RegardsLiteViewer/" \
-	-e "s/VERSION/2.0.1.5/" \
+	-e "s/VERSION/2.0.1.6/" \
 	../Regards/mac/Info.plist.in &gt;./Debug/RegardsLiteViewer.app/Contents/Info.plist</Command>
         <Command Enabled="yes">/bin/echo "APPL????" &gt;./Debug/RegardsLiteViewer.app/Contents/PkgInfo</Command>
         <Command Enabled="yes">ln -f ./Debug/RegardsLiteViewer ./Debug/RegardsLiteViewer.app/Contents/MacOS/RegardsLiteViewer</Command>
@@ -400,7 +400,7 @@
         <Command Enabled="yes">mkdir -p ./Release/RegardsLiteViewer.app/Contents/Resources</Command>
         <Command Enabled="yes">sed -e "s/IDENTIFIER/`echo . | sed -e 's,\.\./,,g' | sed -e 's,/,.,g'`/" \
 	-e "s/EXECUTABLE/RegardsLiteViewer/" \
-	-e "s/VERSION/2.0.1.5/" \
+	-e "s/VERSION/2.0.1.6/" \
 	../Regards/mac/Info.plist.in &gt;./Release/RegardsLiteViewer.app/Contents/Info.plist</Command>
         <Command Enabled="yes">/bin/echo "APPL????" &gt;./Release/RegardsLiteViewer.app/Contents/PkgInfo</Command>
         <Command Enabled="yes">ln -f ./Release/RegardsLiteViewer ./Release/RegardsLiteViewer.app/Contents/MacOS/RegardsLiteViewer</Command>

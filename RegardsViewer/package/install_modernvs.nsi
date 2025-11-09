@@ -20,10 +20,10 @@ ReserveFile `${NSISDIR}\Plugins\EmbeddedLists.dll`
 !define MUI_FILE "RegardsLite"
 !define MUI_ICON "regardsliteicon.ico"
 !define UninstId "RegardsLiteViewer2" ; You might want to use a GUID here
-!define MUI_VERSION "2.0.1.5"
+!define MUI_VERSION "2.0.1.6"
 
   ;Name and file
-  Name "Regards Viewer 2.0.1.5"
+  Name "Regards Viewer 2.0.1.6"
   OutFile "RegardsLiteViewer2Setup.exe"
 
   ;Default installation folder
@@ -141,7 +141,7 @@ Section "RegardsLiteViewer" SecRegardsViewer
 
 
   ;ADD YOUR OWN FILES HERE...
-  DetailPrint "*** Installing RegardsLiteViewer 2.0.1.5 ..."
+  DetailPrint "*** Installing RegardsLiteViewer 2.0.1.6 ..."
   File "Prerequisites\RegardsLiteViewer2.zip"
   ZipDLL::extractall "$INSTDIR\RegardsLiteViewer2.zip" $INSTDIR
   ;Store installation folder

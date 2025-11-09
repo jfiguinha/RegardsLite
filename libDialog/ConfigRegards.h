@@ -59,6 +59,8 @@ public:
 	wxButton* btPicturePath;
 	wxTextCtrl* txtVideoPath;
 	wxButton* btVideoPath;
+
+	wxTextCtrl* txtAPIKey;
 	bool IsOk();
 
 protected:
