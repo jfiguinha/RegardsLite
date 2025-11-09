@@ -23,6 +23,7 @@ CRegardsConfigParam::CRegardsConfigParam()
 	openCLPlatformName = "";
 	dataInMemory = 0;
 	apiKey = "";
+	showInfosGeolocUnavailable = 1;
 	geolocUrl = "http://www.geoplugin.net";
 	geolocInverseURL = "https://api.geoapify.com";
 	thumbnailQuality = 1;
@@ -367,6 +368,15 @@ wxString CRegardsConfigParam::GetApiKey()
 void CRegardsConfigParam::SetApiKey(const wxString& apiKey)
 {
 	this->apiKey = apiKey;
+}
+
+int CRegardsConfigParam::ShowInfosGeolocUnavailable()
+{
+	return showInfosGeolocUnavailable;
+}
+void CRegardsConfigParam::SetShowInfosGeolocUnavailable(const int& showInfo)
+{
+	this->showInfosGeolocUnavailable = showInfo;
 }
 
 wxString CRegardsConfigParam::GetUrlServer()
@@ -1138,6 +1148,7 @@ void CRegardsConfigParam::SetGeolocalisationServer(xml_node<>* sectionPosition)
 	sectionPosition->append_node(node("Url", geolocUrl));
 	sectionPosition->append_node(node("GeoLoc", geolocInverseURL));
 	sectionPosition->append_node(node("ApiKey", apiKey));
+	sectionPosition->append_node(node("showInfosGeolocUnavailable", to_string(showInfosGeolocUnavailable)));
 }
 
 void CRegardsConfigParam::GetGeolocalisationServer(xml_node<>* position_node)
@@ -1158,6 +1169,11 @@ void CRegardsConfigParam::GetGeolocalisationServer(xml_node<>* position_node)
 	if (child_node != nullptr)
 	{
 		apiKey = child_node->value();
+	}
+	child_node = position_node->first_node("showInfosGeolocUnavailable");
+	if (child_node != nullptr)
+	{
+		showInfosGeolocUnavailable = atoi(child_node->value());
 	}
 }
 
