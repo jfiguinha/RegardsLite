@@ -24,7 +24,7 @@ ReserveFile `${NSISDIR}\Plugins\EmbeddedLists.dll`
 
   ;Name and file
   Name "RegardsLiteViewer 2.0.1.7"
-  OutFile "RegardsLiteViewer2Setup.exe"
+  OutFile "RegardsLiteViewer2_arm64_win.exe"
 
   ;Default installation folder
   InstallDir "$PROGRAMFILES64\RegardsLiteViewer2"
