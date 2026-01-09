@@ -2351,7 +2351,7 @@ void CVideoControlSoft::SetFrameData(AVFrame *dst)
 		enableopenCL = 0;
 	}
 
-	if (!enableopenCL)
+	if (!enableopenCL || (dst->format != AV_PIX_FMT_YUV420P && dst->format != AV_PIX_FMT_NV12))
 	{
 		isffmpegDecode = true;
 		int nWidth = dst->width;
@@ -2366,37 +2366,20 @@ void CVideoControlSoft::SetFrameData(AVFrame *dst)
 			memcpy(dst->data[0], outData, dst->linesize[0] * nHeight);
 		}
 		cv::Mat bitmapData = GetBitmapRGBA(dst);
-		//muBitmap.lock();
-		bitmapData.copyTo(pictureFrame);
-		//muBitmap.unlock();
-	}
-	else if (enableopenCL && (dst->format != AV_PIX_FMT_YUV420P && dst->format != AV_PIX_FMT_NV12))
-	{
-		isffmpegDecode = false;
-		int nWidth = dst->width;
-		int nHeight = dst->height;
-		if (videoEffectParameter.denoiseEnable && videoEffectParameter.effectEnable)
+		if (bitmapData.empty())
 		{
-			if (hq3d == nullptr)
-				hq3d = new Chqdn3d(nWidth, nHeight, videoEffectParameter.denoisingLevel, videoEffectParameter.templateWindowSize, videoEffectParameter.searchWindowSize);
-			else
-				hq3d->UpdateParameter(nWidth, nHeight, videoEffectParameter.denoisingLevel, videoEffectParameter.templateWindowSize, videoEffectParameter.searchWindowSize);
-			uint8_t* outData = hq3d->ApplyDenoise3D(dst->data[0], dst->linesize[0], nHeight);
-			memcpy(dst->data[0], outData, dst->linesize[0] * nHeight);
+			errorDecoding = true;
+			bitmapData = cv::Mat(nHeight, nWidth, CV_8UC4);
 		}
-		cv::Mat bitmapData = GetBitmapRGBA(dst);
-		if (openclEffectYUV != nullptr)
-		{
-			if (bitmapData.empty())
-			{
-				errorDecoding = true;
-				bitmapData = cv::Mat(nHeight, nWidth, CV_8UC4);
-			}
-				
 
+		if (enableopenCL)
+		{
 			Regards::Picture::CPictureArray pictureArray(bitmapData);
 			openclEffectYUV->SetMatrix(pictureArray);
 		}
+		else
+			bitmapData.copyTo(pictureFrame);
+		//muBitmap.unlock();
 	}
 	else
 	{
