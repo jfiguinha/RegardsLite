@@ -26,7 +26,7 @@ namespace Regards::Viewer
 	class CMainParam;
 	class CCentralWindow;
 	class CFolderProcess;
-
+	class CThumbnailProcess;
 
 
 
@@ -63,13 +63,14 @@ namespace Regards::Viewer
 			return init;
 		}
 
+		std::atomic<int> endApplication;
+
 	private:
 
 		void StartOpening();
 		void UpdateFolderStatic();
 		static void OpenExternalFile(void* param);
 		static void NewVersionAvailable(void* param);
-		static void CheckFile(void* param);
 
 		void SetDataToStatusBar(void* thumbnailMessage, const wxString& message);
 
@@ -137,9 +138,7 @@ namespace Regards::Viewer
 
 		//------------------------------------------------------
 		void UpdateMessage(wxCommandEvent& event);
-		void ProcessThumbnail();
-		static void LoadPicture(void* param);
-		void ProcessThumbnail(wxString filename, int type, long longWindow);
+
 		void UpdateThumbnailIcone(wxCommandEvent& event);
 		int nbElementInIconeList = 0;
 		int nbPhotoElement = 0;
@@ -166,7 +165,7 @@ namespace Regards::Viewer
 
 		wxString localFilename;
 
-		std::atomic<int> endApplication;
+		
 		bool showToolbar;
 		CMainParam* viewerParam;
 		bool multithread;
@@ -191,5 +190,6 @@ namespace Regards::Viewer
 		std::map<wxString, bool> listFile;
 		wxFileSystemWatcher* m_watcher;
 		wxTimer* eventFileSysTimer = nullptr;
+		CThumbnailProcess* thumbnailProcess = nullptr;
 	};
 }

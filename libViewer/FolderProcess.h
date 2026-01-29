@@ -10,6 +10,51 @@ namespace Regards::Viewer
 {
 	class CMainWindow;
 
+
+	class CFolderFiles
+	{
+	public:
+		vector<wxString> pictureFiles;
+		wxString folderName;
+	};
+
+	class CThreadVideoData
+	{
+	public:
+		CThreadVideoData()
+		{
+			mainWindow = nullptr;
+		}
+
+		~CThreadVideoData();
+
+		CMainWindow* mainWindow;
+		wxString video;
+	};
+
+	class CThreadCheckFile
+	{
+	public:
+		CThreadCheckFile()
+		{
+			mainWindow = nullptr;
+		}
+
+		~CThreadCheckFile()
+		{
+		};
+
+		static void CheckFile(void* param);
+
+
+		std::thread* checkFile = nullptr;
+		CMainWindow* mainWindow;
+		int pictureSize;
+		int numFile;
+	};
+
+
+
 	class CThreadPhotoLoading
 	{
 	public:
@@ -43,5 +88,25 @@ namespace Regards::Viewer
 		//void UpdateFolder(CThreadPhotoLoading* threadData);
 
 		wxString oldRequest = "";
+	};
+
+
+	class CThumbnailProcess
+	{
+	public:
+		CThumbnailProcess(CMainWindow* parent)
+		{
+			this->parent = parent;
+		}
+		~CThumbnailProcess()
+		{
+		};
+
+
+		void ProcessThumbnail(wxString filename, int type, long longWindow, int& nbProcess);
+
+	private:
+		static void LoadPicture(void* param);
+		CMainWindow* parent = nullptr;
 	};
 }
