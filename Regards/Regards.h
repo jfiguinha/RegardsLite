@@ -204,7 +204,7 @@ public:
 	}
 
 
-
+	virtual void OnEventLoopEnter(wxEventLoopBase* WXUNUSED(loop)) override;
 	void OnInitCmdLine(wxCmdLineParser& parser) override;
 	bool OnCmdLineParsed(wxCmdLineParser& parser) override;
 

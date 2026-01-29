@@ -216,9 +216,6 @@ CMainWindow::CMainWindow(wxWindow* parent, wxWindowID id, IStatusBarInterface* s
 		firstFileToShow = localFilename = fileToOpen;
 
 
-
-	m_watcher = new wxFileSystemWatcher();
-	m_watcher->SetOwner(this);
 	Connect(wxEVT_FSWATCHER, wxFileSystemWatcherEventHandler(CMainWindow::OnFileSystemModified));
 
 	//UpdateFolderStatic();
@@ -236,10 +233,7 @@ CMainWindow::CMainWindow(wxWindow* parent, wxWindowID id, IStatusBarInterface* s
 
 	bool find = false;
 
-	FolderCatalogVector folderList;
-	CSqlFindFolderCatalog folderCatalog;
-	folderCatalog.GetFolderCatalog(&folderList, NUMCATALOGID);
-	CheckDatabase(folderList);
+
 }
 
 bool CMainWindow::CheckDatabase(FolderCatalogVector& folderList)
@@ -295,6 +289,22 @@ bool CMainWindow::CheckDatabase(FolderCatalogVector& folderList)
 
 
 	return folderChange;
+}
+
+
+void CMainWindow::CreateWatcherIfNecessary()
+{
+	if (m_watcher == nullptr)
+	{
+		m_watcher = new wxFileSystemWatcher();
+		m_watcher->SetOwner(this);
+
+		FolderCatalogVector folderList;
+		CSqlFindFolderCatalog folderCatalog;
+		folderCatalog.GetFolderCatalog(&folderList, NUMCATALOGID);
+		CheckDatabase(folderList);
+	}
+
 }
 
 void CMainWindow::OnFileSystemModified(wxFileSystemWatcherEvent& event)
@@ -520,12 +530,12 @@ bool CMainWindow::IsVideo()
 
 void CMainWindow::OnExportDiaporama(wxCommandEvent& event)
 {
-	CExportDiaporama * exportDiaporama = new CExportDiaporama(this);
+	unique_ptr<CExportDiaporama> exportDiaporama(new CExportDiaporama(this));
 	if (exportDiaporama != nullptr)
 	{
 		exportDiaporama->OnExportDiaporama();
 	}
-	delete exportDiaporama;
+
 }
 
 void CMainWindow::OnUpdateExifThumbnail(wxCommandEvent& event)

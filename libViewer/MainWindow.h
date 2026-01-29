@@ -55,7 +55,7 @@ namespace Regards::Viewer
 		bool GetProcessEnd() override;
 		void OnOpenFileOrFolder(wxCommandEvent& event);
 		wxString GetFilename();
-
+		void CreateWatcherIfNecessary();
 		void SaveParameter() override;
 
 		bool GetInit()
@@ -186,7 +186,7 @@ namespace Regards::Viewer
 		vector<wxString> photoList;
 		CFolderProcess* folderProcess = nullptr;
 		std::map<wxString, bool> listFile;
-		wxFileSystemWatcher* m_watcher;
+		wxFileSystemWatcher* m_watcher = nullptr;
 		wxTimer* eventFileSysTimer = nullptr;
 		CThumbnailProcess* thumbnailProcess = nullptr;
 	};

@@ -296,6 +296,13 @@ CViewerFrame::CViewerFrame(const wxString& title, const wxPoint& pos, const wxSi
 	UpdateMenuCheck();
 }
 
+void CViewerFrame::CreateWatcherIfNecessary()
+{
+	if (mainWindow != nullptr)
+		mainWindow->CreateWatcherIfNecessary();
+}
+
+
 void CViewerFrame::UpdateMenuCheck()
 {
 

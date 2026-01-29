@@ -95,6 +95,14 @@ void MyApp::MacOpenFile(const wxString &fileName)
 }
 #endif
 
+// create the file system watcher here, because it needs an active loop
+void MyApp::OnEventLoopEnter(wxEventLoopBase* WXUNUSED(loop))
+{
+	if (frameViewer != nullptr)
+	{
+		frameViewer->CreateWatcherIfNecessary();
+	}
+}
 
 
 int MyApp::Close()

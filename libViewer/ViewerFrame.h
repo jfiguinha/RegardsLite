@@ -67,7 +67,7 @@ namespace Regards::Viewer
 		void PrintPreview(CImageLoadingFormat* imageToPrint) override;
 		void PrintImagePreview(CImageLoadingFormat* imageToPrint) override;
 		void Exit() override;
-
+		void CreateWatcherIfNecessary();
 		void ShowViewer() override
 		{
 		};
@@ -118,10 +118,7 @@ namespace Regards::Viewer
 
 		void OnTimerLoadPicture(wxTimerEvent& event);
 		void OnTimerEndLoadPicture(wxTimerEvent& event);
-		bool CheckDatabase(FolderCatalogVector& folderList);
-
         void OnWindowFullScreen(wxCommandEvent & event);
-        void OpenPictureFile();
 
 
 		wxDECLARE_EVENT_TABLE();
