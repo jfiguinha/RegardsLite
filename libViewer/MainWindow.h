@@ -77,7 +77,6 @@ namespace Regards::Viewer
 		bool FindNextValidFile();
 		bool FindPreviousValidFile();
 
-		void OnEndDecompressFile(wxCommandEvent& event);
 		void OnEditFile(wxCommandEvent& event);
 
 		void OnUpdateInfos(wxCommandEvent& event);
@@ -126,7 +125,6 @@ namespace Regards::Viewer
 		void OnAddFSEntry(wxCommandEvent& event);
 
 		void Resize() override;
-		void ExportVideo(const wxString& filename);
 		void ProcessIdle() override;
 		void OnIdle(wxIdleEvent& evt) override;
 
@@ -181,7 +179,7 @@ namespace Regards::Viewer
 		bool changeFolder = false;
 
 		bool isThumbnailProcess = false;
-		CExportDiaporama* exportDiaporama = nullptr;
+
 		wxString firstFileToShow = "";
 		wxString oldRequest = "";
 		bool init = true;

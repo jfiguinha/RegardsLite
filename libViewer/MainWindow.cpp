@@ -174,7 +174,6 @@ CMainWindow::CMainWindow(wxWindow* parent, wxWindowID id, IStatusBarInterface* s
 	Connect(wxEVENT_OPENFILEORFOLDER, wxCommandEventHandler(CMainWindow::OnOpenFileOrFolder));
 	Connect(wxEVENT_EDITFILE, wxCommandEventHandler(CMainWindow::OnEditFile));
 	Connect(wxEVENT_EXPORTFILE, wxCommandEventHandler(CMainWindow::OnExportFile));
-	Connect(wxEVENT_ENDCOMPRESSION, wxCommandEventHandler(CMainWindow::OnEndDecompressFile));
 	Connect(wxEVENT_UPDATETHUMBNAILEXIF, wxCommandEventHandler(CMainWindow::OnUpdateExifThumbnail));
 	Connect(wxEVENT_EXPORTDIAPORAMA, wxCommandEventHandler(CMainWindow::OnExportDiaporama));
 
@@ -521,10 +520,12 @@ bool CMainWindow::IsVideo()
 
 void CMainWindow::OnExportDiaporama(wxCommandEvent& event)
 {
+	CExportDiaporama * exportDiaporama = new CExportDiaporama(this);
 	if (exportDiaporama != nullptr)
 	{
 		exportDiaporama->OnExportDiaporama();
 	}
+	delete exportDiaporama;
 }
 
 void CMainWindow::OnUpdateExifThumbnail(wxCommandEvent& event)
@@ -543,28 +544,7 @@ void CMainWindow::OnUpdateExifThumbnail(wxCommandEvent& event)
 	}
 }
 
-void CMainWindow::OnEndDecompressFile(wxCommandEvent& event)
-{
-	if (exportDiaporama != nullptr)
-	{
-		int ret = event.GetInt();
-		exportDiaporama->OnEndDecompressFile(ret);
-		delete exportDiaporama;
-		exportDiaporama = nullptr;
-	}
-}
 
-void CMainWindow::ExportVideo(const wxString& filename)
-{
-	if (!wxFileExists(filename))
-		return;
-
-	if (exportDiaporama != nullptr)
-		delete exportDiaporama;
-
-	exportDiaporama = new CExportDiaporama(this);
-	exportDiaporama->ExportVideo(filename);
-}
 
 void CMainWindow::OnExportFile(wxCommandEvent& event)
 {
