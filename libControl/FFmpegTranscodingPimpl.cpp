@@ -1,20 +1,16 @@
 // ReSharper disable All
 #include "header.h"
 #include "FFmpegTranscodingPimpl.h"
-
 #include <CompressVideo.h>
 #include <ImageLoadingFormat.h>
-#include "ffmpegToBitmap.h"
 #include "VideoCompressOption.h"
 #include <wx/progdlg.h>
 #include <wx/filename.h>
 #include <ConvertUtility.h>
 #include <chrono>
 #include <FiltreEffet.h>
-#include <OpenCLFilter.h>
 #include <OpenCLEffectVideo.h>
 #include <FiltreEffetCPU.h>
-#include <ConvertUtility.h>
 #include <MediaInfo.h>
 #include <picture_utility.h>
 
@@ -28,9 +24,6 @@ extern "C" {
     #include <libavutil/channel_layout.h>
 }
 
-
-#include <opencv2/core/core.hpp>
-#include <ffmpeg_application.h>
 using namespace cv;
 using namespace Regards::OpenCL;
 using namespace Regards::Video;

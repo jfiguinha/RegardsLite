@@ -1,13 +1,11 @@
 #include <header.h>
 #include "PicturePanel.h"
 #include <RGBAQuad.h>
-#include <libPicture.h>
 #include <ImageLoadingFormat.h>
 #include <opencv2/core.hpp>
 #include <wx/spinctrl.h>
 #include <CvPlot/cvplot.h>
 using namespace Regards::Window;
-using namespace Regards::Picture;
 
 CPicturePanel::CPicturePanel(wxWindow* parent, wxWindowID id, const CThemeThumbnail& theme)
 	: CWindowMain("CPicturePanel", parent, id)

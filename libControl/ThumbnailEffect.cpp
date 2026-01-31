@@ -7,21 +7,18 @@
 #include <RegardsConfigParam.h>
 #include <LibResource.h>
 #include <FiltreEffet.h>
-#include "wx/stdpaths.h"
-#include "ScrollbarHorizontalWnd.h"
 #include "ScrollbarWnd.h"
 #include <libPicture.h>
 #include <FilterData.h>
 #include <LoadingResource.h>
-#include <picture_id.h>
 #include <ImageLoadingFormat.h>
-
-
+#include <SqlThumbnail.h>
 #include <effect_id.h>
 using namespace Regards::Window;
 using namespace Regards::FiltreEffet;
 using namespace Regards::Control;
 using namespace Regards::Picture;
+using namespace Regards::Sqlite;
 wxDEFINE_EVENT(EVENT_ICONEUPDATE, wxCommandEvent);
 
 

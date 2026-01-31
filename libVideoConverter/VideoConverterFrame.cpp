@@ -3,7 +3,6 @@
 #include "VideoConverterFrame.h"
 #include <CompressionAudioVideoOption.h>
 #include <VideoCompressOption.h>
-#include <wx/dir.h>
 #include <wx/filename.h>
 #include <MediaInfo.h>
 #include <ffmpeg_application.h>
@@ -11,15 +10,14 @@
 #include <FileUtility.h>
 #include <LibResource.h>
 #include <libPicture.h>
-extern "C" {
-#include <libswscale/swscale.h>
-}
 #if defined(__WXMSW__)
 #include "../include/window_id.h"
 #else
 #include <window_id.h>
 #endif
-
+extern "C" {
+#include <libswscale/swscale.h>
+}
 #ifndef wxHAS_IMAGES_IN_RESOURCES
 #ifdef __WXGTK__
 #include "../Resource/sample.xpm"

@@ -1,8 +1,6 @@
 #include "header.h"
 #include "ScrollbarVerticalWnd.h"
-
 #include <window_id.h>
-#include <wx/dcbuffer.h>
 using namespace Regards::Window;
 
 #define BARSIZEMIN 20

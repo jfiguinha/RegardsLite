@@ -1,11 +1,8 @@
 #pragma once
 #include <Photos.h>
 #include <WindowMain.h>
-#include <ToolbarInterface.h>
-#include "IconeList.h"
 #include <wx/fswatcher.h>
 #include <FolderCatalog.h>
-#include <InfosSeparationBar.h>
 using namespace Regards::Window;
 
 class CRegardsBitmap;

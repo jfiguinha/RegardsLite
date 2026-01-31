@@ -1,15 +1,7 @@
 #include <header.h>
 #include "OpenCLFilter.h"
-
-#include "utility.h"
 #include <opencv2/xphoto.hpp>
-#include <FileUtility.h>
-#include <mutex>
-#include <ParamInit.h>
-#include <RegardsConfigParam.h>
 #include <opencv2/core/ocl.hpp>
-#include <LibResource.h>
-
 #include <avir.h>
 
 using namespace Regards::OpenCL;

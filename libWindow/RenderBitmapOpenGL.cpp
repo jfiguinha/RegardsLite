@@ -10,12 +10,8 @@
 #ifdef __APPLE__
 #include <OpenCL/opencl.h>
 #include <GLUT/glut.h>
-#else
-#include <GL/glut.h>
 #endif
 #include <LibResource.h>
-#include <libPicture.h>
-#include <wx/sstream.h>
 #include <ImageLoadingFormat.h>
 using namespace Regards::OpenGL;
 using namespace Regards::Picture;

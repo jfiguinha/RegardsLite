@@ -12,10 +12,6 @@
 #ifdef ROTDETECT
 #include <rotdetect.h>
 #endif
-#if defined(EXIV2)
-#include <MetadataExiv2.h>
-using namespace Regards::exiv2;
-#endif
 using namespace Regards::Picture;
 
 extern float value[256];

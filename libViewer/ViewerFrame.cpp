@@ -17,24 +17,16 @@
 #include <RegardsConfigParam.h>
 #include <ParamInit.h>
 #include <FileUtility.h>
-#include <SqlFindPhotos.h>
-#include <SqlFindFolderCatalog.h>
 #include <libPicture.h>
 #include <SavePicture.h>
 #include <ImageLoadingFormat.h>
 #include "WaitingWindow.h"
 #include <wx/stdpaths.h>
-#include <SqlThumbnail.h>
-#include <SqlFacePhoto.h>
 #include "window_mode_id.h"
 #include <wx/busyinfo.h>
-#include <LibResource.h>
 #include <wx/wfstream.h>
-#include <wx/txtstrm.h>
-#include <FileUtility.h>
 #include <wx/dirdlg.h>
 #include <wx/progdlg.h>
-#include "DownloadFile.h"
 #ifdef __APPLE__
 #include <ToggleFullscreen.h>
 #endif
@@ -44,7 +36,6 @@ using namespace Regards::Control;
 using namespace Regards::Viewer;
 using namespace Regards::Sqlite;
 using namespace Regards::Picture;
-using namespace Regards::Internet;
 
 constexpr auto TIMER_LOADPICTURE = 2;
 constexpr auto TIMER_LOADPICTUREEND = 4;

@@ -5,8 +5,6 @@
 #include <wx/stdpaths.h>
 #include <RegardsConfigParam.h>
 #include <ParamInit.h>
-#include "ViewerParamInit.h"
-#include "ViewerParam.h"
 using namespace Regards::Viewer;
 
 CMainTheme* CMainThemeInit::_singleton = nullptr;

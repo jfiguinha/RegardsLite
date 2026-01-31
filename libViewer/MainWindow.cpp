@@ -5,7 +5,6 @@
 #include "ViewerParamInit.h"
 #include "ViewerParam.h"
 #include <libPicture.h>
-#include "window_mode_id.h"
 #include <ImageLoadingFormat.h>
 #include "ThumbnailViewerPicture.h"
 #include "ThumbnailBuffer.h"
@@ -22,14 +21,10 @@
 #include <SqlInsertFile.h>
 #include "StatusText.h"
 #include <ThumbnailMessage.h>
-#include <SqlThumbnailVideo.h>
 #include <SqlFindFolderCatalog.h>
 #define LIBHEIC
-#include <picture_id.h>
 #include <ShowElement.h>
 #include <wx/filedlg.h>
-#include <SqlFaceLabel.h>
-#include "SqlFacePhoto.h"
 #include <FiltreEffetCPU.h>
 #include "CheckVersion.h"
 #include <IBitmapWnd.h>
@@ -39,10 +34,6 @@
 #include <ParamInit.h>
 #include "FolderProcess.h"
 #include <wx/busyinfo.h>
-
-#include <ImageVideoThumbnail.h>
-#include <ThreadLoadingBitmap.h>
-#include "window_mode_id.h"
 #include <wx/mimetype.h>
 #include <wx/dir.h>
 #include "SqlFolderCatalog.h"
@@ -67,48 +58,9 @@ bool firstTime = true;
 
 
 
-void CMainWindow::OnEndCheckFile(wxCommandEvent& event)
-{
-	CThreadCheckFile* checkFile = (CThreadCheckFile*)event.GetClientData();
-	if (checkFile != nullptr)
-	{
-		if (checkFile->checkFile != nullptr)
-		{
-			checkFile->checkFile->join();
-			delete checkFile->checkFile;
-		}
-
-		isCheckingFile = false;
-		delete checkFile;
-	}
-	changeFolder = false;
-	processIdle = true;
-}
-
-CThreadVideoData::~CThreadVideoData()
-{
-}
 
 
 extern wxImage defaultPicture;
-
-void CMainWindow::OnRemoveFileFromCheckIn(wxCommandEvent& event)
-{
-	UpdateFolderStatic();
-	processIdle = true;
-}
-
-void CMainWindow::OnCheckInUpdateStatus(wxCommandEvent& event)
-{
-	int numElementTraitement = event.GetInt();
-	wxString nbElement = event.GetString();
-	wxString label = CLibResource::LoadStringFromResource(L"LBLFILECHECKING", 1);
-	wxString message = label + to_string(numElementTraitement) + L"/" + nbElement;
-	if (statusBarViewer != nullptr)
-	{
-		statusBarViewer->SetText(3, message);
-	}
-}
 
 CMainWindow::CMainWindow(wxWindow* parent, wxWindowID id, IStatusBarInterface* statusbar, const bool& openFirstFile, const wxString& fileToOpen)
 	: CWindowMain("CMainWindow", parent, id)
@@ -235,6 +187,44 @@ CMainWindow::CMainWindow(wxWindow* parent, wxWindowID id, IStatusBarInterface* s
 
 
 }
+
+
+void CMainWindow::OnRemoveFileFromCheckIn(wxCommandEvent& event)
+{
+	UpdateFolderStatic();
+	processIdle = true;
+}
+
+void CMainWindow::OnCheckInUpdateStatus(wxCommandEvent& event)
+{
+	int numElementTraitement = event.GetInt();
+	wxString nbElement = event.GetString();
+	wxString label = CLibResource::LoadStringFromResource(L"LBLFILECHECKING", 1);
+	wxString message = label + to_string(numElementTraitement) + L"/" + nbElement;
+	if (statusBarViewer != nullptr)
+	{
+		statusBarViewer->SetText(3, message);
+	}
+}
+
+void CMainWindow::OnEndCheckFile(wxCommandEvent& event)
+{
+	CThreadCheckFile* checkFile = (CThreadCheckFile*)event.GetClientData();
+	if (checkFile != nullptr)
+	{
+		if (checkFile->checkFile != nullptr)
+		{
+			checkFile->checkFile->join();
+			delete checkFile->checkFile;
+		}
+
+		isCheckingFile = false;
+		delete checkFile;
+	}
+	changeFolder = false;
+	processIdle = true;
+}
+
 
 bool CMainWindow::CheckDatabase(FolderCatalogVector& folderList)
 {
@@ -1067,18 +1057,13 @@ void CMainWindow::ProcessIdle()
 	if (nbElementInIconeList > 0 && photoList.size() > 0 && nbProcess < nbProcesseur)
 	{
 		wxString path = *photoList.begin();
-
-		auto event = new wxCommandEvent(wxEVENT_UPDATEMESSAGE);
-		event->SetExtraLong(photoList.size());
-		wxQueueEvent(this, event);
-
-		thumbnailProcess->ProcessThumbnail(path, 0, 0, nbProcess);
-
-
 		std::map<wxString, bool>::iterator it = listFile.find(path);
 		if (it == listFile.end())
 		{
-			//thumbnailProcess->ProcessThumbnail(path, 0, 0, nbProcess);
+			auto event = new wxCommandEvent(wxEVENT_UPDATEMESSAGE);
+			event->SetExtraLong(photoList.size());
+			wxQueueEvent(this, event);
+			thumbnailProcess->ProcessThumbnail(path, 0, 0, nbProcess);
 			listFile[path] = true;
 		}
 
@@ -1130,71 +1115,16 @@ void CMainWindow::UpdateMessage(wxCommandEvent& event)
 		}
 		thumbnailPos++;
 	}
-
-
 }
 
 void CMainWindow::OnProcessThumbnail(wxCommandEvent& event)
 {
-	wxString firstFile = "";
 	wxString* filename = (wxString*)event.GetClientData();
 	wxString localName = wxString(*filename);
-
-	CLibPicture libPicture;
-	int iFormat = libPicture.TestImageFormat(localName);
-
-	int nbProcesseur = 1;
-	if (CRegardsConfigParam* config = CParamInit::getInstance(); config != nullptr)
-		nbProcesseur = config->GetThumbnailProcess() + 1;
-
-	if (nbProcess < nbProcesseur)
-	{
-		int type = event.GetInt();
-		int longWindow = event.GetExtraLong();
-		if (type == 1)
-		{
-			thumbnailProcess->ProcessThumbnail(localName, type, longWindow, nbProcess);
-		}
-		else
-		{
-			std::map<wxString, bool>::iterator it = listFile.find(localName);
-			if (it == listFile.end())
-			{
-				std::vector<wxString>::iterator itPhoto = std::find(photoList.begin(), photoList.end(), localName);
-				if (itPhoto != photoList.end())
-					photoList.erase(itPhoto);
-
-				thumbnailProcess->ProcessThumbnail(localName, type, longWindow, nbProcess);
-				listFile[localName] = true;
-			}
-		}
-	}
-	else if (photoList.size() > 0)
-	{
-		firstFile = *filename;
-
-		for (int i = 0; i < photoList.size(); i++)
-		{
-			wxString oldFile = photoList[i];
-			if (*filename == oldFile)
-			{
-				photoList[i] = firstFile;
-				break;
-			}
-			else
-			{
-				photoList[i] = firstFile;
-				firstFile = oldFile;
-			}
-		}
-		processIdle = true;
-	}
-
-
+	photoList.insert(photoList.begin(), localName);
+	processIdle = true;
 	delete filename;
 }
-
-
 
 
 //---------------------------------------------------------------

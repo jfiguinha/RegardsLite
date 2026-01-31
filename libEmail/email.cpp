@@ -6,7 +6,6 @@
    */
 
 #include "email.h"
-#include <wx/base64.h>
 #include <ConvertUtility.h>
 
 

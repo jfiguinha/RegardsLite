@@ -1,26 +1,19 @@
 #include "header.h"
 #include "Thumbnail.h"
 #include <FileUtility.h>
-#include <wxmd5.h>
-#include "ScrollbarHorizontalWnd.h"
+#include <SqlThumbnail.h>
 #include "ScrollbarWnd.h"
 #include <ParamInit.h>
 #include <RegardsConfigParam.h>
-#include <SqlPhotosWithoutThumbnail.h>
-#include <ImageLoadingFormat.h>
-#include <ImageVideoThumbnail.h>
 #include <SqlThumbnailVideo.h>
 #include <wx/dcbuffer.h>
-#include <wx/filename.h>
 #include "LibResource.h"
 #include <ThumbnailData.h>
-#include "ThumbnailMessage.h"
 #include <libPicture.h>
-#include <ThumbnailDataStorage.h>
 #include <ThreadLoadingBitmap.h>
 using namespace Regards::Picture;
 using namespace Regards::Window;
-
+using namespace Regards::Sqlite;
 
 class CImageLoadingFormat;
 extern bool preprocessisAvailable;

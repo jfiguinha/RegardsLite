@@ -4,8 +4,6 @@
 #include <LibResource.h>
 #include "ViewerFrame.h"
 #include <window_id.h>
-#include <RegardsConfigParam.h>
-#include <ParamInit.h>
 
 #include <wx/mimetype.h>
 using namespace Regards::Window;

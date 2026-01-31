@@ -9,7 +9,6 @@
 #include <libPicture.h>
 #include <picture_id.h>
 #include <ThumbnailMessage.h>
-#include "PictureElement.h"
 #include <wx/display.h>
 #include "AnimationToolbar.h"
 #include <ConvertUtility.h>
@@ -27,7 +26,7 @@
 #include <RegardsConfigParam.h>
 #include <ImageVideoThumbnail.h>
 #include <ThreadLoadingBitmap.h>
-
+#include <SqlThumbnail.h>
 using namespace Regards::Video;
 using namespace Regards::Picture;
 using namespace Regards::Window;

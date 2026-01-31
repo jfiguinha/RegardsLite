@@ -2,7 +2,6 @@
 #include "ThumbnailViewerPicture.h"
 #include "MainWindow.h"
 #include <ThumbnailDataSQL.h>
-#include <ScrollbarHorizontalWnd.h>
 #include <ScrollbarWnd.h>
 #include "ThumbnailBuffer.h"
 #include <SqlFindPhotos.h>

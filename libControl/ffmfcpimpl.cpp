@@ -3,8 +3,7 @@
 #include "ffmfcpimpl.h"
 #include <WindowMain.h>
 #include <mutex>
-#include <ParamInit.h>
-#include <RegardsConfigParam.h>
+
 #include <ConvertUtility.h>
 #include <RGBAQuad.h>
 using namespace std;

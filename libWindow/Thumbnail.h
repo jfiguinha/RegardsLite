@@ -1,14 +1,11 @@
 #pragma once
 #include <ThumbnailData.h>
-#include <SqlThumbnail.h>
 #include "IconeList.h"
 #include <wx/activityindicator.h>
 #include "WindowMain.h"
 #include <wx/animate.h>
-#include <queue>
 #include "ThreadLoadingBitmap.h"
 using namespace std;
-using namespace Regards::Sqlite;
 using namespace Regards::Window;
 
 class CListToClean;
@@ -163,7 +160,6 @@ namespace Regards::Window
 
 		void ExecuteTimer(const int& numId, wxTimer* refresh);
 		
-		void update_render_icone(wxCommandEvent& event);
         void RefreshThumbnail(wxCommandEvent& event);
 
 
