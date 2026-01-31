@@ -7,10 +7,7 @@
 #else
 #include <CL/cl.h>
 #include <CL/cl_gl.h>
-#include <CL/cl_gl_ext.h>
 #endif
-
-#include <epoxy/gl.h>
 
 #ifdef WIN32
 #include <epoxy/wgl.h>
@@ -291,20 +288,6 @@ void COpenCLContext::initializeContextFromGL()
 			0
 		};
 
-		/*
-		// create context properties listing the platform and current OpenGL display
-		cl_context_properties properties[] = {
-			CL_CONTEXT_PLATFORM, (cl_context_properties)platform.id(),
-		#if defined(__linux__)
-			CL_GL_CONTEXT_KHR, (cl_context_properties)glXGetCurrentContext(),
-			CL_GLX_DISPLAY_KHR, (cl_context_properties)glXGetCurrentDisplay(),
-		#elif defined(_WIN32)
-			CL_GL_CONTEXT_KHR, (cl_context_properties)wglGetCurrentContext(),
-			CL_WGL_HDC_KHR, (cl_context_properties)wglGetCurrentDC(),
-		#endif
-			0
-		};
-		*/
 
 #elif defined(__WXGTK__)
 
