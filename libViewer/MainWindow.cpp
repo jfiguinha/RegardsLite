@@ -1121,6 +1121,11 @@ void CMainWindow::OnProcessThumbnail(wxCommandEvent& event)
 {
 	wxString* filename = (wxString*)event.GetClientData();
 	wxString localName = wxString(*filename);
+
+	std::vector<wxString>::iterator itPhoto = std::find(photoList.begin(), photoList.end(), localName);
+	if (itPhoto != photoList.end())
+		photoList.erase(itPhoto);
+
 	photoList.insert(photoList.begin(), localName);
 	processIdle = true;
 	delete filename;
