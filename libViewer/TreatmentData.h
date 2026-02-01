@@ -46,26 +46,32 @@ public:
 		int size = CThumbnailBuffer::GetVectorSize();
 		for (int i = 0; i < size; i++)
 		{
-			
-			CPhotos photos = CThumbnailBuffer::GetVectorValue(i);
-			UpdateVariable(photos);
-
-			wxString libelle = GenerateLibelle();
-			wxString value = GenerateValue();
-
-			std::map<wxString, PhotosVector*>::iterator it = listMap.find(value);
-			if (it != listMap.end())
+			try
 			{
-				PhotosVector* listVector = listMap[value];
-				listVector->push_back(photos);
+				CPhotos photos = CThumbnailBuffer::GetVectorValue(i);
+				UpdateVariable(photos);
+
+				wxString libelle = GenerateLibelle();
+				wxString value = GenerateValue();
+
+				std::map<wxString, PhotosVector*>::iterator it = listMap.find(value);
+				if (it != listMap.end())
+				{
+					PhotosVector* listVector = listMap[value];
+					listVector->push_back(photos);
+				}
+				else
+				{
+					PhotosVector* listVector = new PhotosVector();
+					listMap[value] = listVector;
+					listLibelle[value] = libelle;
+					listVector->push_back(photos);
+
+				}
 			}
-			else
+			catch (...)
 			{
-				PhotosVector* listVector = new PhotosVector();
-				listMap[value] = listVector;
-				listLibelle[value] = libelle;
-				listVector->push_back(photos);
-
+				continue;
 			}
 		}
 
