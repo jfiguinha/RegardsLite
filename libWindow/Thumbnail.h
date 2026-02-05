@@ -268,6 +268,7 @@ namespace Regards::Window
 		std::mutex muEraseList;
 		std::vector<CListToClean *> listToErrase;
 		std::vector<CIcone *> pIconeList;
+		std::vector<wxString> listIconeToGenerate;
 		wxWindowID localid;
 		
 	};

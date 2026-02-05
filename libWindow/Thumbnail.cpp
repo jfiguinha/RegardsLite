@@ -1051,6 +1051,8 @@ void CThumbnail::RefreshThumbnail(wxCommandEvent& event)
     printf("CThumbnail::RefreshThumbnail \n");
 }
 
+
+
 bool CThumbnail::UpdateThumbnail(CIcone *  pBitmapIcone)
 {
     bool isProcess = false;
@@ -1078,6 +1080,26 @@ bool CThumbnail::UpdateThumbnail(CIcone *  pBitmapIcone)
     }  
     return isProcess;  
 }
+
+
+void CThumbnail::RenderIcons(wxDC& dc)
+{
+	listIconeToGenerate.clear();
+	RenderIcone(&dc);
+	if (!listIconeToGenerate.empty())
+	{
+		wxWindow* window = this->FindWindowById(MAINVIEWERWINDOWID);
+		if (window != nullptr)
+		{
+			wxCommandEvent evt(wxEVENT_ICONETHUMBNAILGENERATION);
+			evt.SetClientData(&listIconeToGenerate);
+			evt.SetInt(0);
+			evt.SetExtraLong(localid);
+			window->GetEventHandler()->AddPendingEvent(evt);
+		}
+	}
+}
+
 void CThumbnail::RenderBitmap(wxDC* deviceContext, CIcone *  pBitmapIcone, const int& posLargeur, const int& posHauteur)
 {
    // printf("CThumbnail::RenderBitmap PreprocessThumbnail localid : %d \n", localid);
@@ -1103,16 +1125,7 @@ void CThumbnail::RenderBitmap(wxDC* deviceContext, CIcone *  pBitmapIcone, const
 					//const bool isLoad = pThumbnailData->IsLoad();
 					if (!isProcess) // && !isLoad)
 					{
-						wxWindow* window = this->FindWindowById(MAINVIEWERWINDOWID);
-						if (window != nullptr)
-						{
-							wxString* localName = new wxString(pThumbnailData->GetFilename());
-							wxCommandEvent evt(wxEVENT_ICONETHUMBNAILGENERATION);
-							evt.SetClientData(localName);
-							evt.SetInt(0);
-							evt.SetExtraLong(localid);
-							window->GetEventHandler()->AddPendingEvent(evt);
-						}
+						listIconeToGenerate.push_back(pThumbnailData->GetFilename());
 						pThumbnailData->SetIsProcess(true);
 					}
 				}
@@ -1402,10 +1415,7 @@ void CThumbnail::CenterSelectedIcon()
 }
 
 
-void CThumbnail::RenderIcons(wxDC& dc)
-{
-	RenderIcone(&dc);
-}
+
 
 void CThumbnail::NotifyParentOnPositionChange()
 {
