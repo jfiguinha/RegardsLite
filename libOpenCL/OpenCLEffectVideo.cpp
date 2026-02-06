@@ -610,10 +610,6 @@ void COpenCLEffectVideo::SetAVFrame(CVideoEffectParameter* videoEffectParameter,
 
 		//muBitmap.unlock();
 	}
-	else
-	{
-
-	}
 }
 
 

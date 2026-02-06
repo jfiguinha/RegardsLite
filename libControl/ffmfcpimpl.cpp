@@ -334,7 +334,7 @@ void CFFmfcPimpl::video_display(VideoState* is)
 				dlg->SetPos(vp->pts * 1000);
 
 		if (dlg != nullptr)
-			dlg->SetData(vp->frame, video_aspect_ratio, nullptr);
+			dlg->SetData(vp->frame, isHardwareDecoding, video_aspect_ratio, nullptr);
 		//}
 
 		if (is->subtitle_st)

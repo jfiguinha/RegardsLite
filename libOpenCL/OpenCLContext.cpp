@@ -273,8 +273,17 @@ void COpenCLContext::initializeContextFromGL()
 	{
 		int i = platformCompatible[j];
 		std::string platformName = cv::ocl::PlatformInfo(&platforms[i]).name();
-        
-        printf("platformName : %i - %s \n", i, platformName.c_str());
+
+
+		printf("platformName : %i - %s \n", i, platformName.c_str());
+	}
+
+
+	for (int j = 0; j < platformCompatible.size(); j++)
+	{
+		int i = platformCompatible[j];
+		std::string platformName = cv::ocl::PlatformInfo(&platforms[i]).name();
+
 
 		clGetGLContextInfoKHR_fn clGetGLContextInfoKHR = (clGetGLContextInfoKHR_fn)
 			clGetExtensionFunctionAddressForPlatform(platforms[i], "clGetGLContextInfoKHR");
