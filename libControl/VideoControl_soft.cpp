@@ -1341,21 +1341,9 @@ void CVideoControlSoft::OnPaint3D(wxGLCanvas* canvas, CRenderOpenGL* renderOpenG
 
 	if (videoRenderStart)
 	{
-
-		if (IsSupportOpenCL() && openclEffectYUV != nullptr && hardwareDecoding)
-		{
-			muHard.lock();
-			Regards::Picture::CPictureArray pictureArray(frameHard);
-			openclEffectYUV->SetMatrix(pictureArray);
-			muHard.unlock();
-		}
-		else
-		{
-
-			muframe.lock();
-			SetFrameData(dst);
-			muframe.unlock();
-		}
+		muframe.lock();
+		SetFrameData(dst);
+		muframe.unlock();
 
 
  
@@ -1871,6 +1859,7 @@ void CVideoControlSoft::SetData(void* data, bool isHardwareDecoding, const float
 		CopyFrame(src_frame);
 	else
 	{
+		/*
 		if (IsSupportOpenCL())
 		{
 			int nWidth = src_frame->width;
@@ -1897,12 +1886,8 @@ void CVideoControlSoft::SetData(void* data, bool isHardwareDecoding, const float
 			COpenCLEffectVideo openclEffectVideo;
 			openclEffectVideo.SetAVFrame(nullptr, src_frame, _colorSpace, isLimited);
 
-			Regards::Picture::CPictureArray src = openclEffectVideo.GetMatrix();
-			muHard.lock();
-			src.copyTo(frameHard);
-			muHard.unlock();
 
-			/*
+			
 			if (dst == nullptr)
 			{
 				dst = av_frame_alloc();
@@ -1917,10 +1902,10 @@ void CVideoControlSoft::SetData(void* data, bool isHardwareDecoding, const float
 
 			openclEffectVideo.GetYUV420P(dst->data[0], dst->data[1], dst->data[2],
 				src_frame->width, src_frame->height);
-			*/
+			
 		}
 		else
-		{
+		{*/
 			if (dst == nullptr)
 			{
 				dst = av_frame_alloc();
@@ -1958,7 +1943,7 @@ void CVideoControlSoft::SetData(void* data, bool isHardwareDecoding, const float
 
 
 			av_frame_copy_props(dst, src_frame);
-		}
+		//}
 	}
 
 	videoRenderStart = true;
