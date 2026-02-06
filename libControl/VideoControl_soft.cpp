@@ -1055,7 +1055,10 @@ CVideoControlSoft::~CVideoControlSoft()
 		sws_freeContext(localContext);
 	localContext = nullptr;
 
-	
+	if (dst != nullptr)
+		av_frame_free(&dst);
+
+	dst = nullptr;
 }
 
 void CVideoControlSoft::SetSubtituleText(const char* textSub, int timing)
