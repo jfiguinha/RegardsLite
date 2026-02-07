@@ -2005,7 +2005,7 @@ void CVideoControlSoft::RenderToTexture()
 		openclEffectYUV->InterpolationZoomBicubic(widthOutput, heightOutput, rc, flipH, flipV, angle, filterInterpolation,
                                                (int)GetZoomRatio() * 100);
 
-		if ((videoEffectParameter.autoConstrast || videoEffectParameter.filmEnhance || videoEffectParameter.filmcolorisation) && videoEffectParameter.
+		if (videoEffectParameter.autoConstrast && videoEffectParameter.
 			effectEnable)
 		{
 			openclEffectYUV->ApplyOpenCVEffect(&videoEffectParameter);
@@ -2110,7 +2110,7 @@ void CVideoControlSoft::RenderFFmpegToTexture()
 					flipH, flipV, angle, (int)GetZoomRatio() * 100);
 
 
-				if ((videoEffectParameter.stabilizeVideo || videoEffectParameter.autoConstrast || videoEffectParameter.filmcolorisation || videoEffectParameter.filmEnhance) && videoEffectParameter.
+				if ((videoEffectParameter.stabilizeVideo || videoEffectParameter.autoConstrast) && videoEffectParameter.
 					effectEnable)
 				{
 					ApplyOpenCVEffect(bitmapOut);

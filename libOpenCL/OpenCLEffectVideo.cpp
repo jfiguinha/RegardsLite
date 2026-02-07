@@ -143,43 +143,6 @@ void COpenCLEffectVideo::ApplyOpenCVEffect(CVideoEffectParameter* videoEffectPar
 			openclFilter->BrightnessAndContrastAuto(paramSrc, 1.0);
 		}
 	}
-	/*
-	if (videoEffectParameter->sepiaEnable)
-	{
-		if (interpolatePicture)
-		{
-			openclFilter->ColorEffect("Sepia", paramOutput);
-		}
-		else
-		{
-			openclFilter->ColorEffect("Sepia", paramSrc);
-		}
-	}
-	*/
-	if (videoEffectParameter->filmEnhance || videoEffectParameter->filmcolorisation)
-	{
-		cv::Mat img_up;
-		cv::Mat image;
-
-		if (interpolatePicture)
-		{
-			paramOutput.copyTo(image);
-		}
-		else
-		{
-			paramSrc.copyTo(image);
-		}
-
-
-		if (interpolatePicture)
-		{
-			image.copyTo(paramOutput);
-		}
-		else
-		{
-			image.copyTo(paramSrc);
-		}
-	}
 }
 
 
