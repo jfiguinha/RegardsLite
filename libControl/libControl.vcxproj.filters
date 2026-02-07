@@ -264,6 +264,9 @@
     <ClInclude Include="InfosSeparationBarFace.h">
       <Filter>SeparatorBar</Filter>
     </ClInclude>
+    <ClInclude Include="DataAVFrame.h">
+      <Filter>Video</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="ReadMe.txt" />

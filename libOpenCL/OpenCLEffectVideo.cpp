@@ -20,6 +20,17 @@ COpenCLEffectVideo::COpenCLEffectVideo()
 
 }
 
+void COpenCLEffectVideo::SetMatrix(cv::Mat* m)
+{
+	if (m->channels() == 4)
+		cv::cvtColor(*m, paramSrc, cv::COLOR_BGRA2BGR);
+	else
+		m->copyTo(paramSrc);
+
+	needToTranscode = false;
+	isOk = true;
+}
+
 void COpenCLEffectVideo::SetMatrix(Regards::Picture::CPictureArray& bitmap)
 {
 	cv::UMat frame = bitmap.getUMat();
