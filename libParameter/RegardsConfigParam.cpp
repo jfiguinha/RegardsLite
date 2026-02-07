@@ -552,8 +552,7 @@ void CRegardsConfigParam::SetVideoEffectParameter(xml_node<>* sectionPosition)
 	sectionPosition->append_node(node("templateWindowSize", to_string(videoEffectParameter->templateWindowSize)));
 	sectionPosition->append_node(node("searchWindowSize", to_string(videoEffectParameter->searchWindowSize)));
 	sectionPosition->append_node(node("filmgrainenable", to_string(videoEffectParameter->filmgrainenable)));
-	sectionPosition->append_node(node("filmcolorisation", to_string(videoEffectParameter->filmcolorisation)));
-	sectionPosition->append_node(node("filmEnhance", to_string(videoEffectParameter->filmEnhance)));
+
 	sectionPosition->append_node(node("ratioSelect", to_string(videoEffectParameter->ratioSelect)));
 
 	sectionPosition->append_node(node("subtitleSize", to_string(videoEffectParameter->subtitleSize)));
@@ -628,10 +627,6 @@ void CRegardsConfigParam::GetVideoEffectParameter(xml_node<>* position_node)
                 videoEffectParameter->searchWindowSize = atoi(child_node->value());
             else if(listParam[i] == "filmgrainenable") 
                 videoEffectParameter->filmgrainenable = atoi(child_node->value());
-            else if(listParam[i] == "filmcolorisation") 
-                videoEffectParameter->filmcolorisation = atoi(child_node->value());
-            else if(listParam[i] == "filmEnhance") 
-                videoEffectParameter->filmEnhance = atoi(child_node->value());
             else if(listParam[i] == "ratioSelect") 
                 videoEffectParameter->ratioSelect = atoi(child_node->value());
 			else if (listParam[i] == "subtitleSize")

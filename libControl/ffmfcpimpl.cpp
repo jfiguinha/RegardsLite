@@ -6,7 +6,11 @@
 #include "DataAVFrame.h"
 #include <ConvertUtility.h>
 #include <RGBAQuad.h>
+#include <RegardsConfigParam.h>
+#include <OpenCLEffectVideo.h>
+#include <ParamInit.h>
 using namespace std;
+using namespace Regards::OpenCL;
 
 #ifdef WIN32
 wxString listHardware[] = {"cuda", "qsv", "d3d11va", "dxva2", "opencl"};
@@ -315,6 +319,22 @@ void CFFmfcPimpl::do_exit(VideoState* is)
 	}
 }
 
+int CFFmfcPimpl::IsSupportOpenCL()
+{
+	int supportOpenCL = 0;
+	CRegardsConfigParam* config = CParamInit::getInstance();
+	if (config != nullptr)
+		supportOpenCL = config->GetIsOpenCLSupport();
+
+	//if (cv::ocl::Context::getDefault(false).empty())
+	//	return 0;
+
+	return false;
+
+	//return supportOpenCL;
+}
+
+
 /* display the current picture, if any */
 void CFFmfcPimpl::video_display(VideoState* is)
 {
@@ -370,7 +390,7 @@ void CFFmfcPimpl::video_display(VideoState* is)
 				}
 			}
 
-			if (localContext == nullptr)
+			if (localContext != nullptr)
 			{
 				int numBytes = av_image_get_buffer_size(AV_PIX_FMT_BGRA, tmp_frame->width, tmp_frame->height, 16);
 				uint8_t* convertedFrameBuffer = dataFrame->matFrame->data;
@@ -381,6 +401,8 @@ void CFFmfcPimpl::video_display(VideoState* is)
 			}
 
 			dlg->SetData(dataFrame);
+
+
 		}
 			
 		//}

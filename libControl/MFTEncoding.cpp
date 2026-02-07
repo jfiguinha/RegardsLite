@@ -346,7 +346,7 @@ HRESULT CMFTEncodingPimp::WriteFrame(
 		openclEffectVideo.ApplyStabilization(&videoCompressOption->videoEffectParameter, openCVStabilization);
 	}
 
-	if (correctedContrast || videoCompressOption->videoEffectParameter.filmcolorisation || videoCompressOption->videoEffectParameter.filmEnhance)
+	if (correctedContrast)
 	{
 		openclEffectVideo.ApplyOpenCVEffect(&videoCompressOption->videoEffectParameter);
 	}
