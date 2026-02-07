@@ -40,17 +40,17 @@ class CVideoControlSoft : public IBitmapRenderInterface, public CVideoControlInt
 public:
 	CVideoControlSoft(CWindowMain* windowMain, wxWindow * window, IVideoInterface* eventPlayer);
 	~CVideoControlSoft() override;
-
+	wxWindow* GetMainWindow() override
+	{
+		return parentRender;
+	}
 	void SetParent(wxWindow* parent) override;
 	void ReloadResource();
 	bool IsPause();
-	void SetVideoDuration(const int64_t& duration, const int64_t& startTime) override;
+
 	void SetCurrentclock(wxString message);
-	void SetPos(int64_t pos) override;
-	//void SetVideoPosition(const int64_t & pos);
-	//void VolumeUp() override;
-	//void VolumeDown() override;
-	int GetVolume() override;
+
+	int GetVolume();
 	void SetVolume(const int& pos);
 	void ChangeVideoFormat();
 
@@ -71,19 +71,16 @@ public:
 	void OnStop(wxString photoName);
 	void OnPause();
 	int PlayMovie(const wxString& movie, const bool& play);
-	int ChangeAudioStream(int newStreamAudio) override;
+	int ChangeAudioStream(int newStreamAudio);
 	int ChangeSubtitleStream(int newStreamSubtitle);
 	int getWidth() override;
 	int getHeight() override;
 
-	void SetSubtituleText(const char * textSub, int timing) override;
-	void SetSubtitulePicture(cv::Mat& picture) override;
-	void DeleteSubtitulePicture() override;
+
 
 	bool GetPausedValue();
 	void RedrawFrame();
-	void SetRotation(const int& rotation) override;
-	void SetData(CDataAVFrame* dataFrame) override;
+
 	void UpdateScreenRatio() override;
 
 	void Rotate90();
@@ -116,8 +113,7 @@ public:
 	vector<int> GetListCommand() override;
 	void SetEndProgram(const bool& endProgram) override;
 	int UpdateResized() override;
-    
-    wxString GetAcceleratorHardware();
+
 
 protected:
 	void OnSetPosition(wxCommandEvent& event);
@@ -135,7 +131,10 @@ protected:
 	void OnSetData(wxCommandEvent& event);
 	void OnSetSubtitle(wxCommandEvent& event);
     void ErrorDecodingFrame();
-    
+	void OnSetFramePos(wxCommandEvent& event);
+	void OnSetSubtitleImage(wxCommandEvent& event);
+	void OnDeleteSubtitulePicture(wxCommandEvent& event);
+
 	void CalculPositionPicture(const float& x, const float& y);
 	//static void GenerateThumbnailVideo(void* data);
 	int IsSupportOpenCL();
@@ -223,9 +222,7 @@ protected:
 	wxCursor hCursorHand;
 	//mutex muBitmap;
 	mutex muVideoEffect;
-	//mutex muVideoRender;
-	mutex muSubtitle;
-    
+
     bool isHardwareDecoder = true;
 
 	bool videoRender = false;;

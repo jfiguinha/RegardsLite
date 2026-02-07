@@ -478,8 +478,6 @@ public:
 
 	double get_rotation(AVStream* st);
 
-	int IsSupportOpenCL();
-
 	/* return the number of undisplayed frames in the queue */
 	int frame_queue_nb_remaining(FrameQueue* f);
 

@@ -49,12 +49,7 @@ extern cv::ocl::OpenCLExecutionContext clExecCtx;
 
 extern float clamp(float val, float minval, float maxval);
 
-class DataTimeDuration
-{
-public:
-	int64_t duration;
-	int64_t startTime;
-};
+
 
 CVideoControlSoft::CVideoControlSoft(CWindowMain* windowMain, wxWindow* window, IVideoInterface* eventPlayer)
 {
@@ -112,7 +107,8 @@ vector<int> CVideoControlSoft::GetListCommand()
 		wxEVENT_UPDATEPOSMOVIETIME, wxEVENT_SCROLLMOVE, wxEVENT_ENDVIDEOTHREAD,
 		wxEVENT_STOPVIDEO, EVENT_VIDEOSTART, wxEVENT_LEFTPOSITION,
 		wxEVENT_TOPPOSITION, wxEVENT_SETPOSITION, EVENT_VIDEOROTATION,
-		wxEVENT_UPDATEMOVIETIME, wxEVENT_UPDATEFRAME, wxEVENT_PAUSEMOVIE, wxEVENT_SETSUBTITLETEXT
+		wxEVENT_UPDATEMOVIETIME, wxEVENT_UPDATEFRAME, wxEVENT_PAUSEMOVIE, wxEVENT_SETSUBTITLETEXT,
+		wxEVENT_SETSUBTITLEIMAGE, wxEVENT_DELETESUBTITLEIMAGE, wxEVENT_SETFRAMEPOS
 	};
 }
 
@@ -181,6 +177,10 @@ void CVideoControlSoft::OnCommand(wxCommandEvent& event)
 		OnSetData(event);
 		break;
 
+	case wxEVENT_SETFRAMEPOS:
+		OnSetFramePos(event);
+		break;
+
 	case wxEVENT_PAUSEMOVIE:
 		OnPauseMovie(event);
 		break;
@@ -188,8 +188,39 @@ void CVideoControlSoft::OnCommand(wxCommandEvent& event)
 	case wxEVENT_SETSUBTITLETEXT:
 		OnSetSubtitle(event);
 		break;
+
+	case wxEVENT_SETSUBTITLEIMAGE:
+		OnSetSubtitleImage(event);
+		break;
+
+	case wxEVENT_DELETESUBTITLEIMAGE:
+		OnDeleteSubtitulePicture(event);
+		break;
+
+	case wxEVENT_ERRORDECODINGFRAME:
+		ErrorDecodingFrame();
 	}
 }
+
+void CVideoControlSoft::OnSetSubtitleImage(wxCommandEvent& event)
+{
+	cv::Mat* picture = static_cast<cv::Mat*>(event.GetClientData());
+	if (picture != nullptr)
+	{
+		picture->copyTo(pictureSubtitle);
+		subtilteUpdate = true;
+		typeSubtitle = 0;
+		delete picture;
+	}
+
+}
+
+void CVideoControlSoft::OnDeleteSubtitulePicture(wxCommandEvent& event)
+{
+	subtilteUpdate = true;
+	pictureSubtitle.release();
+}
+
 
 void CVideoControlSoft::OnPauseMovie(wxCommandEvent& event)
 {
@@ -666,41 +697,6 @@ void CVideoControlSoft::OnKeyDown(wxKeyEvent& event)
 	}
 }
 
-void CVideoControlSoft::SetRotation(const int& rotation)
-{
-	
-	wxCommandEvent event(EVENT_VIDEOROTATION);
-	event.SetExtraLong(rotation);
-	wxPostEvent(parentRender, event);
-	
-	/*
-	if (rotation == 90)
-		angle = 270;
-	else if (rotation == -90)
-		angle = 270;
-	else if (rotation == -180)
-		angle = 180;
-	else if (rotation == 180)
-		angle = 180;
-	else if (rotation == -270)
-		angle = 90;
-	else if (rotation == 270)
-		angle = 90;
-
-	CSqlPhotos sqlPhotos;
-	int exif = sqlPhotos.GetPhotoExif(filename);
-	if (exif != -1)
-	{
-		int _flipH = 0;
-		int _flipV = 0;
-		CSqlPhotos::GetAngleAndFlip(exif, angle, _flipH, _flipV);
-		if (_flipH)
-			flipH = true;
-		if (_flipV)
-			flipV = true;
-	}
-	*/
-}
 
 void CVideoControlSoft::VideoRotation(wxCommandEvent& event)
 {
@@ -908,15 +904,6 @@ void CVideoControlSoft::OnPlayStart(wxTimerEvent& event)
                    isHardwareDecoder ? hardwareDecoder : "none", isOpenGLDecoding, GetSoundVolume());
 }
 
-wxString CVideoControlSoft::GetAcceleratorHardware()
-{
-    wxString hardwareDecoder = "";
-    CRegardsConfigParam* config = CParamInit::getInstance();
-    if (config != nullptr)
-        hardwareDecoder = config->GetHardwareDecoder();
-    
-    return isHardwareDecoder ? hardwareDecoder : "none";
-}
 
 void CVideoControlSoft::EndVideoThread(wxCommandEvent& event)
 {
@@ -1034,7 +1021,7 @@ void CVideoControlSoft::OnSetSubtitle(wxCommandEvent& event)
 	wxString* textSub = static_cast<wxString*>(event.GetClientData());
 	if (textSub != nullptr)
 	{
-		muSubtitle.lock();
+
 		int timing = event.GetInt();
 		subtitleText = *textSub;
 		std::vector<wxString> listString = CConvertUtility::split(subtitleText, ',');
@@ -1057,7 +1044,7 @@ void CVideoControlSoft::OnSetSubtitle(wxCommandEvent& event)
 		if (assSubtitleTimer->IsRunning())
 			assSubtitleTimer->Stop();
 		assSubtitleTimer->StartOnce(timing);
-		muSubtitle.unlock();
+
 
 		delete textSub;
 	}
@@ -1065,33 +1052,6 @@ void CVideoControlSoft::OnSetSubtitle(wxCommandEvent& event)
 }
 
 
-void CVideoControlSoft::SetSubtituleText(const char* textSub, int timing)
-{
-	wxString* _textSub = new wxString(textSub);
-	wxCommandEvent event(wxEVENT_SETSUBTITLETEXT);
-	event.SetClientData(_textSub);
-	event.SetInt(timing);
-	wxPostEvent(parentRender, event);
-}
-
-
-void CVideoControlSoft::SetSubtitulePicture(cv::Mat& picture)
-{
-	muSubtitle.lock();
-	picture.copyTo(pictureSubtitle);
-	subtilteUpdate = true;
-	typeSubtitle = 0;
-	muSubtitle.unlock();
-}
-
-void CVideoControlSoft::DeleteSubtitulePicture()
-{
-	muSubtitle.lock();
-
-	subtilteUpdate = true;
-	pictureSubtitle.release();
-	muSubtitle.unlock();
-}
 
 bool CVideoControlSoft::IsHardwareCompatible()
 {
@@ -1344,8 +1304,6 @@ void CVideoControlSoft::OnPaint3D(wxGLCanvas* canvas, CRenderOpenGL* renderOpenG
 
 		if (videoEffectParameter.enableSubtitle)
 		{
-			muSubtitle.lock();
-
 			if (subtilteUpdate)
 			{
 				if (typeSubtitle == 0 && !pictureSubtitle.empty())
@@ -1373,8 +1331,6 @@ void CVideoControlSoft::OnPaint3D(wxGLCanvas* canvas, CRenderOpenGL* renderOpenG
 			{
 				subtilteUpdate = false;
 			}
-
-			muSubtitle.unlock();
 
 			
 		}
@@ -1723,7 +1679,20 @@ void CVideoControlSoft::OnSetPos(wxCommandEvent& event)
 	}
 }
 
+void CVideoControlSoft::OnSetFramePos(wxCommandEvent& event)
+{
+	int64_t pos = event.GetExtraLong();
+	int64_t videoPosition = (pos * 1000) - startingTime;
+	videoPosition = videoPosition / 1000;
+	if (!videoEnd)
+	{
+		videoPosition = event.GetExtraLong();
+		if (eventPlayer != nullptr)
+			eventPlayer->OnPositionVideo(videoPosition);
+	}
+}
 
+/*
 void CVideoControlSoft::SetPos(int64_t pos)
 {
 	int64_t videoPosition = (pos * 1000) - startingTime;
@@ -1732,7 +1701,8 @@ void CVideoControlSoft::SetPos(int64_t pos)
 	evt.SetExtraLong(videoPosition);
 	parentRender->GetEventHandler()->AddPendingEvent(evt);
 }
-
+*/
+/*
 void CVideoControlSoft::SetVideoDuration(const int64_t& duration, const int64_t& startTime)
 {
 	DataTimeDuration * dtTime = new DataTimeDuration();
@@ -1742,7 +1712,7 @@ void CVideoControlSoft::SetVideoDuration(const int64_t& duration, const int64_t&
 	evt.SetClientData(dtTime);
 	parentRender->GetEventHandler()->AddPendingEvent(evt);
 }
-
+*/
 
 void CVideoControlSoft::SetCurrentclock(wxString message)
 {
@@ -1793,15 +1763,6 @@ void CVideoControlSoft::OnSetData(wxCommandEvent& event)
 		needToRefresh = false;
 		parentRender->Refresh();
 	}
-}
-
-
-void CVideoControlSoft::SetData(CDataAVFrame* dataFrame)
-{
-	wxCommandEvent event(wxEVENT_UPDATEFRAME);
-	event.SetClientData(dataFrame);
-	wxPostEvent(parentRender, event);
-
 }
 
 void CVideoControlSoft::Resize()
