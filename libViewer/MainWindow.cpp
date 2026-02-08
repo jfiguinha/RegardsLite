@@ -1081,11 +1081,6 @@ void CMainWindow::ProcessIdle()
 
 	if (photoList.empty())
 	{
-		CSqlPhotosWithoutThumbnail sqlPhoto;
-		sqlPhoto.GetPhotoList(&photoList, 0);
-	}
-	if (photoList.empty())
-	{
 		nbElement = 0;
 		hasDoneOneThings = false;
 		needToRefresh = true;
@@ -1100,6 +1095,8 @@ void CMainWindow::ProcessIdle()
 
 	if (hasDoneOneThings)
 		processIdle = true;
+	else
+		processIdle = false;
 
 }
 
