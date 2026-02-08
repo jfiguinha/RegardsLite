@@ -123,7 +123,6 @@ int MyApp::Close()
 #ifdef USECURL
 	curl_global_cleanup();
 #endif
-	this->Exit();
 
 	CWindowMain::listMainWindow.clear();
 
@@ -144,7 +143,7 @@ int MyApp::Close()
 	_CrtDumpMemoryLeaks();
 #endif
 
-	//exit(0);
+	exit(0);
 
 	return 0;
 }

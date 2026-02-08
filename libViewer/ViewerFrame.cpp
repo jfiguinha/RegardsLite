@@ -549,14 +549,23 @@ void CViewerFrame::CheckAllProcessEnd(wxTimerEvent& event)
 {
 	nbTime++;
 
+    printf("Get Nb Main Windows %d \n", CMasterWindow::listProcessWindow.size());
+    
+
 	if (nbTime < 50)
 	{
-		for (CMasterWindow* window : CMasterWindow::listMainWindow)
+		for (CMasterWindow* window : CMasterWindow::listProcessWindow)
 		{
 			if (window != nullptr)
 			{
+                printf("CheckAllProcessEnd %s \n", window->GetWaitingMessage().ToStdString().c_str());
+                
 				if (!window->GetProcessEnd())
 				{
+                    wxTheApp->Yield();
+                    
+                    printf("CheckAllProcessEnd %s not end \n", window->GetWaitingMessage().ToStdString().c_str());
+                    
 					const wxString message = window->GetWaitingMessage();
 					mainWindowWaiting->SetTexte(message);
 					exitTimer->Start(1000, wxTIMER_ONE_SHOT);
