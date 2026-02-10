@@ -272,22 +272,18 @@ float CVideoControlSoft::GetMovieRatio()
 cv::Mat CVideoControlSoft::SavePicture(bool& isFromBuffer)
 {
 	cv::Mat bitmap;
-	if (openclEffectYUV != nullptr && openclEffectYUV->IsOk())
+
+	if (pictureFrame != nullptr)
 	{
-		bitmap = openclEffectYUV->GetMatrix(true).getMat();
-	}
-	else if(pictureFrame != nullptr)
-	{
-		if(!pictureFrame->matFrame.empty())
+		if (!pictureFrame->matFrame.empty())
 			pictureFrame->matFrame.copyTo(bitmap);
-		//muBitmap.unlock();
+
+		if (!bitmap.empty())
+		{
+			CPictureUtility::ApplyRotation(bitmap, angle);
+		}
 	}
 
-
-	if (!bitmap.empty())
-	{
-		CPictureUtility::ApplyRotation(bitmap, angle);
-	}
 	return bitmap;
 }
 
