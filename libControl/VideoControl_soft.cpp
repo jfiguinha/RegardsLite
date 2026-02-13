@@ -108,7 +108,7 @@ vector<int> CVideoControlSoft::GetListCommand()
 		wxEVENT_STOPVIDEO, EVENT_VIDEOSTART, wxEVENT_LEFTPOSITION,
 		wxEVENT_TOPPOSITION, wxEVENT_SETPOSITION, EVENT_VIDEOROTATION,
 		wxEVENT_UPDATEMOVIETIME, wxEVENT_UPDATEFRAME, wxEVENT_PAUSEMOVIE, wxEVENT_SETSUBTITLETEXT,
-		wxEVENT_SETSUBTITLEIMAGE, wxEVENT_DELETESUBTITLEIMAGE, wxEVENT_SETFRAMEPOS
+		wxEVENT_SETSUBTITLEIMAGE, wxEVENT_DELETESUBTITLEIMAGE, wxEVENT_SETFRAMEPOS, wxEVENT_UPDATEEFFECTFILTER
 	};
 }
 
@@ -199,6 +199,11 @@ void CVideoControlSoft::OnCommand(wxCommandEvent& event)
 
 	case wxEVENT_ERRORDECODINGFRAME:
 		ErrorDecodingFrame();
+		break;
+
+	case wxEVENT_UPDATEEFFECTFILTER:
+		OnUpdateFiltreEffect(event);
+		break;
 	}
 }
 
@@ -265,7 +270,6 @@ bool CVideoControlSoft::IsPause()
 
 float CVideoControlSoft::GetMovieRatio()
 {
-	std::lock_guard<std::mutex> lock(muVideoEffect);
 	return videoEffectParameter.tabRatio[videoEffectParameter.ratioSelect];
 }
 
@@ -273,7 +277,11 @@ cv::Mat CVideoControlSoft::SavePicture(bool& isFromBuffer)
 {
 	cv::Mat bitmap;
 
-	if (pictureFrame != nullptr)
+	if (openclEffectYUV != nullptr && openclEffectYUV->IsOk())
+	{
+		bitmap = openclEffectYUV->GetMatrix(true).getMat();
+	}
+	else if (pictureFrame != nullptr)
 	{
 		if (!pictureFrame->matFrame.empty())
 			pictureFrame->matFrame.copyTo(bitmap);
@@ -476,10 +484,10 @@ void CVideoControlSoft::MoveBottom()
 vector<int> CVideoControlSoft::GetZoomValue()
 {
 	vector<int> listValue;
-	muVideoEffect.lock();
+	
 	for (int i = 0; i < videoEffectParameter.tabZoom.size(); i++)
 		listValue.push_back(videoEffectParameter.tabZoom[i] * 100.0f);
-	muVideoEffect.unlock();
+	
 	return listValue;
 }
 
@@ -490,21 +498,21 @@ int CVideoControlSoft::GetZoomIndex()
 		CalculRatio(GetBitmapWidth(), GetBitmapHeight());
 	}
 
-	muVideoEffect.lock();
+	
 	const int zoomIndex = videoEffectParameter.zoomSelect;
-	muVideoEffect.unlock();
+	
 	return zoomIndex;
 }
 
 void CVideoControlSoft::ChangeVideoFormat()
 {
 	//int zoomSelect = 0;
-	muVideoEffect.lock();
+	
 	videoEffectParameter.ratioSelect++;
 	if (videoEffectParameter.ratioSelect >= videoEffectParameter.tabRatio.size())
 		videoEffectParameter.ratioSelect = 0;
 
-	muVideoEffect.unlock();
+	
 
 	//muRefresh.lock();
 	needToRefresh = true;
@@ -523,9 +531,9 @@ float CVideoControlSoft::GetZoomRatio()
 	}
 	else
 	{
-		muVideoEffect.lock();
+		
 		zoom = videoEffectParameter.tabZoom[videoEffectParameter.zoomSelect];
-		muVideoEffect.unlock();
+		
 	}
 	return zoom;
 }
@@ -538,7 +546,7 @@ float CVideoControlSoft::CalculRatio(const int& pictureWidth, const int& picture
 	int zoomSelect = 0;
 	//Détermination du ration par rapport au tableau
 	//printf("Ratio %f \n", newRatio);
-	muVideoEffect.lock();
+	
 
 	//Calcul Zoom Index
 	if (newRatio != 0.0)
@@ -559,7 +567,7 @@ float CVideoControlSoft::CalculRatio(const int& pictureWidth, const int& picture
 
 	videoEffectParameter.zoomSelect = zoomSelect;
 
-	muVideoEffect.unlock();
+	
 
 	return newRatio;
 }
@@ -633,9 +641,9 @@ void CVideoControlSoft::ZoomOn()
 {
 	CalculCenterPicture();
 
-	muVideoEffect.lock();
+	
 	videoEffectParameter.zoomSelect++;
-	muVideoEffect.unlock();
+	
 
 	CalculPositionPicture(centerX, centerY);
 
@@ -646,9 +654,9 @@ void CVideoControlSoft::ZoomOut()
 {
 	CalculCenterPicture();
 
-	muVideoEffect.lock();
+	
 	videoEffectParameter.zoomSelect--;
-	muVideoEffect.unlock();
+	
 
 	CalculPositionPicture(centerX, centerY);
 
@@ -737,10 +745,10 @@ void CVideoControlSoft::VideoRotation(wxCommandEvent& event)
 	parentRender->Refresh();
 }
 
-void CVideoControlSoft::UpdateFiltre(CEffectParameter* effectParameter)
+void CVideoControlSoft::OnUpdateFiltreEffect(wxCommandEvent& event)
 {
 	bool updateScroll = false;
-	auto videoParameter = static_cast<CVideoEffectParameter*>(effectParameter);
+	auto videoParameter = static_cast<CVideoEffectParameter*>(event.GetClientData());
 	if (videoParameter->streamAudioUpdate)
 	{
 		ChangeAudioStream(videoParameter->streamAudioIndex);
@@ -768,9 +776,8 @@ void CVideoControlSoft::UpdateFiltre(CEffectParameter* effectParameter)
 		CalculCenterPicture();
 	}
 
-	muVideoEffect.lock();
 	videoEffectParameter = *videoParameter;
-	muVideoEffect.unlock();
+	
 
 	if (updateScroll)
 	{
@@ -795,6 +802,13 @@ void CVideoControlSoft::UpdateFiltre(CEffectParameter* effectParameter)
 	}
 }
 
+void CVideoControlSoft::UpdateFiltre(CEffectParameter* effectParameter)
+{
+	wxCommandEvent event(wxEVENT_UPDATEEFFECTFILTER);
+	event.SetClientData(effectParameter);
+	wxPostEvent(parentRender, event);
+}
+
 
 bool CVideoControlSoft::GetPausedValue()
 {
@@ -810,20 +824,17 @@ void CVideoControlSoft::RedrawFrame()
 
 void CVideoControlSoft::SetVideoPreviewEffect(CEffectParameter* effectParameter)
 {
-	auto videoParameter = static_cast<CVideoEffectParameter*>(effectParameter);
-	muVideoEffect.lock();
-	videoEffectParameter = *videoParameter;
-	muVideoEffect.unlock();
-
-
+	wxCommandEvent event(wxEVENT_UPDATEEFFECTFILTER);
+	event.SetClientData(effectParameter);
+	wxPostEvent(parentRender, event);
 }
 
 CEffectParameter* CVideoControlSoft::GetParameter()
 {
 	auto videoParameter = new CVideoEffectParameter();
-	muVideoEffect.lock();
+	
 	*videoParameter = videoEffectParameter;
-	muVideoEffect.unlock();
+	
 	return videoParameter;
 }
 
@@ -1092,9 +1103,9 @@ int CVideoControlSoft::Play(const wxString& movie)
 				playStartTimer->Stop();
 
 
-			muVideoEffect.lock();
+			
 			videoEffectParameter.ratioSelect = 0;
-			muVideoEffect.unlock();
+			
 
 			AspectRatio aspectRatio = CMediaInfo::GetVideoAspectRatio(movie);
 			if (aspectRatio.den != 0 && aspectRatio.num != 0)
@@ -1106,9 +1117,9 @@ int CVideoControlSoft::Play(const wxString& movie)
 					printf("video_aspect_ratio %f \n", videoEffectParameter.tabRatio[i]);
 					if (video_aspect_ratio < videoEffectParameter.tabRatio[i])
 					{
-						muVideoEffect.lock();
+						
 						videoEffectParameter.ratioSelect = i;
-						muVideoEffect.unlock();
+						
 						break;
 					}
 				}
@@ -1269,7 +1280,29 @@ void CVideoControlSoft::OnPaint3D(wxGLCanvas* canvas, CRenderOpenGL* renderOpenG
 	{
 		if (IsSupportOpenCL() && openclEffectYUV != nullptr)
 		{
-			openclEffectYUV->SetMatrix(pictureFrame->matFrame);
+			if (pictureFrame->dst != nullptr)
+			{
+				int _colorSpace = 0;
+				int isLimited = 0;
+				if (colorRange == "Limited")
+					isLimited = 1;
+
+				if (colorSpace == "BT.601")
+				{
+					_colorSpace = 1;
+				}
+				else if (colorSpace == "BT.709")
+				{
+					_colorSpace = 2;
+				}
+				else if (colorSpace == "BT.2020")
+				{
+					_colorSpace = 3;
+				}
+				openclEffectYUV->SetAVFrame(&videoEffectParameter, pictureFrame->dst, _colorSpace, isLimited);
+			}
+			else
+				openclEffectYUV->SetMatrix(pictureFrame->matFrame);
 		}
 
 		if (IsSupportOpenCL() && openclEffectYUV != nullptr && openclEffectYUV->IsOk())
@@ -1278,16 +1311,16 @@ void CVideoControlSoft::OnPaint3D(wxGLCanvas* canvas, CRenderOpenGL* renderOpenG
 			RenderFFmpegToTexture();
 
 
-		muVideoEffect.lock();
+		
 		wxFloatRect floatRect;
 		floatRect.left = 0;
 		floatRect.right = 1.0f;
 		floatRect.top = 0;
 		floatRect.bottom = 1.0f;
 		renderBitmapOpenGL->RenderWithEffect(&videoEffectParameter, floatRect, videoPosition / 100,	inverted);
-		muVideoEffect.unlock();
+		
 
-		muVideoEffect.lock();
+		
 		if (videoEffectParameter.showFPS)
 		{
         #ifndef WIN32
@@ -1330,7 +1363,7 @@ void CVideoControlSoft::OnPaint3D(wxGLCanvas* canvas, CRenderOpenGL* renderOpenG
 
 			
 		}
-		muVideoEffect.unlock();
+		
 	}
 
 
@@ -1815,9 +1848,9 @@ void CVideoControlSoft::calculate_display_rect(wxRect* rect, int scr_xleft, int 
 	//float ratio = 1.0f;
 	float zoom = GetZoomRatio();
 
-	muVideoEffect.lock();
+	
 	aspect_ratio = videoEffectParameter.tabRatio[videoEffectParameter.ratioSelect];
-	muVideoEffect.unlock();
+	
 
 	if (aspect_ratio == 1.0)
 		aspect_ratio = static_cast<float>(GetSrcBitmapWidth()) / static_cast<float>(GetSrcBitmapHeight());
@@ -1845,10 +1878,10 @@ void CVideoControlSoft::SetZoomIndex(const int& pos)
 	CalculCenterPicture();
 	shrinkVideo = false;
 	float zoomRatio = 1.0f;
-	muVideoEffect.lock();
+	
 	zoomRatio = videoEffectParameter.tabZoom[pos];
 	videoEffectParameter.zoomSelect = pos;
-	muVideoEffect.unlock();
+	
 
 	if (zoomRatio != 1.0f)
 	{

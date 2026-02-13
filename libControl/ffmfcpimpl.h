@@ -585,7 +585,7 @@ public:
 
 	/* decode one audio frame and returns its uncompressed size */
 	int audio_decode_frame(VideoState* is);
-
+	AVFrame* CopyFrame(AVFrame* src);
 	int audio_open(void *opaque, AVChannelLayout *wanted_channel_layout, int wanted_sample_rate, AudioParams *audio_hw_params);
 	int configure_audio_filters(VideoState* is, const char* afilters, int force_output_format);
 	int configure_filtergraph(AVFilterGraph* graph, const char* filtergraph, AVFilterContext* source_ctx, AVFilterContext* sink_ctx);

@@ -134,6 +134,7 @@ protected:
 	void OnSetFramePos(wxCommandEvent& event);
 	void OnSetSubtitleImage(wxCommandEvent& event);
 	void OnDeleteSubtitulePicture(wxCommandEvent& event);
+	void OnUpdateFiltreEffect(wxCommandEvent& event);
 
 	void CalculPositionPicture(const float& x, const float& y);
 	//static void GenerateThumbnailVideo(void* data);
@@ -220,8 +221,6 @@ protected:
 	wxString standByMovie;
 	CFFmfc* ffmfc;
 	wxCursor hCursorHand;
-	//mutex muBitmap;
-	mutex muVideoEffect;
 
     bool isHardwareDecoder = true;
 
