@@ -519,7 +519,6 @@ void CFFmfcPimpl::video_display(VideoState* is)
 							wxPostEvent(dlg->GetMainWindow(), event);
 						}
 					}
-
 				}
 			}
 		}
@@ -787,6 +786,90 @@ void CFFmfcPimpl::video_refresh(void* opaque, double* remaining_time)
 					is->frame_drops_late++;
 					frame_queue_next(&is->pictq);
 					goto retry;
+				}
+			}
+
+
+			//Subtitle
+			if (is->subtitle_st)
+			{
+				while (frame_queue_nb_remaining(&is->subpq) > 0)
+				{
+					sp = frame_queue_peek(&is->subpq);
+
+					if (frame_queue_nb_remaining(&is->subpq) > 1)
+						sp2 = frame_queue_peek_next(&is->subpq);
+					else
+						sp2 = NULL;
+
+					if (sp->sub.format == 0 && (sp->serial != is->subtitleq.serial
+						|| (is->vidclk.pts > (sp->pts + ((float)sp->sub.end_display_time / 1000)))
+						|| (sp2 && is->vidclk.pts > (sp2->pts + ((float)sp2->sub.start_display_time / 1000)))))
+					{
+						if (sp->uploaded)
+						{
+							int i;
+							for (i = 0; i < sp->sub.num_rects; i++)
+							{
+								AVSubtitleRect* sub_rect = sp->sub.rects[i];
+								uint8_t* pixels;
+								int pitch, j;
+
+								AVSubtitleRect* rect = sp->sub.rects[i];
+								cv::Mat * bitmap = new cv::Mat(rect->h, rect->w, CV_8UC4);
+								uint8_t* data = rect->data[0];
+								for (int y = 0; y < rect->h; y++)
+								{
+									for (int x = 0; x < rect->w; x++)
+									{
+										int r, g, b, a;
+										int j = *data++;
+										RGBA_IN(r, g, b, a, (uint32_t*)rect->data[1] + j);
+										CRgbaquad color(r, g, b, a);
+										int i = (x << 2) + (y * (bitmap->cols << 2));
+										memcpy(bitmap->data + i, &color, sizeof(CRgbaquad));
+										//bitmap->SetColorValue(x, y, color);
+									}
+								}
+								if (dlg != nullptr)
+								{
+									wxCommandEvent event(wxEVENT_SETSUBTITLEIMAGE);
+									event.SetClientData(bitmap);
+									wxPostEvent(dlg->GetMainWindow(), event);
+								}
+							}
+
+						}
+						frame_queue_next(&is->subpq);
+					}
+					else if (sp->sub.format == 1 && (sp->serial != is->subtitleq.serial
+						|| (is->vidclk.pts > (sp->pts + ((float)sp->sub.end_display_time)))
+						|| (sp2 && is->vidclk.pts > (sp2->pts + ((float)sp2->sub.start_display_time)))))
+					{
+						if (sp->uploaded)
+						{
+							wxString text = "";
+							for (int i = 0; i < sp->sub.num_rects; i++)
+							{
+								AVSubtitleRect* rect = sp->sub.rects[i];
+								text += rect->ass;
+							}
+							if (dlg != nullptr)
+							{
+								wxString* _textSub = new wxString(text);
+								wxCommandEvent event(wxEVENT_SETSUBTITLETEXT);
+								event.SetClientData(_textSub);
+								event.SetInt(sp->sub.end_display_time);
+								wxPostEvent(dlg->GetMainWindow(), event);
+							}
+
+						}
+						frame_queue_next(&is->subpq);
+					}
+					else
+					{
+						break;
+					}
 				}
 			}
 
@@ -1412,7 +1495,7 @@ void  CFFmfcPimpl::sdl_audio_callback(void* opaque, Uint8* stream, int len)
 	}
 }
 
-int CFFmfcPimpl::audio_open(void* opaque, AVChannelLayout* wanted_channel_layout, int wanted_sample_rate, struct AudioParams* audio_hw_params)
+int CFFmfcPimpl::audio_open(void* opaque, AVChannelLayout* wanted_channel_layout, int wanted_sample_rate, AudioParams* audio_hw_params)
 {
 	VideoState* is = (VideoState*)opaque;
 	SDL_AudioSpec wanted_spec, spec;
