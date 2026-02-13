@@ -168,6 +168,16 @@ CIcone* CIconeList::FindElementPhotoId(const int& photoId)
 	return element;
 }
 
+CIcone* CIconeList::GetLastElement()
+{
+	CIcone* element = nullptr;
+	int taille = pIconeList.size();
+	if (taille > 0)
+	{
+		element = pIconeList[taille - 1];
+	}
+	return element;
+}
 
 CIcone* CIconeList::FindElement(const int& xPos, const int& yPos, pItemCompFonct* _pf, CWindowMain* parent)
 {
