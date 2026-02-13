@@ -1302,7 +1302,11 @@ void CVideoControlSoft::OnPaint3D(wxGLCanvas* canvas, CRenderOpenGL* renderOpenG
 				openclEffectYUV->SetAVFrame(&videoEffectParameter, pictureFrame->dst, _colorSpace, isLimited);
 			}
 			else
-				openclEffectYUV->SetMatrix(pictureFrame->matFrame);
+			{
+				Regards::Picture::CPictureArray mat = Regards::Picture::CPictureArray(pictureFrame->matFrame);
+				openclEffectYUV->SetMatrix(mat);
+			}
+				
 		}
 
 		if (IsSupportOpenCL() && openclEffectYUV != nullptr && openclEffectYUV->IsOk())
