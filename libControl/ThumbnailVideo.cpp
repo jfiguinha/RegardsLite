@@ -123,12 +123,6 @@ void CThumbnailVideo::SetVideoPosition(const int64_t& videoPos)
 
 	int numItem = FindNumItem(videoPos);
 
-
-	if (numItem == numItemSelected && videoPos > 0)
-	{
-		return;
-	}
-
 	if (numItem == -1 && videoPos > 0)
 	{
 		CIcone* icone = iconeList->GetLastElement();
@@ -137,6 +131,13 @@ void CThumbnailVideo::SetVideoPosition(const int64_t& videoPos)
 		else
 			return;
 	}
+
+	if (numItem == numItemSelected && videoPos > 0)
+	{
+		return;
+	}
+
+
 
 	if (numSelectPhotoId != -1)
 	{

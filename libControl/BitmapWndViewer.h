@@ -77,7 +77,7 @@ namespace Regards::Control
 		
 		void RenderTexture(const bool& invertPos) override;
 		bool ApplyPreviewEffect(int& widthOutput, int& heightOutput) override;
-
+		virtual void OnUpdateFiltre(wxCommandEvent& event);
 		void AfterRender() override;
 
 

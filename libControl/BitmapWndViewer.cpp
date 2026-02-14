@@ -140,6 +140,14 @@ CEffectParameter* CBitmapWndViewer::GetParameter()
 
 void CBitmapWndViewer::UpdateFiltre(CEffectParameter* effectParameter)
 {
+	wxCommandEvent event(wxEVENT_UPDATEEFFECTFILTER);
+	event.SetClientData(effectParameter);
+	wxPostEvent(parentRender, event);
+}
+
+void CBitmapWndViewer::OnUpdateFiltre(wxCommandEvent& event)
+{
+	auto effectParameter = static_cast<CEffectParameter*>(event.GetClientData());
 	this->effectParameter = effectParameter;
 	updateFilter = true;
 	if (mouseUpdate != nullptr)

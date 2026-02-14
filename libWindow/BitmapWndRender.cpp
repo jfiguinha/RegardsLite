@@ -160,11 +160,18 @@ void CBitmapWndRender::OnCommand(wxCommandEvent& event)
 	case wxEVENT_SCROLLMOVE:
 		OnScrollMove(event);
 		break;
+	case wxEVENT_UPDATEEFFECTFILTER:
+		OnUpdateFiltre(event);
+		break;
 	}
 
 	
 }
 
+void CBitmapWndRender::OnUpdateFiltre(wxCommandEvent& event)
+{
+
+}
 
 void CBitmapWndRender::SetParent(wxWindow* parent)
 {

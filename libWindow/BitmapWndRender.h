@@ -169,7 +169,7 @@ namespace Regards::Window
 		virtual void OnMoveTop(wxCommandEvent& event);
 		virtual void OnMoveBottom(wxCommandEvent& event);
 		virtual void OnScrollMove(wxCommandEvent& event);
-
+		virtual void OnUpdateFiltre(wxCommandEvent& event);
 		int IsSupportCuda();
 		int GetExifOrientation(const int& angle);
 		virtual bool ApplyPreviewEffect(int& widthOutput, int& heightOutput) { return false; };
