@@ -1,4 +1,9 @@
 #include <header.h>
+#if !wxUSE_WEBVIEW_WEBKIT && !wxUSE_WEBVIEW_WEBKIT2 && \
+    !wxUSE_WEBVIEW_IE && !wxUSE_WEBVIEW_EDGE && \
+    !wxUSE_WEBVIEW_CHROMIUM
+#error "A wxWebView backend is required by this sample"
+#endif
 #include "PanelInfosWnd.h"
 #include "ToolbarInfos.h"
 #include <BitmapWndViewer.h>
@@ -182,8 +187,43 @@ CPanelInfosWnd::CPanelInfosWnd(wxWindow* parent, wxWindowID id)
 		}
 #endif
 #endif
-		webBrowser = wxWebView::New(this, wxID_ANY);
-		webBrowser->Show(false);
+
+        // Create the webview: WX_WEBVIEW_BACKEND environment variable allows to
+        // select the backend to use if there is more than one available.
+        wxString backend;
+        if ( !wxGetEnv("WX_WEBVIEW_BACKEND", &backend) )
+            backend = wxWebViewBackendDefault;
+
+        if ( backend != wxWebViewBackendDefault &&
+                !wxWebView::IsBackendAvailable(backend) )
+        {
+            wxLogWarning("Requested backend \"%s\" is not available, using default "
+                         "backend instead.", backend);
+            backend = wxWebViewBackendDefault;
+        }
+
+        if (webBrowser == nullptr)
+        {
+            /*
+            	wxWindow * 	parent,
+wxWindowID 	id,
+const wxString & 	url = wxWebViewDefaultURLStr,
+const wxPoint & 	pos = wxDefaultPosition,
+const wxSize & 	size = wxDefaultSize,
+const wxString & 	backend = wxWebViewBackendDefault,
+long 	style = 0,
+const wxString & 	name = wxWebViewNameStr
+ * */
+            webBrowser = wxWebView::New(this, wxID_ANY, wxWebViewDefaultURLStr, wxDefaultPosition, wxDefaultSize, backend);
+            webBrowser->Show(false);
+        }
+
+        if ( !webBrowser )
+        {
+            wxLogFatalError("Failed to create wxWebView object using \"%s\" backend", backend);
+        }
+		//webBrowser = wxWebView::New(this, wxID_ANY);
+		
 
 		auto tabInfosFile = new CTabWindowData();
 		tabInfosFile->SetWindow(webBrowser);
@@ -242,7 +282,8 @@ CPanelInfosWnd::~CPanelInfosWnd()
 	delete(filtreEffectWnd);
 	delete(thumbnailEffectWnd);
 	delete(infosToolbar);
-	delete(webBrowser);
+    if(webBrowser != nullptr)
+        delete(webBrowser);
 	delete(picturePanel);
 	delete(modificationManager);
 }
@@ -291,7 +332,7 @@ void CPanelInfosWnd::SetVideoFile(const wxString& filename)
 			else
 				infosToolbar->SetMapActif();
 		}
-		else
+		else if(webBrowser != nullptr)
 		{
 			if (!fileGeolocalisation->HasGps())
 			{
@@ -305,6 +346,8 @@ void CPanelInfosWnd::SetVideoFile(const wxString& filename)
 				infosToolbar->SetMapActif();
 			}
 		}
+        else
+            infosToolbar->SetMapInactif();
 
 		delete fileGeolocalisation;
 		LoadInfo();
@@ -336,23 +379,33 @@ void CPanelInfosWnd::SetBitmapFile(const wxString& filename, const bool& isThumb
 		infosToolbar->SetEffectParameterInactif();
 		this->filename = filename;
 		fileGeolocalisation->SetFile(filename, notGeo);
+        
+        if(webBrowser != nullptr)
+        {
+            if (!fileGeolocalisation->HasGps())
+                infosToolbar->SetMapInactif();
+            else
+                infosToolbar->SetMapActif();
 
-		if (!fileGeolocalisation->HasGps())
-			infosToolbar->SetMapInactif();
-		else
-			infosToolbar->SetMapActif();
+            if (windowVisible == WM_INFOS)
+                infosToolbar->SetInfosActif();
 
-		if (windowVisible == WM_INFOS)
-			infosToolbar->SetInfosActif();
+            if (!fileGeolocalisation->HasGps())
+            {
+                infosToolbar->SetMapInactif();
 
-		if (!fileGeolocalisation->HasGps())
-		{
-			infosToolbar->SetMapInactif();
-
-			if (webBrowser->IsShown())
-				if (!fileGeolocalisation->HasGps())
-					infosToolbar->SetInfosActif();
-		}
+                if (webBrowser->IsShown())
+                    if (!fileGeolocalisation->HasGps())
+                        infosToolbar->SetInfosActif();
+            }
+        }
+        else
+        {
+            if (windowVisible == WM_INFOS)
+                infosToolbar->SetInfosActif();
+            infosToolbar->SetMapInactif();
+        }
+        
 
 		delete fileGeolocalisation;
 
@@ -575,8 +628,11 @@ wxString CPanelInfosWnd::MapsUpdate()
 
 void CPanelInfosWnd::DisplayURL(const wxString& url)
 {
-	webBrowser->LoadURL(url);
-	infosToolbar->SetMapActif();
+     if(webBrowser != nullptr)
+     {
+        webBrowser->LoadURL(url);
+        infosToolbar->SetMapActif();
+     }
 	Resize();
 }
 
