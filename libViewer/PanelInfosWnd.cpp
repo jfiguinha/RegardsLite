@@ -204,7 +204,7 @@ CPanelInfosWnd::CPanelInfosWnd(wxWindow* parent, wxWindowID id)
         }
         else
         {
-            webBrowser = wxWebView::New(this, wxID_ANY);
+            webBrowser = wxWebView::New(this, wxID_ANY, wxWebViewDefaultURLStr, wxDefaultPosition, wxDefaultSize, backend);
             webBrowser->Show(false);
             printf("webBrowser is ok \n");
         }
