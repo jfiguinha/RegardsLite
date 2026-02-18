@@ -173,6 +173,7 @@ CPanelInfosWnd::CPanelInfosWnd(wxWindow* parent, wxWindowID id)
 
 	if (webBrowser == nullptr)
 	{
+        printf("webBrowser \n");
 #ifdef WIN32
 #if wxUSE_WEBVIEW_EDGE
 		// Check if a fixed version of edge is present in
@@ -188,39 +189,39 @@ CPanelInfosWnd::CPanelInfosWnd(wxWindow* parent, wxWindowID id)
 #endif
 #endif
 
-        // Create the webview: WX_WEBVIEW_BACKEND environment variable allows to
-        // select the backend to use if there is more than one available.
-        wxString backend;
-        if ( !wxGetEnv("WX_WEBVIEW_BACKEND", &backend) )
-            backend = wxWebViewBackendDefault;
+         wxString backend = "";
+        
+#ifdef __WXGTK__
 
-        if ( backend != wxWebViewBackendDefault &&
-                !wxWebView::IsBackendAvailable(backend) )
+        printf("Test backend wxWebViewWebKit \n");
+        
+        
+        backend = "wxWebViewWebKit";
+        if(!wxWebView::IsBackendAvailable(backend))
         {
-            wxLogWarning("Requested backend \"%s\" is not available, using default "
-                         "backend instead.", backend);
-            backend = wxWebViewBackendDefault;
+            wxLogWarning("Requested backend wxWebViewWebKit is not available");
+            printf("webBrowser is not ok \n");
         }
-
+        else
+        {
+            webBrowser = wxWebView::New(this, wxID_ANY);
+            webBrowser->Show(false);
+            printf("webBrowser is ok \n");
+        }
+        
+#else
         if (webBrowser == nullptr)
         {
-            /*
-            	wxWindow * 	parent,
-wxWindowID 	id,
-const wxString & 	url = wxWebViewDefaultURLStr,
-const wxPoint & 	pos = wxDefaultPosition,
-const wxSize & 	size = wxDefaultSize,
-const wxString & 	backend = wxWebViewBackendDefault,
-long 	style = 0,
-const wxString & 	name = wxWebViewNameStr
- * */
-            webBrowser = wxWebView::New(this, wxID_ANY, wxWebViewDefaultURLStr, wxDefaultPosition, wxDefaultSize, backend);
+            webBrowser = wxWebView::New(this, wxID_ANY);
             webBrowser->Show(false);
         }
+#endif
+
+
 
         if ( !webBrowser )
         {
-            wxLogFatalError("Failed to create wxWebView object using \"%s\" backend", backend);
+            wxLogWarning("Failed to create wxWebView object using \"%s\" backend", backend);
         }
 		//webBrowser = wxWebView::New(this, wxID_ANY);
 		
