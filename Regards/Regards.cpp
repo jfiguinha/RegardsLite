@@ -23,6 +23,7 @@
 #include <OpenCLContext.h>
 #include <wx/dir.h>
 #include <Gps.h>
+#include <wx/webview.h>
 #ifdef USE_CUDA
 #include <opencv2/cudaarithm.hpp>
 #include <cudnn.h>
@@ -37,6 +38,7 @@ bool isGPsAvailable = false;
 string buildOption = "-cl-mad-enable -cl-unsafe-math-optimizations";
 cv::ocl::OpenCLExecutionContext clExecCtx;
 std::map<wxString,cv::ocl::Program> openclBinaryMapping;
+
 
 using namespace cv;
 using namespace Regards::Picture;
@@ -348,9 +350,9 @@ bool MyApp::OnInit()
     //wxSystemOptions::SetOption( wxMAC_WINDOW_PLAIN_TRANSITION, 0 );
 #endif
 
-    /*
-  
 
+    
+    /*
 	wxInitAllImageHandlers();
 	// folder:
     SaveIcon(wxART_FOLDER, "folder.png");

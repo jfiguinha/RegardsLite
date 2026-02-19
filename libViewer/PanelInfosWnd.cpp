@@ -32,6 +32,9 @@ using namespace Regards::Control;
 /**
  * \brief 
  */
+ 
+//extern wxWebView* webBrowser;
+
 #define WM_UPDATEINFOS 1
 wxDEFINE_EVENT(EVENT_ENDINFOSUPDATE, wxCommandEvent);
 wxDEFINE_EVENT(EVENT_UPDATETHUMBNAILTHREAD, wxCommandEvent);
@@ -46,7 +49,6 @@ CPanelInfosWnd::CPanelInfosWnd(wxWindow* parent, wxWindowID id)
 	thumbnailEffectWnd = nullptr;
 	filtreEffectWnd = nullptr;
 
-	webBrowser = nullptr;
 	infosToolbar = nullptr;
 	picturePanel = nullptr;
 	//Effect Parameter
@@ -192,7 +194,6 @@ CPanelInfosWnd::CPanelInfosWnd(wxWindow* parent, wxWindowID id)
          
 #ifdef __WXGTK__
 
-       
         wxArrayString output;
         wxArrayString errors;
 		wxString pathProgram = "";
@@ -204,7 +205,7 @@ CPanelInfosWnd::CPanelInfosWnd(wxWindow* parent, wxWindowID id)
         for(wxString out : output)
         {
             printf("Message output : %s \n", out.ToStdString().c_str());
-            if(out == "99")
+            if(out == "webbrowser=99")
                 isOk = true;
         }
         
@@ -213,7 +214,6 @@ CPanelInfosWnd::CPanelInfosWnd(wxWindow* parent, wxWindowID id)
             printf("Message  errors : %s \n", out.ToStdString().c_str());
         }
         
-    
         
 #else
 
@@ -225,15 +225,21 @@ CPanelInfosWnd::CPanelInfosWnd(wxWindow* parent, wxWindowID id)
         if (webBrowser == nullptr && isOk)
         {
             webBrowser = wxWebView::New(this, wxID_ANY);
+            //webBrowser->Create(this, wxID_ANY);
             webBrowser->Show(false);
+            
+             printf("Web Browser is available");
         }
         else
         {
-            printf("Web Browser not available");
+            printf("Web Browser is not available");
         }
-		//webBrowser = wxWebView::New(this, wxID_ANY);
 		
-
+        /*
+		printf("webbrowser=99\n");
+        exit(99);
+        */
+        
 		auto tabInfosFile = new CTabWindowData();
 		tabInfosFile->SetWindow(webBrowser);
 		tabInfosFile->SetId(WM_MAPS);

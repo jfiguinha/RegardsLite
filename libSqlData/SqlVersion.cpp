@@ -50,7 +50,7 @@ wxString CSqlVersion::GetVersion()
 {
 	typeResult = 0;
 	ExecuteRequest("SELECT libelle FROM VERSION");
-	printf("Version : %s \n", CConvertUtility::ConvertToUTF8(result));
+	//printf("Version : %s \n", CConvertUtility::ConvertToUTF8(result));
 	return result;
 }
 
