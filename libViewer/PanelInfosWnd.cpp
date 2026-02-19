@@ -1,9 +1,4 @@
 #include <header.h>
-#if !wxUSE_WEBVIEW_WEBKIT && !wxUSE_WEBVIEW_WEBKIT2 && \
-    !wxUSE_WEBVIEW_IE && !wxUSE_WEBVIEW_EDGE && \
-    !wxUSE_WEBVIEW_CHROMIUM
-#error "A wxWebView backend is required by this sample"
-#endif
 #include "PanelInfosWnd.h"
 #include "ToolbarInfos.h"
 #include <BitmapWndViewer.h>
@@ -173,6 +168,10 @@ CPanelInfosWnd::CPanelInfosWnd(wxWindow* parent, wxWindowID id)
 
 	if (webBrowser == nullptr)
 	{
+        
+
+        
+        
         printf("webBrowser \n");
 #ifdef WIN32
 #if wxUSE_WEBVIEW_EDGE
@@ -189,39 +188,48 @@ CPanelInfosWnd::CPanelInfosWnd(wxWindow* parent, wxWindowID id)
 #endif
 #endif
 
-         wxString backend = "";
-        
+         bool isOk = false;
+         
 #ifdef __WXGTK__
 
-        printf("Test backend wxWebViewWebKit \n");
+       
+        wxArrayString output;
+        wxArrayString errors;
+		wxString pathProgram = "";
+		pathProgram = CFileUtility::GetProgramFolderPath() + "/webview";
+		cout << "Path Program" << pathProgram << endl;
+
+        wxExecute(pathProgram, output, errors);
         
+        for(wxString out : output)
+        {
+            printf("Message output : %s \n", out.ToStdString().c_str());
+            if(out == "99")
+                isOk = true;
+        }
         
-        backend = "wxWebViewWebKit";
-        if(!wxWebView::IsBackendAvailable(backend))
+        for(wxString out : errors)
         {
-            wxLogWarning("Requested backend wxWebViewWebKit is not available");
-            printf("webBrowser is not ok \n");
+            printf("Message  errors : %s \n", out.ToStdString().c_str());
         }
-        else
-        {
-            webBrowser = wxWebView::New(this, wxID_ANY, wxWebViewDefaultURLStr, wxDefaultPosition, wxDefaultSize, backend);
-            webBrowser->Show(false);
-            printf("webBrowser is ok \n");
-        }
+        
+    
         
 #else
-        if (webBrowser == nullptr)
+
+    
+        isOk = true;
+
+#endif
+
+        if (webBrowser == nullptr && isOk)
         {
             webBrowser = wxWebView::New(this, wxID_ANY);
             webBrowser->Show(false);
         }
-#endif
-
-
-
-        if ( !webBrowser )
+        else
         {
-            wxLogWarning("Failed to create wxWebView object using \"%s\" backend", backend);
+            printf("Web Browser not available");
         }
 		//webBrowser = wxWebView::New(this, wxID_ANY);
 		

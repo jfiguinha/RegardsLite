@@ -45,7 +45,7 @@ extern int Start(int argc, char **argv);
 
 void MyApp::OnInitCmdLine(wxCmdLineParser& parser)
 {
-	cout << "Application Parameter : " << endl;
+	//cout << "Application Parameter : " << endl;
 	parser.SetDesc(g_cmdLineDesc);
 	// must refuse '/' as parameter starter or cannot use "/path" style paths
 	parser.SetSwitchChars(wxT("-"));
@@ -71,12 +71,12 @@ bool MyApp::OnCmdLineParsed(wxCmdLineParser& parser)
 		fileToOpen = files[0];
 	}
 	
-	if(parser.Found("program", &appName))
-		cout << "App : " << appName << endl;
+	//if(parser.Found("program", &appName))
+	//	cout << "App : " << appName << endl;
 	// then do what you need with them.
 	
-	cout << "Application Parameter : " << endl;
-	cout << "File : " << fileToOpen << endl;
+	//cout << "Application Parameter : " << endl;
+	//cout << "File : " << fileToOpen << endl;
 	
 	return true;
 }
@@ -334,6 +334,7 @@ void MyApp::CheckOpenCLAvailability(bool configFileExist)
 bool MyApp::OnInit()
 {
 
+
 	//putenv("OPENCV_OPENCL_DEVICE=:GPU:0");
 	//OPENCV_OPENCL_DEVICE=:GPU:1
 	// 
@@ -341,11 +342,6 @@ bool MyApp::OnInit()
 	// few common command-line options but it could be do more in the future
 	if (!wxApp::OnInit())
 		return false;
-
-	if (wxWebView::IsBackendAvailable(wxWebViewBackendEdge))
-	{
-		printf("toto");
-	}
 
 #ifdef __APPLE__
 	wxSystemOptions::SetOption(wxOSX_FILEDIALOG_ALWAYS_SHOW_TYPES, 1);
