@@ -190,55 +190,8 @@ CPanelInfosWnd::CPanelInfosWnd(wxWindow* parent, wxWindowID id)
 #endif
 #endif
 
-         bool isOk = false;
-         
-#ifdef __WXGTK__
-
-        wxArrayString output;
-        wxArrayString errors;
-		wxString pathProgram = "";
-		pathProgram = CFileUtility::GetProgramFolderPath() + "/webview";
-		cout << "Path Program" << pathProgram << endl;
-
-        wxExecute(pathProgram, output, errors);
-        
-        for(wxString out : output)
-        {
-            printf("Message output : %s \n", out.ToStdString().c_str());
-            if(out == "webbrowser=99")
-                isOk = true;
-        }
-        
-        for(wxString out : errors)
-        {
-            printf("Message  errors : %s \n", out.ToStdString().c_str());
-        }
-        
-        
-#else
-
-    
-        isOk = true;
-
-#endif
-
-        if (webBrowser == nullptr && isOk)
-        {
-            webBrowser = wxWebView::New(this, wxID_ANY);
-            //webBrowser->Create(this, wxID_ANY);
-            webBrowser->Show(false);
-            
-             printf("Web Browser is available");
-        }
-        else
-        {
-            printf("Web Browser is not available");
-        }
-		
-        /*
-		printf("webbrowser=99\n");
-        exit(99);
-        */
+        webBrowser = wxWebView::New(this, wxID_ANY);
+        webBrowser->Show(false);
         
 		auto tabInfosFile = new CTabWindowData();
 		tabInfosFile->SetWindow(webBrowser);
