@@ -1,4 +1,0 @@
-#! /bin/sh
-cd ${SNAP}/opt/RegardsLiteViewer
-export FONTCONFIG_PATH=/etc/fonts
-./RegardsLiteViewer "$@"
