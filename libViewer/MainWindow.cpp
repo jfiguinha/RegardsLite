@@ -993,6 +993,9 @@ void CMainWindow::UpdateFolderStatic()
 		nbElementInIconeList = CThumbnailBuffer::GetVectorSize();
 		init = true;
 
+		photoList.clear();
+		CSqlPhotosWithoutThumbnail sqlPhoto;
+		sqlPhoto.GetPhotoList(&photoList, 0);
 
 	}
 
@@ -1084,14 +1087,35 @@ void CMainWindow::ProcessIdle()
 		nbElement = 0;
 		hasDoneOneThings = false;
 		needToRefresh = true;
-
-
 		auto event = new wxCommandEvent(wxEVENT_UPDATEMESSAGE);
 		event->SetExtraLong(nbElement);
 		wxQueueEvent(this, event);
 	}
 	else
 		hasDoneOneThings = true;
+
+	/*
+	if (photoList.empty())
+	{
+		CSqlPhotosWithoutThumbnail sqlPhoto;
+		sqlPhoto.GetPhotoList(&photoList, 0);
+		if (photoList.empty())
+		{
+			nbElement = 0;
+			hasDoneOneThings = false;
+			needToRefresh = true;
+
+
+			auto event = new wxCommandEvent(wxEVENT_UPDATEMESSAGE);
+			event->SetExtraLong(nbElement);
+			wxQueueEvent(this, event);
+		}
+		else
+			hasDoneOneThings = true;
+	}
+	else
+		hasDoneOneThings = true;
+	*/
 
 	if (hasDoneOneThings)
 		processIdle = true;
