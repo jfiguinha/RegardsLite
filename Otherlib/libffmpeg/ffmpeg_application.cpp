@@ -5,15 +5,12 @@
 #endif
 
 #include <wx/progdlg.h>
-#include <stdexcept>
 #include <thread>
 #include "ffmpeg_application.h"
-#include <ConvertUtility.h>
 #include <wx/process.h>
 #include <FileUtility.h> 
 extern "C" {
 #include <libavcodec/avcodec.h>
-#include <libavutil/avassert.h>
 
 }
 

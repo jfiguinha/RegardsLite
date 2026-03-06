@@ -23,7 +23,6 @@
 #include <OpenCLContext.h>
 #include <wx/dir.h>
 #include <Gps.h>
-#include <wx/webview.h>
 #ifdef USE_CUDA
 #include <opencv2/cudaarithm.hpp>
 #include <cudnn.h>

@@ -7,11 +7,10 @@
 #include <ConvertUtility.h>
 #include <RGBAQuad.h>
 #include <RegardsConfigParam.h>
-#include <OpenCLEffectVideo.h>
 #include <ParamInit.h>
 #include <MediaInfo.h>
 using namespace std;
-using namespace Regards::OpenCL;
+
 
 #ifdef WIN32
 wxString listHardware[] = {"cuda", "qsv", "d3d11va", "dxva2", "opencl"};

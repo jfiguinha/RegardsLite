@@ -3,7 +3,7 @@
 #include "DiaporamaTransition.h"
 #include <libPicture.h>
 #include <picture_utility.h>
-#include <ImageLoadingFormat.h>
+
 using namespace cv;
 using namespace Regards::Picture;
 

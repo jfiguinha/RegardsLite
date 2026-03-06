@@ -2,7 +2,7 @@
 #include "VideoStabilization.h"
 #include "VideoStabilizationCpu.h"
 #include "VideoStabilizationOpenCL.h"
-#include "VideoStabilizationCuda.h"
+
 using namespace Regards::OpenCV;
 using namespace cv;
 

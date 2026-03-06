@@ -9,15 +9,11 @@
 
 #include "VideoFilter.h"
 #include "EffectVideoParameter.h"
-
 #include <LibResource.h>
-#include <FilterData.h>
-
 #include <Metadata.h>
-#include "videostream.h"
 #include <effect_id.h>
 using namespace Regards::Filter;
-using namespace Regards::Video;
+
 
 CVideoFilter::CVideoFilter()
 {

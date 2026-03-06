@@ -10,10 +10,8 @@
 #include "AudioVideoFilter.h"
 #include "EffectVideoParameter.h"
 #include <LibResource.h>
-#include <FilterData.h>
 #include <Metadata.h>
 #include "videostream.h"
-
 #include <effect_id.h>
 #include "TreeElementValue.h"
 using namespace Regards::Filter;

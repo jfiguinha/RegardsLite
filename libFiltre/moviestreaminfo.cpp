@@ -15,16 +15,13 @@
 //    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
 #include "header.h"
-
 #include "moviestreaminfo.h"
-
-
 extern "C" {
 #include <libavutil/opt.h>
-#include <libavfilter/avfilter.h>
+#include <libavutil/dict.h>
 }
 
-#include <libavutil/dict.h>
+
 
 #ifndef __APPLE__
 #pragma warning(disable : 4996)

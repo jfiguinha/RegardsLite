@@ -7,14 +7,10 @@
 #include "LoadingResource.h"
 #include "WindowMain.h"
 #include <config_id.h>
-#include <wx/sstream.h>
 #ifdef WIN32
 #endif
 #include <RegardsConfigParam.h>
-#include <ThumbnailDataStorage.h>
-#include <ThumbnailDataSQL.h>
 #include <libPicture.h>
-#include <SqlFaceThumbnail.h>
 using namespace Regards::Picture;
 using namespace Regards::Window;
 

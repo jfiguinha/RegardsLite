@@ -171,9 +171,6 @@
     <ClInclude Include="FilterWindowParam.h">
       <Filter>window\main</Filter>
     </ClInclude>
-    <ClInclude Include="FiltreUpdate.h">
-      <Filter>window\main</Filter>
-    </ClInclude>
     <ClInclude Include="bilateralFilter.h">
       <Filter>window\picture</Filter>
     </ClInclude>
@@ -338,6 +335,9 @@
     </ClInclude>
     <ClInclude Include="InterpolationFilters.h">
       <Filter>Main\ScaleCPU</Filter>
+    </ClInclude>
+    <ClInclude Include="FiltreUpdate.h">
+      <Filter>window\picture</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

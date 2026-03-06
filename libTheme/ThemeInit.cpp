@@ -1,14 +1,11 @@
 #include "header.h"
 #include "ThemeInit.h"
 #include "ThemeParam.h"
-#include <FileUtility.h>
 #include <wx/stdpaths.h>
 #include <wx/settings.h>
 #include <RegardsConfigParam.h>
 #include <ParamInit.h>
-#include "ViewerParamInit.h"
-#include "ViewerParam.h"
-using namespace Regards::Viewer;
+
 CThemeParam* CThemeInit::_singleton = nullptr;
 
 

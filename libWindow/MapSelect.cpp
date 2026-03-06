@@ -12,12 +12,11 @@
 #include <ConvertUtility.h>
 #include <RegardsConfigParam.h>
 #include <ParamInit.h>
-#include <SqlCountry.h>
 #include <Gps.h>
 #include <FileGeolocation.h>
 using namespace Regards::Window;
 using namespace Regards::Internet;
-using namespace Regards::Sqlite;
+
 
 
 CMapSelect::CMapSelect()

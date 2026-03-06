@@ -1,7 +1,6 @@
 #include "header.h"
 #include "BitmapInfosGps.h"
 #include <wx/dcbuffer.h>
-#include <wx/sstream.h>
 using namespace Regards::Window;
 //using namespace Regards::Internet;
 

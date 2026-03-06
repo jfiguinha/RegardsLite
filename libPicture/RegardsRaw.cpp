@@ -1,8 +1,6 @@
 #include <header.h>
-#include <FreeImage.h>
 #include "RegardsRaw.h"
 #include "libraw/libraw.h"
-#include <ximage.h>
 #include <vector>
 #include <ConvertUtility.h>
 #define SWAP(a,b) { a ^= b; a ^= (b ^= a); }
