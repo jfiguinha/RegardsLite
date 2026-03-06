@@ -30,7 +30,7 @@ namespace Regards::Viewer
 	class CMainWindow : public CWindowMain
 	{
 	public:
-		CMainWindow(wxWindow* parent, wxWindowID id, IStatusBarInterface* statusbar, const bool& openFirstFile, const wxString& fileToOpen);
+		CMainWindow(wxWindow* parent, wxWindowID id, IStatusBarInterface* statusbar, const wxString& fileToOpen);
 		~CMainWindow() override;
 		void UpdateScreenRatio() override;
 
