@@ -144,7 +144,12 @@ int MyApp::Close()
 	_CrtDumpMemoryLeaks();
 #endif
 
-	exit(0);
+
+	if (frameStart != nullptr)
+		delete frameStart;
+
+	if(frameViewer != nullptr)
+		delete frameViewer;
 
 	return 0;
 }
