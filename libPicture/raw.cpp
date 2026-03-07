@@ -1,12 +1,13 @@
 #include <header.h>
 #include "raw.h"
 #include "RegardsRaw.h"
+#include <FreeImage.h>
 #include <ximage.h>
 #include <ImageLoadingFormat.h>
 #include <libraw/libraw.h>
 #include <ConvertUtility.h>
 using namespace Regards::Picture;
-
+using namespace Regards::Picture;
 
 CImageLoadingFormat* CRaw::GetThumbnail(const wxString& fileName, const bool& thumbnail, bool& isFromExif)
 {
