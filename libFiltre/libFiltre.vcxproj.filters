@@ -339,6 +339,9 @@
     <ClInclude Include="FiltreUpdate.h">
       <Filter>window\picture</Filter>
     </ClInclude>
+    <ClInclude Include="2PassScale.h">
+      <Filter>Main\ScaleCPU</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="circle.cpp">
@@ -502,6 +505,9 @@
     </ClCompile>
     <ClCompile Include="avir_opencl.cpp">
       <Filter>Main</Filter>
+    </ClCompile>
+    <ClCompile Include="2PassScale.cpp">
+      <Filter>Main\ScaleCPU</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

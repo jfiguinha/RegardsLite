@@ -1101,7 +1101,12 @@ Mat CFiltreEffetCPU::Interpolation(const Mat& inputData, const int& widthOut, co
 		else if (method > 7)
 		{
 			int local_method = method - 7 + 1000;
+
+#ifdef WIN32
+			std::unique_ptr<C2PassScale> m_LocalFilter;
+#else
 			std::unique_ptr<CInterpolationBicubic> m_LocalFilter;
+#endif
 
 			switch (local_method)
 			{
@@ -1120,9 +1125,11 @@ Mat CFiltreEffetCPU::Interpolation(const Mat& inputData, const int& widthOut, co
 
 			if (m_LocalFilter)
 			{
-				cv::Mat outBuf(Size(widthOut, heightOut), CV_8UC3, Scalar(0, 0, 0));
-				m_LocalFilter->Execute(cvImage, outBuf);
-				cvImage = outBuf;
+				cv::Mat inBuf;
+				cvtColor(cvImage, inBuf, cv::COLOR_BGR2BGRA);
+				cv::Mat outBuf(Size(widthOut, heightOut), CV_8UC4, Scalar(0, 0, 0));
+				m_LocalFilter->Execute(inBuf, outBuf);
+				cvtColor(outBuf, cvImage, cv::COLOR_BGRA2BGR);
 			}
 		}
 		else

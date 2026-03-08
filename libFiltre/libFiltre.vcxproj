@@ -693,6 +693,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\include\header.h" />
+    <ClInclude Include="2PassScale.h" />
     <ClInclude Include="AudioVideoFilter.h" />
     <ClInclude Include="BilateralEffectParameter.h" />
     <ClInclude Include="bilateralFilter.h" />
@@ -794,6 +795,7 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release_cllang|ARM64'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="2PassScale.cpp" />
     <ClCompile Include="AudioVideoFilter.cpp" />
     <ClCompile Include="avir_opencl.cpp" />
     <ClCompile Include="bilateralFilter.cpp" />
