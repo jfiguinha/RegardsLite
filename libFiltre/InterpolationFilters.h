@@ -5,7 +5,7 @@
 // Box, Bilinear, Gaussian, Hamming, Cubic, Blackman
 /////////////////////////////////////////////////////////////////////////////
 
-#ifdef WIN32
+#ifdef TWO_PASS_SCALE
 #include "2PassScale.h"
 #else
 #include "InterpolationBicubic.h"

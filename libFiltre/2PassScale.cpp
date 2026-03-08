@@ -148,6 +148,7 @@ void C2PassScale::ScaleRow(uint32_t *pSrc, int uSrcWidth,uint32_t *pRes, int uRe
 {
     uint32_t *pSrcRow = &(pSrc[uRow * uSrcWidth]);
     uint32_t *pDstRow = &(pRes[uRow * uResWidth]);
+#pragma omp parallel for
     for (int x = 0; x < uResWidth; x++) 
     {   // Loop through row
         double r = 0;
@@ -230,6 +231,8 @@ void C2PassScale::VertScale(uint32_t *pSrc, int uSrcWidth, int uSrcHeight, uint3
     }
     // Allocate and calculate the contributions
     LineContribType * Contrib = CalcContributions (uResHeight, uSrcHeight, double(uResHeight) / double(uSrcHeight)); 
+
+#pragma omp parallel for
     for (int u = 0; u < uResWidth; u++)
     {   // Step through columns
         ScaleCol (  pSrc,
