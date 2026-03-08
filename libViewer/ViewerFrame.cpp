@@ -110,21 +110,6 @@ CViewerFrame::CViewerFrame(const wxString& title, const wxPoint& pos, const wxSi
 	Connect(wxTIMER_EXIT, wxEVT_TIMER, wxTimerEventHandler(CViewerFrame::CheckAllProcessEnd), nullptr, this);
 
 
-	bool openFirstFile = false;
-	
-	
-	//Verify if file exist
-	if(!wxFileExists(fileToOpen))
-		fileToOpen = "";
-	
-	//SetIcon(wxIcon(wxT("regards.xpm")));
-	if (fileToOpen != "")
-		openFirstFile = true;
-
-
-
-
-
 	mainWindow = new CMainWindow(this, MAINVIEWERWINDOWID, this, fileToOpen);
 
 	//mainWindow->Show(true);
