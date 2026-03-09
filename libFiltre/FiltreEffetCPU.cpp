@@ -1126,11 +1126,9 @@ Mat CFiltreEffetCPU::Interpolation(const Mat& inputData, const int& widthOut, co
 			if (m_LocalFilter)
 			{
 #ifdef TWO_PASS_SCALE
-				cv::Mat inBuf;
-				cvtColor(cvImage, inBuf, cv::COLOR_BGR2BGRA);
-				cv::Mat outBuf(Size(widthOut, heightOut), CV_8UC4, Scalar(0, 0, 0));
-				m_LocalFilter->Execute(inBuf, outBuf);
-				cvtColor(outBuf, cvImage, cv::COLOR_BGRA2BGR);
+				cv::Mat outBuf(Size(widthOut, heightOut), CV_8UC3, Scalar(0, 0, 0));
+				m_LocalFilter->Execute(cvImage, outBuf);
+				cvImage = outBuf;
 #else
 				cv::Mat outBuf(Size(widthOut, heightOut), CV_8UC3, Scalar(0, 0, 0));
 				m_LocalFilter->Execute(cvImage, outBuf);
