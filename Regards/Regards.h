@@ -157,7 +157,7 @@ wxImage defaultPictureThumbnailVideo;
 bool preprocessisAvailable = true;
 
 std::mutex muProcessAvailable;
-float value[256];
+double value[256];
 
 float clamp(float val, float minval, float maxval)
 {

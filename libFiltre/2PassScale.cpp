@@ -1,6 +1,12 @@
 #include "header.h"
 #include "2PassScale.h"
+extern double value[256];
 
+#ifndef WIN32
+#define GetRValue(rgb)      (LOBYTE(rgb))
+#define GetGValue(rgb)      (LOBYTE(((WORD)(rgb)) >> 8))
+#define GetBValue(rgb)      (LOBYTE((rgb)>>16))
+#endif
 
 void C2PassScale::Execute(const cv::Mat& in, cv::Mat& Out)
 {
@@ -144,34 +150,6 @@ C2PassScale::LineContribType * C2PassScale::CalcContributions(int uLineSize, int
 //////////////////////////////////////////////////////////////////////////////////////////////////
 //
 //////////////////////////////////////////////////////////////////////////////////////////////////
-void C2PassScale::ScaleRow(uint32_t *pSrc, int uSrcWidth,uint32_t *pRes, int uResWidth,int uRow, LineContribType *Contrib)
-{
-    uint32_t *pSrcRow = &(pSrc[uRow * uSrcWidth]);
-    uint32_t *pDstRow = &(pRes[uRow * uResWidth]);
-#pragma omp parallel for
-    for (int x = 0; x < uResWidth; x++) 
-    {   // Loop through row
-        double r = 0;
-        double g = 0;
-        double b = 0;
-        int iLeft = Contrib->ContribRow[x].Left;    // Retrieve left boundries
-        int iRight = Contrib->ContribRow[x].Right;  // Retrieve right boundries
-        for (int i = iLeft; i <= iRight; i++)
-        {   // Scan between boundries
-            // Accumulate weighted effect of each neighboring pixel
-			
-            r += (BYTE)(Contrib->ContribRow[x].Weights[i-iLeft] * (double)(GetRValue(pSrcRow[i]))); 
-            g += (BYTE)(Contrib->ContribRow[x].Weights[i-iLeft] * (double)(GetGValue(pSrcRow[i]))); 
-            b += (BYTE)(Contrib->ContribRow[x].Weights[i-iLeft] * (double)(GetBValue(pSrcRow[i]))); 
-        } 
-
-        pDstRow[x] = RGB(r,g,b); // Place result in destination pixel
-    } 
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////////////////////////
 void C2PassScale::HorizScale(uint32_t *pSrc, int uSrcWidth,int uSrcHeight,uint32_t *pDst,int uResWidth,int uResHeight)
 {
     //TRACE ("Performing horizontal scaling...\n"); 
@@ -181,43 +159,49 @@ void C2PassScale::HorizScale(uint32_t *pSrc, int uSrcWidth,int uSrcHeight,uint32
     }
     // Allocate and calculate the contributions
     LineContribType * Contrib = CalcContributions (uResWidth, uSrcWidth, double(uResWidth) / double(uSrcWidth)); 
+
+    double r = 0;
+    double g = 0;
+    double b = 0;
+    int iLeft = 0;    // Retrieve left boundries
+    int iRight = 0;  // Retrieve right boundries
+
     for (int u = 0; u < uResHeight; u++)
-    {   // Step through rows              
-        ScaleRow (  pSrc, 
-                    uSrcWidth,
-                    pDst,
-                    uResWidth,
-                    u,
-                    Contrib);    // Scale each row 
+    {   // Step through rows        
+        uint32_t* pSrcRow = &(pSrc[u * uSrcWidth]);
+        uint32_t* pDstRow = &(pDst[u * uResWidth]);
+
+        for (int x = 0; x < uResWidth; x++)
+        {   // Loop through row
+            r = 0;
+            g = 0;
+            b = 0;
+            iLeft = Contrib->ContribRow[x].Left;    // Retrieve left boundries
+            iRight = Contrib->ContribRow[x].Right;  // Retrieve right boundries
+            for (int i = iLeft; i <= iRight; i++)
+            {   // Scan between boundries
+                // Accumulate weighted effect of each neighboring pixel
+
+                r += (Contrib->ContribRow[x].Weights[i - iLeft] * value[GetRValue(pSrcRow[i])]);
+                g += (Contrib->ContribRow[x].Weights[i - iLeft] * value[GetGValue(pSrcRow[i])]);
+                b += (Contrib->ContribRow[x].Weights[i - iLeft] * value[GetBValue(pSrcRow[i])]);
+            }
+
+            pDstRow[x] = RGB(GetValue(r), GetValue(g), GetValue(b)); // Place result in destination pixel
+        }
     }
     FreeContributions (Contrib);  // Free contributions structure
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////////////
-//
-//////////////////////////////////////////////////////////////////////////////////////////////////
-void C2PassScale::ScaleCol(uint32_t *pSrc, int uSrcWidth,uint32_t *pRes, int uResWidth,int uResHeight,int uCol, LineContribType *Contrib)
+uint8_t C2PassScale::GetValue(double r)
 {
-    for (int y = 0; y < uResHeight; y++) 
-    {    // Loop through column
-        double r = 0;
-        double g = 0;
-        double b = 0;
-        int iLeft = Contrib->ContribRow[y].Left;    // Retrieve left boundries
-        int iRight = Contrib->ContribRow[y].Right;  // Retrieve right boundries
-        for (int i = iLeft; i <= iRight; i++)
-        {   // Scan between boundries
-            // Accumulate weighted effect of each neighboring pixel
+    if (r < 0)
+        return 0;
+    else if (r > 255)
+        return 255;
+    else
+        return (uint8_t)r;
 
-			//A mettre dans un tableau pour Traitement SSE
-
-            uint32_t pCurSrc = pSrc[i * uSrcWidth + uCol];
-            r += BYTE(Contrib->ContribRow[y].Weights[i-iLeft] * (double)(GetRValue(pCurSrc)));
-            g += BYTE(Contrib->ContribRow[y].Weights[i-iLeft] * (double)(GetGValue(pCurSrc)));
-            b += BYTE(Contrib->ContribRow[y].Weights[i-iLeft] * (double)(GetBValue(pCurSrc)));
-        }
-        pRes[y * uResWidth + uCol] = RGB (r,g,b);   // Place result in destination pixel
-    }
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -232,16 +216,36 @@ void C2PassScale::VertScale(uint32_t *pSrc, int uSrcWidth, int uSrcHeight, uint3
     // Allocate and calculate the contributions
     LineContribType * Contrib = CalcContributions (uResHeight, uSrcHeight, double(uResHeight) / double(uSrcHeight)); 
 
-#pragma omp parallel for
+    double r = 0;
+    double g = 0;
+    double b = 0;
+    int iLeft = 0;    // Retrieve left boundries
+    int iRight = 0;  // Retrieve right boundries
+
     for (int u = 0; u < uResWidth; u++)
     {   // Step through columns
-        ScaleCol (  pSrc,
-                    uSrcWidth,
-                    pDst,
-                    uResWidth,
-                    uResHeight,
-                    u,
-                    Contrib);   // Scale each column
+        for (int y = 0; y < uResHeight; y++)
+        {    // Loop through column
+            r = 0;
+            g = 0;
+            b = 0;
+            iLeft = Contrib->ContribRow[y].Left;    // Retrieve left boundries
+            iRight = Contrib->ContribRow[y].Right;  // Retrieve right boundries
+            for (int i = iLeft; i <= iRight; i++)
+            {   // Scan between boundries
+                // Accumulate weighted effect of each neighboring pixel
+
+                //A mettre dans un tableau pour Traitement SSE
+
+                uint32_t pCurSrc = pSrc[i * uSrcWidth + u];
+                r += (Contrib->ContribRow[y].Weights[i - iLeft] * value[GetRValue(pCurSrc)]);
+                g += (Contrib->ContribRow[y].Weights[i - iLeft] * value[GetGValue(pCurSrc)]);
+                b += (Contrib->ContribRow[y].Weights[i - iLeft] * value[GetBValue(pCurSrc)]);
+            }
+
+
+            pDst[y * uResWidth + u] = RGB(GetValue(r), GetValue(g), GetValue(b));   // Place result in destination pixel
+        }
     }
     FreeContributions (Contrib);     // Free contributions structure
 }

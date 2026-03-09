@@ -22,6 +22,8 @@ public:
 
 private:
 
+	uint8_t GetValue(double r);
+
 	typedef struct 
 	{ 
 	   double *Weights;  // Normalized weights of neighboring pixels
@@ -44,9 +46,7 @@ private:
 	void Scale(uint32_t* pOrigImage, int uOrigWidth, int uOrigHeight, uint32_t* pDstImage, int uNewWidth, int uNewHeight);
 
 
-    void ScaleRow(uint32_t *pSrc, int uSrcWidth,uint32_t *pRes, int uResWidth,int uRow, LineContribType *Contrib);
     void HorizScale(uint32_t *pSrc, int uSrcWidth,int uSrcHeight,uint32_t *pDst,int uResWidth,int uResHeight);
-    void ScaleCol(uint32_t *pSrc, int uSrcWidth,uint32_t *pRes, int uResWidth,int uResHeight,int uCol, LineContribType *Contrib);
     void VertScale(uint32_t *pSrc, int uSrcWidth, int uSrcHeight, uint32_t *pDst, int uResWidth, int uResHeight);
 
 protected:
