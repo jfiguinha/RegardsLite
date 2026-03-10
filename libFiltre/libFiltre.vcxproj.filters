@@ -330,9 +330,6 @@
     <ClInclude Include="InpaintFilterParam.h">
       <Filter>window\Drawing</Filter>
     </ClInclude>
-    <ClInclude Include="InterpolationBicubic.h">
-      <Filter>Main\ScaleCPU</Filter>
-    </ClInclude>
     <ClInclude Include="InterpolationFilters.h">
       <Filter>Main\ScaleCPU</Filter>
     </ClInclude>
@@ -499,9 +496,6 @@
     </ClCompile>
     <ClCompile Include="InpaintFIlter.cpp">
       <Filter>window\Drawing</Filter>
-    </ClCompile>
-    <ClCompile Include="InterpolationBicubic.cpp">
-      <Filter>Main\ScaleCPU</Filter>
     </ClCompile>
     <ClCompile Include="avir_opencl.cpp">
       <Filter>Main</Filter>
