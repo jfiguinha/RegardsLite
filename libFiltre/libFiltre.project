@@ -31,9 +31,7 @@
     <File Name="2PassScale.cpp"/>
     <File Name="scalingfilter.h"/>
     <File Name="InterpolationFilters.h"/>
-    <File Name="InterpolationBicubic.h"/>
     <File Name="InpaintFilterParam.h"/>
-    <File Name="InterpolationBicubic.cpp"/>
     <File Name="avir_opencl.cpp"/>
   </VirtualDirectory>
   <VirtualDirectory Name="Filter">
@@ -279,7 +277,6 @@
     <Configuration Name="Release" CompilerType="Intel" DebuggerType="GNU gdb debugger" Type="Static Library" BuildCmpWithGlobalSettings="append" BuildLnkWithGlobalSettings="append" BuildResWithGlobalSettings="append">
       <Compiler Options="-O3" C_Options="-O3" Assembler="" Required="yes" PreCompiledHeader="../include/Release/header.h" PCHInCommandLine="yes" PCHFlags="" PCHFlagsPolicy="2">
         <Preprocessor Value="NDEBUG"/>
-        <Preprocessor Value="TWO_PASS_SCALE"/>
       </Compiler>
       <Linker Options="-s" Required="yes"/>
       <ResourceCompiler Options="" Required="no"/>
