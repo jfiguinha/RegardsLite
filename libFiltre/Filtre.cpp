@@ -5,6 +5,11 @@ using namespace Regards::FiltreEffet;
 
 #ifdef USE_TBB
 
+double clamp(double d, double min, double max) {
+	const double t = d < min ? min : d;
+	return t > max ? max : t;
+}
+
 struct myFiltreTask
 {
 	myFiltreTask(const int& x, const int& y, const cv::Mat& pBitsSrc, cv::Mat& pBitsDest, CFiltre* pt)
@@ -116,30 +121,22 @@ void CMatrixConvolution::PixelCompute(const int& x, const int& y, const cv::Mat&
 			int localY = y + i;
 			if (localX >= 0 && localX < bmWidth && localY < bmHeight && localY >= 0)
 			{
-				red += static_cast<float>(pBitsSrc.at<cv::Vec3b>(y + i, x + j)[0]) * kernel[k];
-				green += static_cast<float>(pBitsSrc.at<cv::Vec3b>(y + i, x + j)[1]) * kernel[k];
-				blue += static_cast<float>(pBitsSrc.at<cv::Vec3b>(y + i, x + j)[2]) * kernel[k];
+				cv::Vec3b pos = pBitsSrc.at<cv::Vec3b>(y + i, x + j);
+				red += static_cast<float>(pos[0]) * kernel[k];
+				green += static_cast<float>(pos[1]) * kernel[k];
+				blue += static_cast<float>(pos[2]) * kernel[k];
 			}
 			k++;
 		}
 	}
 
-	red = (red / Kfactor) + Koffset;
-	green = (green / Kfactor) + Koffset;
-	blue = (blue / Kfactor) + Koffset;
+	red = clamp((red / Kfactor) + Koffset, 0.0, 255.0);
+	green = clamp((green / Kfactor) + Koffset, 0.0, 255.0);
+	blue = clamp((blue / Kfactor) + Koffset, 0.0, 255.0);
 
-	red = red < 0.0 ? 0.0 : red;
-	uint8_t r = red > 255.0 ? 255 : red;
-
-	green = green < 0 ? 0 : green;
-	uint8_t g = green > 255 ? 255 : green;
-
-	blue = blue < 0 ? 0 : blue;
-	uint8_t b = blue > 255 ? 255 : blue;
-
-	pBitsDest.at<cv::Vec3b>(y, x)[0] = r;
-	pBitsDest.at<cv::Vec3b>(y, x)[1] = g;
-	pBitsDest.at<cv::Vec3b>(y, x)[2] = b;
+	pBitsDest.at<cv::Vec3b>(y, x)[0] = static_cast<uint8_t>(red);
+	pBitsDest.at<cv::Vec3b>(y, x)[1] = static_cast<uint8_t>(green);
+	pBitsDest.at<cv::Vec3b>(y, x)[2] = static_cast<uint8_t>(blue);
 }
 
 float CNoise::Noise2d(int x, int y)
