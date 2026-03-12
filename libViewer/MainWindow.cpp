@@ -992,8 +992,8 @@ void CMainWindow::UpdateFolderStatic()
 		numElementTraitement = 0;
 		nbElementInIconeList = CThumbnailBuffer::GetVectorSize();
 		init = true;
-
-
+        refreshFolder = true;
+        processIdle = true;
 	}
 
 }
@@ -1036,6 +1036,7 @@ void CMainWindow::PhotoProcess(CPhotos* photo)
 //---------------------------------------------------------------
 void CMainWindow::ProcessIdle()
 {
+    printf("CMainWindow::ProcessIdle() photoList Size : %d \n", photoList.size());
 	bool hasDoneOneThings = false;
 	int pictureSize = CThumbnailBuffer::GetVectorSize();
 	int nbProcesseur = 1;
@@ -1082,12 +1083,25 @@ void CMainWindow::ProcessIdle()
 
 	if (photoList.empty())
 	{
-		nbElement = 0;
-		hasDoneOneThings = false;
-		needToRefresh = true;
-		auto event = new wxCommandEvent(wxEVENT_UPDATEMESSAGE);
-		event->SetExtraLong(nbElement);
-		wxQueueEvent(this, event);
+        photoList.clear();
+        CSqlPhotosWithoutThumbnail sqlPhoto;
+        sqlPhoto.GetPhotoList(&photoList, 0);
+        if (photoList.empty())
+        {
+            nbElement = 0;
+            hasDoneOneThings = false;
+            needToRefresh = true;
+            auto event = new wxCommandEvent(wxEVENT_UPDATEMESSAGE);
+            event->SetExtraLong(nbElement);
+            wxQueueEvent(this, event);
+        }
+        else
+        {
+            hasDoneOneThings = true;
+            auto event = new wxCommandEvent(wxEVENT_UPDATEMESSAGE);
+			event->SetExtraLong(photoList.size());
+			wxQueueEvent(this, event);
+        }
 	}
 	else
 		hasDoneOneThings = true;
