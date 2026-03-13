@@ -72,6 +72,8 @@ CThumbnailDataSQL::~CThumbnailDataSQL(void)
 {
 	if (videoCaptureCV != nullptr)
 		delete videoCaptureCV;
+
+	frameOut.release();
         
     printf("CThumbnailDataSQL delete \n");
 }
@@ -107,6 +109,7 @@ bool CThumbnailDataSQL::TestBitmap()
 
 cv::Mat CThumbnailDataSQL::GetImage(bool& isDefault)
 {
+
     CSqlThumbnailVideo sqlThumbnailVideo;
     CSqlThumbnail sqlThumbnail;
     

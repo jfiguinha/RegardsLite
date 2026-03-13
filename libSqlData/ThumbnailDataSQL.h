@@ -37,7 +37,6 @@ public:
 private:
 	bool TestBitmap() override;
 	int nbFrame = 0;
-	cv::Mat cvImg;
 	int time_pos = 0;
 	cv::Mat frameOut;
     bool defaultPicture = true;
