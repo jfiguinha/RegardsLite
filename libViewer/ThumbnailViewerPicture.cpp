@@ -51,82 +51,44 @@ vector<wxString> CThumbnailViewerPicture::GetFileList()
 	return list;
 }
 
-CIconeList* CThumbnailViewerPicture::PregenerateList()
+
+void CThumbnailViewerPicture::PregenerateList()
 {
-	auto iconeListLocal = new CIconeList();
-	std::vector<CIcone*> pIconeList;
+	iconeList->EraseThumbnailListWithIcon();
 	int size = CThumbnailBuffer::GetVectorSize();
-	tbb::concurrent_vector<int>* list = new tbb::concurrent_vector<int>();
 	int iconWidth = themeThumbnail.themeIcone.GetWidth();
 
-	tbb::parallel_for(0, size, 1, [this, &pIconeList, size, iconeListLocal, list, iconWidth](int i)
-	{
-		try
+
+	tbb::parallel_for(0, size, 1, [=](int i)
 		{
-			CPhotos photo = CThumbnailBuffer::GetVectorValue(i);
-
-			auto it = std::find_if(pIconeList.begin(), pIconeList.end(), [&photo](CIcone* e)
+			try
 			{
-				auto thumbnailData = static_cast<CThumbnailDataSQL*>(e->GetData());
-				return thumbnailData->GetFilename() == photo.GetPath();
-			});
+				CPhotos photo = CThumbnailBuffer::GetVectorValue(i);
 
-			if (it != pIconeList.end())
-			{
-				CIcone* icone = *it;
-				auto thumbnailData = static_cast<CThumbnailDataSQL*>(icone->GetData());
+				wxString filename = photo.GetPath();
+				auto thumbnailData = new CThumbnailDataSQL(filename, false, false);
 				thumbnailData->SetNumPhotoId(photo.GetId());
 				thumbnailData->SetNumElement(i);
-				icone->SetNumElement(i);
-				icone->SetWindowPos(i * iconWidth, 0);
-				iconeListLocal->AddElement(icone);
+
+				auto pBitmapIcone = new CIcone();
+				pBitmapIcone->SetNumElement(i);
+				pBitmapIcone->SetData(thumbnailData);
+				pBitmapIcone->SetTheme(themeThumbnail.themeIcone);
+				pBitmapIcone->SetWindowPos(i * iconWidth, 0);
+				pBitmapIcone->SetFilename(filename);
+				iconeList->AddElement(pBitmapIcone);
 			}
-			else
+			catch (const std::exception& e)
 			{
-				list->push_back(i);
+				std::cerr << "Error creating icon at index " << i << ": " << e.what() << std::endl;
 			}
-		}
-		catch (const std::exception& e)
-		{
-			std::cerr << "Error processing photo at index " << i << ": " << e.what() << std::endl;
-		}
-	});
+		});
 
+	iconeList->SortByFilename();
 
-	for (int i : *list)
+	for (int i = 0; i < size; i++)
 	{
-		try
-		{
-			CPhotos photo = CThumbnailBuffer::GetVectorValue(i);
-
-			wxString filename = photo.GetPath();
-			auto thumbnailData = new CThumbnailDataSQL(filename, false, false);
-			thumbnailData->SetNumPhotoId(photo.GetId());
-			thumbnailData->SetNumElement(i);
-
-			auto pBitmapIcone = new CIcone();
-			pBitmapIcone->SetNumElement(i);
-			pBitmapIcone->SetData(thumbnailData);
-			pBitmapIcone->SetTheme(themeThumbnail.themeIcone);
-			pBitmapIcone->SetWindowPos(i * iconWidth, 0);
-			pBitmapIcone->SetFilename(filename);
-			iconeListLocal->AddElement(pBitmapIcone);
-
-			pIconeList.push_back(pBitmapIcone);
-		}
-		catch (const std::exception& e)
-		{
-			std::cerr << "Error creating icon at index " << i << ": " << e.what() << std::endl;
-		}
-	}
-
-	delete list;
-
-	iconeListLocal->SortByFilename();
-
-	tbb::parallel_for(0, size, 1, [iconeListLocal](int i)
-	{
-		CIcone* icone = iconeListLocal->GetElement(i);
+		CIcone* icone = iconeList->GetElement(i);
 		if (icone != nullptr)
 		{
 			icone->SetNumElement(i);
@@ -136,9 +98,9 @@ CIconeList* CThumbnailViewerPicture::PregenerateList()
 				data->SetNumElement(i);
 			}
 		}
-	});
+	}
 
-	return iconeListLocal;
+
 }
 
 
