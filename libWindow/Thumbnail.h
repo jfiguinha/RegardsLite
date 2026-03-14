@@ -82,15 +82,14 @@ namespace Regards::Window
 		void NotifyParentOnPositionChange();
 		void RenderDragAndDrop(wxDC& dc);
 
-		void GenerateCleanupListFile(std::vector<CIcone*> & pIconeListToClean);
+
 		//void ProcessIdle() {} override;
 		void PaintNow();
 		void Render(wxDC& dc);
 		void RefreshIcone(const int& idPhoto);
 		CIcone *  GetIconeById(const int& idPhoto);
 		int GetNumItemById(const int& idPhoto);
-		void EraseThumbnailList(CIconeList* iconeListLocal);
-		void EraseIconeList(std::vector<CIcone*> pIconeListToClean);
+
 		int GetNbIconSelected();
 
 		virtual void EraseThumbnail(wxCommandEvent& event);
@@ -265,9 +264,6 @@ namespace Regards::Window
 
 		bool needToRefresh = false;
         bool stopToGetNbElement = false;
-		std::mutex muEraseList;
-		std::vector<CListToClean *> listToErrase;
-		std::vector<CIcone *> pIconeList;
 		std::vector<wxString> listIconeToGenerate;
 		wxWindowID localid;
 		
