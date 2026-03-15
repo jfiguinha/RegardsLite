@@ -1239,12 +1239,16 @@ CMainWindow::~CMainWindow()
 	if (eventFileSysTimer->IsRunning())
 		eventFileSysTimer->Stop();
 
+	if (loadPictureStartTimer->IsRunning())
+		loadPictureStartTimer->Stop();
+
 	delete(eventFileSysTimer);
 	delete(progressBar);
 	delete(statusBar);
 	delete(centralWnd);
 	delete(folderProcess);
 	delete(thumbnailProcess);
+	delete(loadPictureStartTimer)
 }
 
 //---------------------------------------------------------------
