@@ -37,6 +37,8 @@
 #include <wx/mimetype.h>
 #include <wx/dir.h>
 #include "SqlFolderCatalog.h"
+#include <wx/stdpaths.h>
+#include <wx/dir.h>
 using namespace Regards::Picture;
 using namespace Regards::Control;
 using namespace Regards::Viewer;
@@ -45,7 +47,7 @@ using namespace Regards::Sqlite;
 
 constexpr auto TIMER_EVENTFILEFS = 3;
 
-
+constexpr auto TIMER_LOADPICTURESTART = 0x10005;
 wxDEFINE_EVENT(wxEVENT_ADDFSENTRY, wxCommandEvent);
 wxDEFINE_EVENT(wxEVENT_REMOVEFSENTRY, wxCommandEvent);
 /*
@@ -92,7 +94,7 @@ CMainWindow::CMainWindow(wxWindow* parent, wxWindowID id, IStatusBarInterface* s
 		centralWnd = new CCentralWindow(this, CENTRALVIEWERWINDOWID, theme, false);
 	}
 	this->statusBarViewer = statusbar;
-
+	loadPictureStartTimer = new wxTimer(this, TIMER_LOADPICTURESTART);
 	/*----------------------------------------------------------------------
 	 *
 	 * Manage Event
@@ -140,7 +142,7 @@ CMainWindow::CMainWindow(wxWindow* parent, wxWindowID id, IStatusBarInterface* s
 	Connect(wxEVENT_REMOVEFSENTRY, wxCommandEventHandler(CMainWindow::OnRemoveFSEntry));
 	Connect(wxEVENT_UPDATECHECKINSTATUS, wxCommandEventHandler(CMainWindow::OnCheckInUpdateStatus));
 	Connect(wxEVENT_UPDATECHECKINFOLDER, wxCommandEventHandler(CMainWindow::OnRemoveFileFromCheckIn));
-
+	Connect(TIMER_LOADPICTURESTART, wxEVT_TIMER, wxTimerEventHandler(CMainWindow::OnOpenFile), nullptr, this);
 	Connect(TIMER_EVENTFILEFS, wxEVT_TIMER, wxTimerEventHandler(CMainWindow::OnTimereventFileSysTimer), nullptr, this);
 	/*----------------------------------------------------------------------
 	 *
@@ -167,6 +169,11 @@ CMainWindow::CMainWindow(wxWindow* parent, wxWindowID id, IStatusBarInterface* s
 	if (fileToOpen != "")
 		firstFileToShow = localFilename = fileToOpen;
 
+	if (firstFileToShow == "")
+	{
+		//Open Default Folder in first time
+		loadPictureStartTimer->Start(10, true);
+	}
 
 	Connect(wxEVT_FSWATCHER, wxFileSystemWatcherEventHandler(CMainWindow::OnFileSystemModified));
 
@@ -188,6 +195,36 @@ CMainWindow::CMainWindow(wxWindow* parent, wxWindowID id, IStatusBarInterface* s
 
 }
 
+void CMainWindow::OnOpenFile(wxTimerEvent& event)
+{
+	CLibPicture libPicture;
+	wxString dirpath = "";
+
+	wxArrayString files;
+	dirpath = wxStandardPaths::Get().GetUserDir(wxStandardPaths::Dir_Pictures);
+	wxDir::GetAllFiles(dirpath, &files, wxEmptyString, wxDIR_FILES);
+	if (files.size() > 0)
+		sort(files.begin(), files.end());
+
+	for (wxString file : files)
+	{
+		if (libPicture.TestImageFormat(file) != 0)
+		{
+			firstFileToShow = file;
+			break;
+		}
+	}
+
+
+	if (firstFileToShow != "")
+	{
+		auto file = new wxString(firstFileToShow);
+		wxCommandEvent evt(wxEVENT_OPENFILEORFOLDER);
+		evt.SetInt(1);
+		evt.SetClientData(file);
+		this->GetEventHandler()->AddPendingEvent(evt);
+	}
+}
 
 void CMainWindow::OnRemoveFileFromCheckIn(wxCommandEvent& event)
 {

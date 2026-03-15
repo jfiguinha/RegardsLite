@@ -133,7 +133,7 @@ namespace Regards::Viewer
 
 		//------------------------------------------------------
 		void UpdateMessage(wxCommandEvent& event);
-
+		void OnOpenFile(wxTimerEvent& event);
 		void UpdateThumbnailIcone(wxCommandEvent& event);
 		int nbElementInIconeList = 0;
 		int nbPhotoElement = 0;
@@ -159,7 +159,7 @@ namespace Regards::Viewer
 		wxRect posWindow;
 
 		wxString localFilename;
-
+		wxTimer* loadPictureStartTimer;
 		
 		bool showToolbar;
 		CMainParam* viewerParam;
