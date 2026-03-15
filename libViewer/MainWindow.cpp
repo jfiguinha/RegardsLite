@@ -1248,7 +1248,7 @@ CMainWindow::~CMainWindow()
 	delete(centralWnd);
 	delete(folderProcess);
 	delete(thumbnailProcess);
-	delete(loadPictureStartTimer)
+	delete(loadPictureStartTimer);
 }
 
 //---------------------------------------------------------------
