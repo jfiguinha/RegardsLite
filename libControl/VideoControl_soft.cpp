@@ -62,7 +62,7 @@ CVideoControlSoft::CVideoControlSoft(CWindowMain* windowMain, wxWindow* window, 
 	startingTime = 0;
 	old_width = 0;
 	old_height = 0;
-
+	isAvailable = true;
 	pause = false;
 	config = nullptr;
 	angle = 0;
@@ -1203,9 +1203,16 @@ void CVideoControlSoft::OnPaint2D(wxWindow* gdi)
 {
 }
 
+bool CVideoControlSoft::IsAvailable()
+{
+	return isAvailable;
+}
+
 
 void CVideoControlSoft::OnPaint3D(wxGLCanvas* canvas, CRenderOpenGL* renderOpenGL)
 {
+	isAvailable = false;
+
 	if (renderBitmapOpenGL == nullptr)
 	{
 		this->renderOpenGL = renderOpenGL;
@@ -1390,6 +1397,7 @@ void CVideoControlSoft::OnPaint3D(wxGLCanvas* canvas, CRenderOpenGL* renderOpenG
 		ErrorDecodingFrame();
 	}
 
+	isAvailable = true;
 }
 
 int CVideoControlSoft::ChangeSubtitleStream(int newStreamSubtitle)

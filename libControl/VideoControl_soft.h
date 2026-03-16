@@ -189,7 +189,7 @@ protected:
 	Chqdn3d* hq3d = nullptr;
 
     int Play(const wxString& movie);
-
+	bool IsAvailable();
 
 
 	int mouseScrollX = 0;
@@ -234,7 +234,7 @@ protected:
 	CVideoEffectParameter videoEffectParameter;
     
     
-    
+	std::atomic<bool> isAvailable = true;
 	std::atomic<float> video_aspect_ratio;
 	std::atomic<int> widthVideo;
 	std::atomic<int> heightVideo;

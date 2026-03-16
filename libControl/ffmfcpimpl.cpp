@@ -390,7 +390,7 @@ void CFFmfcPimpl::video_display(VideoState* is)
 			}
 				
 
-		if (dlg != nullptr)
+		if (dlg != nullptr && dlg->IsAvailable())
 		{
 			auto tmp_frame = static_cast<AVFrame*>(vp->frame);
 
