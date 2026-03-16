@@ -234,7 +234,7 @@ protected:
 	CVideoEffectParameter videoEffectParameter;
     
     
-	std::atomic<bool> isAvailable = true;
+	std::atomic<bool> isAvailable;
 	std::atomic<float> video_aspect_ratio;
 	std::atomic<int> widthVideo;
 	std::atomic<int> heightVideo;
