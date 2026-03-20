@@ -16,8 +16,7 @@ CAvif::~CAvif()
 
 
 
-
-cv::Mat GetPictureLocal(const char * filename, avifDecoder * decoder)
+cv::Mat GetPictureLocal(const char * filename, avifDecoder * decoder, int &rotation)
 {
     cv::Mat out;
     if(decoder == nullptr)
@@ -62,6 +61,8 @@ cv::Mat GetPictureLocal(const char * filename, avifDecoder * decoder)
                 //cv::flip(out, out, 0);
             }
             avifRGBImageFreePixels(&dstRGB);
+
+            rotation = decoded->irot.angle;
         }
         
     }
@@ -146,7 +147,7 @@ bool CAvif::IsOccupied()
     return false;
 }
 
-cv::Mat CAvif::GetPicture(const char * filename)
+cv::Mat CAvif::GetPicture(const char * filename, int & rotation)
 {
     cv::Mat out;
 
@@ -156,7 +157,7 @@ cv::Mat CAvif::GetPicture(const char * filename)
 #else
     decoder->codecChoice = AVIF_CODEC_CHOICE_DAV1D;
 #endif  
-    out = GetPictureLocal(filename, decoder);
+    out = GetPictureLocal(filename, decoder, rotation);
     avifDecoderDestroy(decoder);
 
         

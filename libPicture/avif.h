@@ -12,9 +12,8 @@ namespace Regards
 			CAvif();
 			~CAvif();
             static bool IsOccupied();
-			static cv::Mat GetPicture(const char * filename);
+			static cv::Mat GetPicture(const char * filename, int& rotation);
 			static cv::Mat GetPictureThumb(const char* filename, const int& width, const int& heigth);
-
 		};
 	}
 }
