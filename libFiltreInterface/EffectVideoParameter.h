@@ -173,7 +173,7 @@ public:
 	//Tone mapping
 	float contrast;
 	float brightness;
-
+	int interpolation = 0;
 	//Color Boost
 	float color_boost[4];
 
@@ -204,7 +204,7 @@ public:
 	int ratioSelect = 4;
 	int zoomSelect = 0;
 	bool zoomUpdate = false;
-
+	int interpolationQuality = 0;
 	bool autoConstrast = false;
 	bool stabilizeVideo = false;
 	int stabilizeImageBuffere = 2;

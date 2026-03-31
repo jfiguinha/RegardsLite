@@ -16,6 +16,7 @@ extern "C" {
 
 using namespace Regards::Window;
 using namespace Regards::Video;
+using namespace Regards::Picture;
 using namespace Regards::OpenCV;
 using namespace Regards::OpenGL;
 class CFFmfc;
@@ -190,8 +191,9 @@ protected:
 
     int Play(const wxString& movie);
 	bool IsAvailable();
+	bool ApplyVideoEffect();
 
-
+	CPictureArray pictureArray;
 	int mouseScrollX = 0;
 	int mouseScrollY = 0;
 	bool mouseBlock = false;

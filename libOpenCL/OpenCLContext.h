@@ -11,7 +11,6 @@ namespace Regards
             COpenCLContext(){};
             ~COpenCLContext(){};
             static void initializeContextFromGL();
-            static void AssociateToVulkan();
             static void CreateDefaultOpenCLContext();
             static void GetOutputData(cl_mem cl_output_buffer, void* dataOut, const int& sizeOutput, const int& flag);
             static cv::ocl::Program GetProgram(const wxString& programName);

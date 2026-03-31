@@ -155,7 +155,7 @@ wxImage defaultPicture;
 wxImage defaultPictureThumbnailPicture;
 wxImage defaultPictureThumbnailVideo;
 bool preprocessisAvailable = true;
-
+int openclOpenGLInterop = false;
 std::mutex muProcessAvailable;
 double value[256];
 
