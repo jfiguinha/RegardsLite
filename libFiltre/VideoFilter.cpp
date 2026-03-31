@@ -55,7 +55,7 @@ CVideoFilter::CVideoFilter()
 	libelleScale = CLibResource::LoadStringFromResource(L"LBLPICTUREFORMAT", 1);
 	libelleZoom = CLibResource::LoadStringFromResource(L"LBLZOOMPICTURE", 1);
 	//enableRestore = CLibResource::LoadStringFromResource(L"LBLRESTORE", 1);
-
+	libelleInterpolationQuality = "Interpolation Quality";
 	libelleTemplateWindowSize = CLibResource::LoadStringFromResource(L"LBLeffectDenoisingTemplate", 1);
 	libellesearchWindowSize = CLibResource::LoadStringFromResource(L"LBLeffectDenoisingSearchWindowSize", 1);
 }
@@ -128,6 +128,9 @@ void CVideoFilter::Filter(CEffectParameter* effectParameter, const wxString& fil
 	                              &videoEffectParameter->showFPS, 2, 2);
 	filtreInterface->AddTreeInfos(enableEffect, new CTreeElementValueInt(videoEffectParameter->effectEnable),
 	                              &videoEffectParameter->effectEnable, 2, 2);
+	filtreInterface->AddTreeInfos(libelleInterpolationQuality, new CTreeElementValueInt(videoEffectParameter->interpolationQuality),
+		&videoEffectParameter->interpolationQuality, 2, 2);
+
 	filtreInterface->AddTreeInfos(libelleAutoContrast, new CTreeElementValueInt(videoEffectParameter->autoConstrast),
 	                              &videoEffectParameter->autoConstrast, 2, 2);
 	filtreInterface->AddTreeInfos(enableFilmgrain, new CTreeElementValueInt(videoEffectParameter->filmgrainenable),
@@ -266,14 +269,13 @@ void CVideoFilter::FilterChangeParam(CEffectParameter* effectParameter, CTreeEle
 	{
 		videoEffectParameter->uSigma = value;
 	}
-	/*
-	else if (key == enableOpenCL)
-	{
-		videoEffectParameter->enableOpenCL = value;
-	}    */
 	else if (key == effectDenoising)
 	{
 		videoEffectParameter->denoisingLevel = value;
+	}
+	else if (key == libelleInterpolationQuality)
+	{
+		videoEffectParameter->interpolationQuality = value;
 	}
 	else if (key == enableVHSEffect)
 	{

@@ -36,7 +36,7 @@ namespace Regards::OpenGL
 	private:
 
 		void RenderWithInterpolation(const int& widthOut, const int& heightOut, const bool& flipH, const bool& flipV, const int& angle, wxRect& rc, const bool& inverted);
-		void RenderOpenGLEffect(GLSLShader* m_pShader, GLTexture* glTexture, CVideoEffectParameter* effectParameter, const wxFloatRect& rect, const float& iTime);
+		void RenderShader(GLSLShader* m_pShader, GLTexture* glTexture, CVideoEffectParameter* effectParameter, const wxFloatRect& rect, const float& iTime);
 		GLTexture* textureVideo = nullptr;
 		GLTexture* textureSubtitle = nullptr;
 		CRenderOpenGL* renderOpenGL = nullptr;
