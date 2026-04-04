@@ -250,7 +250,7 @@ protected:
 	bool repeatVideo = false;
 	int isCPU = -1;
 
-
+	cv::Mat render;
 	int nbFrame;
 	wxString message;
 	cv::Mat pictureSubtitle;

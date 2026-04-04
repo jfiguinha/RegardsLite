@@ -35,6 +35,65 @@ COpenCLFilter::~COpenCLFilter()
 
 }
 
+
+cv::UMat COpenCLFilter::Interpolation(const int& widthOut, const int& heightOut, cv::UMat& inputData, int width, int height, const int& method)
+{
+	UMat dest;
+	UMat cvDest;
+	UMat cvDestBgra;
+	cv::cvtColor(inputData, cvDestBgra, COLOR_BGR2BGRA);
+
+	vector<COpenCLParameter*> vecParam;
+	auto clBuffer = static_cast<cl_mem>(cvDestBgra.handle(ACCESS_READ));
+
+	auto input = new COpenCLParameterClMem(true);
+	input->SetValue(clBuffer);
+	input->SetLibelle("input");
+	input->SetNoDelete(true);
+	vecParam.push_back(input);
+
+	COpenCLParameterInt* paramWidth = new COpenCLParameterInt();
+	paramWidth->SetValue(width);
+	paramWidth->SetLibelle("width");
+	vecParam.push_back(paramWidth);
+
+	COpenCLParameterInt* paramHeight = new COpenCLParameterInt();
+	paramHeight->SetValue(height);
+	paramHeight->SetLibelle("height");
+	vecParam.push_back(paramHeight);
+
+	COpenCLParameterInt* paramWidthOut = new COpenCLParameterInt();
+	paramWidthOut->SetLibelle("widthOut");
+	paramWidthOut->SetValue(widthOut);
+	vecParam.push_back(paramWidthOut);
+
+	COpenCLParameterInt* paramHeightOut = new COpenCLParameterInt();
+	paramHeightOut->SetLibelle("heightOut");
+	paramHeightOut->SetValue(heightOut);
+	vecParam.push_back(paramHeightOut);
+
+	COpenCLParameterInt* paramtype = new COpenCLParameterInt();
+	paramtype->SetLibelle("type");
+	paramtype->SetValue(method);
+	vecParam.push_back(paramtype);
+
+	dest = ExecuteOpenCLCode("IDR_OPENCL_INTERPOLATION", "InterpolationDirect", vecParam, widthOut, heightOut);
+
+	for (COpenCLParameter* parameter : vecParam)
+	{
+		if (!parameter->GetNoDelete())
+		{
+			delete parameter;
+			parameter = nullptr;
+		}
+	}
+
+	cv::cvtColor(dest, cvDest, COLOR_BGRA2BGR);
+
+	return cvDest;
+}
+
+
 void COpenCLFilter::DetailEnhance(UMat& inputData, const double& sigma_s, const double& sigma_r)
 {
 	try
@@ -1500,19 +1559,16 @@ UMat COpenCLFilter::ExecuteOpenCLCode(const wxString& programName, const wxStrin
 	return cvDestBgra;
 }
 
+
 UMat COpenCLFilter::Interpolation(const int& widthOut, const int& heightOut, const wxRect& rc, const int& method,
 	UMat& inputData, int flipH, int flipV, int angle, int ratio)
 {
+	bool _useSuperResolution = false;
+	cout << "COpenCLFilter::Interpolation : " << method << endl;
 
-    bool useSuperDNN = false;
-    //cout << "COpenCLFilter::Interpolation : " << method << endl;
-    
-	if (method > 7 && !useSuperDNN)
-	{
-		// Appelle une autre version d'Interpolation pour les méthodes avancées
-		int localMethod = method - 7;
-		return Interpolation(widthOut, heightOut, rc, localMethod, inputData, inputData.cols, inputData.rows, flipH, flipV, angle);
-	}
+
+	//UMat cvImage;
+	//inputData.copyTo(cvImage);
 
 	try
 	{
@@ -1526,9 +1582,9 @@ UMat COpenCLFilter::Interpolation(const int& widthOut, const int& heightOut, con
 
 		Rect rectGlobal;
 		Rect rect_begin = CalculRect(inputData.cols, inputData.rows, widthOut, heightOut, flipH, flipV, angle, ratioX,
-		                             ratioY, 0, 0, rc.x, rc.y);
+			ratioY, 0, 0, rc.x, rc.y);
 		Rect rect_end = CalculRect(inputData.cols, inputData.rows, widthOut, heightOut, flipH, flipV, angle, ratioX,
-		                           ratioY, widthOut, heightOut, rc.x, rc.y);
+			ratioY, widthOut, heightOut, rc.x, rc.y);
 		rectGlobal.x = rect_begin.x;
 		rectGlobal.y = rect_begin.y;
 		rectGlobal.width = rect_end.x;
@@ -1569,9 +1625,9 @@ UMat COpenCLFilter::Interpolation(const int& widthOut, const int& heightOut, con
 		//cv::UMat crop;
 		inputData(rectGlobal).copyTo(cvDestBgra);
 		//Mat global;
-		//cvDestBgra.copyTo(global);
-		//crop.copyTo(cvDestBgra);
-		//cvDestBgra = cvDestBgra(rectGlobal);
+		//cvImage.copyTo(global);
+		//crop.copyTo(cvImage);
+		//cvImage = cvImage(rectGlobal);
 
 		if (angle == 270)
 		{
@@ -1616,13 +1672,12 @@ UMat COpenCLFilter::Interpolation(const int& widthOut, const int& heightOut, con
 		the nearest neighbor method in PIL, scikit-image or Matlab.
 		INTER_NEAREST_EXACT = 6,
 		*/
-        		// Application des méthodes d'interpolation
 		if (method == 7)
 		{
-			
+
 			try
 			{
-				
+
 				clock_t start, end;
 				start = clock();
 				cv::UMat src;
@@ -1641,7 +1696,7 @@ UMat COpenCLFilter::Interpolation(const int& widthOut, const int& heightOut, con
 				}
 				else
 				{
-					if (param->width != src.cols || param->height != src.rows || param->widthOut != widthOut  || param->heightOut != heightOut)
+					if (param->width != src.cols || param->height != src.rows || param->widthOut != widthOut || param->heightOut != heightOut)
 					{
 						delete param;
 						param = new CAvirFilterParam();
@@ -1658,19 +1713,19 @@ UMat COpenCLFilter::Interpolation(const int& widthOut, const int& heightOut, con
 
 				cv::UMat out;
 
-				
-				if(useParam)
-                {
+
+				if (useParam)
+				{
 					out = ImageResizer.resizeImageOpenCLWithStep(src, param);
-                }
+				}
 				else
-                {
+				{
 					out = ImageResizer.resizeImageOpenCL(src, src.cols, src.rows, widthOut, heightOut, 4, 0, param, &Vars);
-                }
-				
+				}
+
 				//out = ImageResizer.resizeImageOpenCL(src, src.cols, src.rows, widthOut, heightOut, 4, 0, param, &Vars);
-					
-                cvtColor(out, cvDestBgra, cv::COLOR_BGRA2BGR);
+
+				cvtColor(out, cvDestBgra, cv::COLOR_BGRA2BGR);
 
 				end = clock();
 
@@ -1686,7 +1741,7 @@ UMat COpenCLFilter::Interpolation(const int& widthOut, const int& heightOut, con
 				cout << " sec " << endl;
 #endif
 
-				
+
 			}
 			catch (...)
 			{
@@ -1695,16 +1750,21 @@ UMat COpenCLFilter::Interpolation(const int& widthOut, const int& heightOut, con
 					resize(cvDestBgra, cvDestBgra, Size(widthOut, heightOut), method);
 				}
 			}
-        }
-        else
-        {
-            if (cvDestBgra.cols != widthOut || cvDestBgra.rows != heightOut)
-            {
-                resize(cvDestBgra, cvDestBgra, Size(widthOut, heightOut), method);
-            }
-        }
-        
 
+		}
+		else if (method > 7)
+		{
+			// Appelle une autre version d'Interpolation pour les méthodes avancées
+			int localMethod = method - 7;
+			cvDestBgra = Interpolation(widthOut, heightOut, cvDestBgra, cvDestBgra.cols, cvDestBgra.rows, localMethod);
+		}
+		else if (cvDestBgra.cols != widthOut || cvDestBgra.rows != heightOut)
+		{
+			resize(cvDestBgra, cvDestBgra, Size(widthOut, heightOut), method);
+		}
+
+		if (cvDestBgra.cols != widthOut || cvDestBgra.rows != heightOut)
+			resize(cvDestBgra, cvDestBgra, Size(widthOut, heightOut), method);
 
 		//Apply Transformation
 
@@ -1722,15 +1782,19 @@ UMat COpenCLFilter::Interpolation(const int& widthOut, const int& heightOut, con
 			else
 				flip(cvDestBgra, cvDestBgra, 0);
 		}
+		//
 	}
 	catch (Exception& e)
 	{
-		std::cerr << "COpenCLFilter::Interpolation exception caught: " << e.what() << std::endl;
-		std::cerr << "Invalid file format. Please input the name of an IMAGE file." << std::endl;
-
-		// Retourne une image vide en cas d'erreur
-		cvDestBgra.create(heightOut, widthOut, CV_8UC3);
+		const char* err_msg = e.what();
+		std::cout << "COpenCLFilter::Interpolation exception caught: " << err_msg << std::endl;
+		std::cout << "wrong file format, please input the name of an IMAGE file" << std::endl;
+		std::cout << "width : " << widthOut << "height : " << heightOut << std::endl;
+		cv::Mat image(widthOut, heightOut, CV_8UC3, cv::Scalar(0, 0, 0));
+		image.copyTo(cvDestBgra);
 	}
 
+
 	return cvDestBgra;
+
 }
