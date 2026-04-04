@@ -276,7 +276,7 @@ void CRenderVideoOpenGL::Render(CVideoEffectParameter* effectParameter, wxFloatR
 		glViewport(0, 0, glTexture->GetWidth(), glTexture->GetHeight());
 		RenderShaderInterpolation(rc, flipH, flipV, angle, inverted);
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-		
+
 		if (m_pShader != nullptr)
 		{
 			m_pShader->EnableShader();
@@ -292,7 +292,7 @@ void CRenderVideoOpenGL::Render(CVideoEffectParameter* effectParameter, wxFloatR
 		}
 
 	}
-	else if(effectParameter->interpolationQuality > 0)
+	else if (effectParameter->interpolationQuality > 0)
 	{
 		if (effectParameter->effectEnable)
 		{
@@ -322,7 +322,8 @@ void CRenderVideoOpenGL::Render(CVideoEffectParameter* effectParameter, wxFloatR
 	}
 	else
 	{
-		RenderShaderInterpolation(rc, flipH, flipV, angle, !inverted);
+	//	RenderShaderInterpolation(rc, flipH, flipV, angle, !inverted);
+		RenderWithInterpolation(renderOpenGL->GetWidth(), renderOpenGL->GetHeight(), flipH, flipV, angle, rc, inverted);
 	}
 
 
@@ -334,9 +335,9 @@ void CRenderVideoOpenGL::Render(CVideoEffectParameter* effectParameter, wxFloatR
 
 }
 
-void CRenderVideoOpenGL::RenderWithInterpolation(const int& widthOut, const int& heightOut, const bool& flipH, const bool& flipV, const int &angle, wxRect & rc, const bool& inverted)
+void CRenderVideoOpenGL::RenderWithInterpolation(const int& widthOut, const int& heightOut, const bool& flipH, const bool& flipV, const int& angle, wxRect& rc, const bool& inverted)
 {
-	
+
 	glPushMatrix();
 	glEnableClientState(GL_TEXTURE_COORD_ARRAY_EXT);
 	glEnableClientState(GL_VERTEX_ARRAY);
@@ -483,7 +484,7 @@ void CRenderVideoOpenGL::RenderWithInterpolation(const int& widthOut, const int&
 
 	glFlush();
 
-	
+
 }
 
 
@@ -493,10 +494,10 @@ void CRenderVideoOpenGL::SetSubtitle(cv::Mat& subtitle)
 	//
 	//textureSubtitle = nullptr;
 
-	if(textureSubtitle == nullptr)
+	if (textureSubtitle == nullptr)
 		textureSubtitle = new GLTexture();
-        
-    Regards::Picture::CPictureArray mat = Regards::Picture::CPictureArray(subtitle);
+
+	Regards::Picture::CPictureArray mat = Regards::Picture::CPictureArray(subtitle);
 	textureSubtitle->SetData(mat);
 }
 
@@ -526,7 +527,7 @@ GLTexture* CRenderVideoOpenGL::GetVideoTexture(const int& width, const int& heig
 	return textureVideo;
 }
 
-void CRenderVideoOpenGL::SetVideoTexture(Regards::Picture::CPictureArray & pictureArray)
+void CRenderVideoOpenGL::SetVideoTexture(Regards::Picture::CPictureArray& pictureArray)
 {
 	if (textureVideo == nullptr)
 		textureVideo = new GLTexture();

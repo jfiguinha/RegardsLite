@@ -1094,6 +1094,9 @@ int CVideoControlSoft::Play(const wxString& movie)
 {
     if (videoEnd || stopVideo)
 	{
+		if (renderBitmapOpenGL != nullptr)
+			renderBitmapOpenGL->Cleanup();
+
 		if (movie != filename)
 		{
 			if (openCVStabilization != nullptr)
@@ -1946,12 +1949,8 @@ void CVideoControlSoft::SetZoomIndex(const int& pos)
 	zoomRatio = videoEffectParameter.tabZoom[pos];
 	videoEffectParameter.zoomSelect = pos;
 	
-
-	if (zoomRatio != 1.0f)
-	{
-		CalculPositionPicture(centerX, centerY);
-		UpdateScrollBar();
-	}
+	CalculPositionPicture(centerX, centerY);
+	UpdateScrollBar();
 }
 
 
