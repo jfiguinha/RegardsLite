@@ -2095,7 +2095,10 @@ void CVideoControlSoft::RenderToTexture()
 		openclEffectYUV->ApplyOpenCVEffect(&videoEffectParameter);
 	}
 
-	pictureArray = openclEffectYUV->GetMatrix(false);
+	if (videoEffectParameter.interpolationQuality == 1)
+		pictureArray = openclEffectYUV->GetMatrix(false);
+	else
+		pictureArray = openclEffectYUV->GetMatrix();
 
 }
 
