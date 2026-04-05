@@ -88,6 +88,8 @@ CVideoControlSoft::CVideoControlSoft(CWindowMain* windowMain, wxWindow* window, 
 	{
 		CVideoEffectParameter * parameter = config->GetVideoEffectParameter();
 		videoEffectParameter = *parameter;
+		autoconstrast = videoEffectParameter.autoConstrast;
+		applyStabilization = videoEffectParameter.stabilizeVideo;
     }
 
     
@@ -1342,12 +1344,22 @@ void CVideoControlSoft::OnPaint3D(wxGLCanvas* canvas, CRenderOpenGL* renderOpenG
 
 		if (ApplyVideoEffect() || pictureFrame->dst != nullptr)
 		{
+			int openclOpenGLInterop = regardsParam->GetIsOpenCLOpenGLInteropSupport();
+
 			if (IsSupportOpenCL() && openclEffectYUV != nullptr && openclEffectYUV->IsOk())
 				RenderToTexture();
 			else
 				RenderFFmpegToTexture();
 
-			renderBitmapOpenGL->SetVideoTexture(pictureArray);
+			bool deleteTexture = false;
+			if ((applyStabilization != videoEffectParameter.stabilizeVideo ||
+				autoconstrast != videoEffectParameter.autoConstrast) && openclOpenGLInterop)
+			{
+				autoconstrast = videoEffectParameter.autoConstrast;
+				applyStabilization = videoEffectParameter.stabilizeVideo;
+				deleteTexture = true;
+			}
+			renderBitmapOpenGL->SetVideoTexture(pictureArray, deleteTexture);
 		}
 		else
 		{

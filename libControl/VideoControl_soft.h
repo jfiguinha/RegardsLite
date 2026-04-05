@@ -302,4 +302,7 @@ protected:
 	int heightContext = 0;
 	bool errorDecoding = false;
 	bool isHardwareDecoding = false;
+
+	int autoconstrast = 0;
+	int applyStabilization = 0;
 };
