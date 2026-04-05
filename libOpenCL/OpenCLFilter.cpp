@@ -10,7 +10,6 @@ using namespace cv;
 bool COpenCLFilter::isUsed = false;
 int COpenCLFilter::numTexture = -1;
 extern cv::ocl::OpenCLExecutionContext clExecCtx;
-extern std::map<wxString, vector<char>> openclBinaryMapping;
 #define OPENCV_METHOD
 
 
