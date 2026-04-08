@@ -1073,7 +1073,7 @@ void CMainWindow::PhotoProcess(CPhotos* photo)
 //---------------------------------------------------------------
 void CMainWindow::ProcessIdle()
 {
-    printf("CMainWindow::ProcessIdle() photoList Size : %d \n", photoList.size());
+    //printf("CMainWindow::ProcessIdle() photoList Size : %d \n", photoList.size());
 	bool hasDoneOneThings = false;
 	int pictureSize = CThumbnailBuffer::GetVectorSize();
 	int nbProcesseur = 1;
