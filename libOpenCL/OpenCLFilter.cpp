@@ -1563,7 +1563,7 @@ UMat COpenCLFilter::Interpolation(const int& widthOut, const int& heightOut, con
 	UMat& inputData, int flipH, int flipV, int angle, int ratio)
 {
 	bool _useSuperResolution = false;
-	cout << "COpenCLFilter::Interpolation : " << method << endl;
+	//cout << "COpenCLFilter::Interpolation : " << method << endl;
 
 
 	//UMat cvImage;
