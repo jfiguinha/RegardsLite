@@ -363,8 +363,6 @@ wxString CCentralWindow::GetFilename()
 
 void CCentralWindow::OnVideoEnd(wxCommandEvent& event)
 {
-	printf("CCentralWindow::OnVideoEnd \n");
-
 	stopVideo = false;
 	videoStart = false;
 
@@ -707,7 +705,6 @@ int CCentralWindow::LoadPicture(const wxString& filename, const bool& refresh)
 
 void CCentralWindow::HideToolbar()
 {
-	printf("CCentralWindow::HideToolbar \n");
 	showToolbar = false;
 	if (isFullscreen)
 	{
@@ -727,8 +724,6 @@ void CCentralWindow::HideToolbar()
 
 void CCentralWindow::ShowToolbar()
 {
-	printf("CCentralWindow::ShowToolbar \n");
-
 	showToolbar = true;
 
 	if (windowMode == WINDOW_VIEWER)

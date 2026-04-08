@@ -467,9 +467,6 @@ void CMainWindow::OnRefreshThumbnail(wxCommandEvent& event)
 
 void CMainWindow::UpdateThumbnailIcone(wxCommandEvent& event)
 {
-	printf("CMainWindow::UpdateThumbnailIcone \n");
-
-
 	nbProcess--;
 	auto localevent = new wxCommandEvent(wxEVENT_ICONEUPDATE);
 	localevent->SetClientData(event.GetClientData());
@@ -480,9 +477,6 @@ void CMainWindow::UpdateThumbnailIcone(wxCommandEvent& event)
 
 void CMainWindow::OnVersionUpdate(wxCommandEvent& event)
 {
-	cout << "OnVersionUpdate" << endl;
-
-
 	int hasUpdate = event.GetInt();
 
 	if (versionUpdate != nullptr)
@@ -526,9 +520,6 @@ void CMainWindow::NewVersionAvailable(void* param)
 
 	if (!localVersion.ToLong(&localValueVersion)) { /* error! */ }
 	if (!serverVersion.ToLong(&localServerVersion)) { /* error! */ }
-
-	printf("serverVersion %d \n", localServerVersion);
-	printf("localVersion %d \n", localValueVersion);
 
 	if (serverVersion != "error" && serverVersion != "")
 	{
@@ -589,15 +580,12 @@ void CMainWindow::OnExportFile(wxCommandEvent& event)
 	{
 		wxString pathProgram = "";
 #ifdef __APPLE__
-		//ExportVideo(this->centralWnd->GetFilename());
 		pathProgram = CFileUtility::GetProgramFolderPath() + "/RegardsLite \"" + this->centralWnd->GetFilename() + "\" -p RegardsConverter";
-		cout << "Path Program" << pathProgram << endl;
 #else
 #ifdef __WXMSW__
 		pathProgram = "RegardsLite.exe \"" + this->centralWnd->GetFilename() + "\"  -p RegardsConverter";
 #else
 		pathProgram = CFileUtility::GetProgramFolderPath() + "/RegardsLite \"" + this->centralWnd->GetFilename() + "\" -p RegardsConverter";
-		cout << "Path Program" << pathProgram << endl;
 #endif
 
 #endif
@@ -696,7 +684,7 @@ void CMainWindow::OnPrint(wxCommandEvent& event)
 	}
 	if (showPrintPicture)
 	{
-		CLibPicture libPicture;
+		static CLibPicture libPicture;
 		CImageLoadingFormat* image = libPicture.LoadPicture(localFilename);
 		if (image != nullptr)
 		{
@@ -975,7 +963,6 @@ bool CMainWindow::FindPreviousValidFile()
 
 void CMainWindow::UpdateFolderStatic()
 {
-	printf("CMainWindow::UpdateFolderStatic() \n");
 	//
 	//wxString libelle = CLibResource::LoadStringFromResource(L"LBLBUSYINFO", 1);
 	//wxBusyInfo wait(libelle);
@@ -1073,7 +1060,6 @@ void CMainWindow::PhotoProcess(CPhotos* photo)
 //---------------------------------------------------------------
 void CMainWindow::ProcessIdle()
 {
-    //printf("CMainWindow::ProcessIdle() photoList Size : %d \n", photoList.size());
 	bool hasDoneOneThings = false;
 	int pictureSize = CThumbnailBuffer::GetVectorSize();
 	int nbProcesseur = 1;
@@ -1087,7 +1073,6 @@ void CMainWindow::ProcessIdle()
 		folderProcess->RefreshFolder(folderChange, nbFile);
 		if (folderChange || nbFile > 0)
 		{
-            printf("UpdateFolderStatic \n");
 			UpdateFolderStatic();
 			processIdle = true;
 
@@ -1186,11 +1171,13 @@ void CMainWindow::OnProcessThumbnail(wxCommandEvent& event)
 			{
 				wxString localName = listIconeToGenerate->at(listIconeToGenerate->size() - 1 - i);
 
+				// OPTIMIZATION: Use single pass with emplace instead of erase + insert (O(n) → O(1) insertion)
 				std::vector<wxString>::iterator itPhoto = std::find(photoList.begin(), photoList.end(), localName);
 				if (itPhoto != photoList.end())
+				{
 					photoList.erase(itPhoto);
-
-				photoList.insert(photoList.begin(), localName);
+				}
+				photoList.emplace(photoList.begin(), localName);
 			}
 			listIconeToGenerate->clear();
 			delete listIconeToGenerate;
@@ -1202,15 +1189,16 @@ void CMainWindow::OnProcessThumbnail(wxCommandEvent& event)
 		wxString* filename = (wxString*)event.GetClientData();
 		wxString localName = wxString(*filename);
 
+		// OPTIMIZATION: Use single pass with emplace instead of erase + insert
 		std::vector<wxString>::iterator itPhoto = std::find(photoList.begin(), photoList.end(), localName);
 		if (itPhoto != photoList.end())
+		{
 			photoList.erase(itPhoto);
-
-		photoList.insert(photoList.begin(), localName);
+		}
+		photoList.emplace(photoList.begin(), localName);
 		delete filename;
 	}
 	processIdle = true;
-	//delete filename;
 }
 
 
@@ -1399,8 +1387,6 @@ void CMainWindow::OnOpenFileOrFolder(wxCommandEvent& event)
 		CSqlFolderCatalog sqlFolderCatalog;
 		int64_t idFolder = sqlFolderCatalog.GetFolderCatalogId(NUMCATALOGID, folder);
 
-		cout << "Folder : " << folder << " " << idFolder << endl;
-
 		if (idFolder == -1)
 		{
 
@@ -1483,14 +1469,11 @@ void CMainWindow::OpenFile(const wxString& fileToOpen)
 	wxFileName filename(fileToOpen);
 	wxString folder = filename.GetPath();
 	FolderCatalogVector folderList;
-    //Test if folder is on database
-    CSqlFolderCatalog sqlFolderCatalog;
-    int64_t idFolder = sqlFolderCatalog.GetFolderCatalogId(NUMCATALOGID, folder);
-	
-    
-    cout << "Folder : " << folder << " " << idFolder << endl;
-    
-    if (idFolder == -1)
+	//Test if folder is on database
+	CSqlFolderCatalog sqlFolderCatalog;
+	int64_t idFolder = sqlFolderCatalog.GetFolderCatalogId(NUMCATALOGID, folder);
+
+	if (idFolder == -1)
     {
 		CSqlFindFolderCatalog folderCatalog;
 		folderCatalog.GetFolderCatalog(&folderList, NUMCATALOGID);
@@ -1525,18 +1508,13 @@ bool CMainWindow::OpenFolder(const wxString& path)
 
 		bool find = false;
 		FolderCatalogVector folderList;
-        
 
 		wxString folder = path;
-        //Test if folder is on database
-        CSqlFolderCatalog sqlFolderCatalog;
-        int64_t idFolder = sqlFolderCatalog.GetFolderCatalogId(NUMCATALOGID, folder);
+		//Test if folder is on database
+		CSqlFolderCatalog sqlFolderCatalog;
+		int64_t idFolder = sqlFolderCatalog.GetFolderCatalogId(NUMCATALOGID, folder);
 
-
-        
-        cout << "Folder : " << folder << " " << idFolder << endl;
-        
-        if (idFolder == -1)
+		if (idFolder == -1)
         {
 			CSqlFindFolderCatalog folderCatalog;
 			folderCatalog.GetFolderCatalog(&folderList, NUMCATALOGID);
@@ -1567,7 +1545,6 @@ bool CMainWindow::IsFullscreen()
 
 void CMainWindow::InitPictures(wxCommandEvent& event)
 {
-	printf("InitPictures \n");
 	refreshFolder = true;
 	processIdle = true;
 }

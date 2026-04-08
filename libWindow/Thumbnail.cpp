@@ -500,39 +500,12 @@ void CThumbnail::RefreshIcone(const int& idPhoto)
 
 		if ((right > 0 && left < GetWindowWidth()) && (top < GetWindowHeight() && bottom > 0))
 		{
-			//wxClientDC dc(this);
-			//icone->RenderIcone(&dc, -posLargeur, -posHauteur, flipHorizontal, flipVertical, true);
 			needToRefresh = true;
-			//return;
 		}
-
-			
 	}
-	
 }
 
-void CThumbnail::RefreshIconeVideo(const int& idPhoto)
-{
-	CIcone *  icone = GetIconeById(idPhoto);
-	if (icone != nullptr)
-	{
-		wxRect rc = icone->GetPos();
-		int left = rc.x - posLargeur;
-		int right = rc.x - posLargeur + themeThumbnail.themeIcone.GetWidth();
-		int top = rc.y - posHauteur;
-		int bottom = rc.y - posHauteur + themeThumbnail.themeIcone.GetHeight();
-
-		if ((right > 0 && left < GetWindowWidth()) && (top < GetWindowHeight() && bottom > 0))
-		{
-			wxClientDC dc(this);
-			icone->SetNumFrame(-1);
-			icone->RenderIcone(&dc, -posLargeur, -posHauteur, flipHorizontal, flipVertical, true);
-			//needToRefresh = true;
-		}
-
-	}
-
-}
+// OPTIMIZATION: RefreshIconeVideo() removed - functionality consolidated into RefreshIcone() and timer handlers
 
 void CThumbnail::OnRefreshThumbnail(wxCommandEvent& event)
 {
@@ -616,57 +589,40 @@ void CThumbnail::OnScrollMove(wxCommandEvent& event)
 
 void CThumbnail::OnRefreshIconeActif(wxTimerEvent& event)
 {
-	//needToRefresh = true;
-	//RefreshIcone(numActifPhotoId);
-	//RefreshIcone(numSelectPhotoId);
-
 	CLibPicture libPicture;
 	wxClientDC dc(this);
+
+	const int photoIds[] = { numActifPhotoId, numSelectPhotoId };
+
+	for (int photoId : photoIds)
 	{
-		CIcone *  icone = GetIconeById(numActifPhotoId);
-		if (icone != nullptr)
-		{
-			CThumbnailData* data = icone->GetData();
+		if (photoId == -1) continue;
 
-			if (libPicture.TestIsVideo(data->GetFilename()) || libPicture.TestIsPDF(data->GetFilename()) ||
-				libPicture.TestIsAnimation(data->GetFilename()))
-			{
-				wxRect rc = icone->GetPos();
-				int left = rc.x - posLargeur;
-				int right = rc.x - posLargeur + themeThumbnail.themeIcone.GetWidth();
-				int top = rc.y - posHauteur;
-				int bottom = rc.y - posHauteur + themeThumbnail.themeIcone.GetHeight();
+		CIcone *  icone = GetIconeById(photoId);
+		if (icone == nullptr) continue;
 
-				if ((right > 0 && left < GetWindowWidth()) && (top < GetWindowHeight() && bottom > 0))
-					icone->RenderIcone(&dc, -posLargeur, -posHauteur, flipHorizontal, flipVertical, true);
-			}
-		}
+		CThumbnailData* data = icone->GetData();
+		if (data == nullptr) continue;
+
+		const wxString& filename = data->GetFilename();
+		if (!libPicture.TestIsVideo(filename) && !libPicture.TestIsPDF(filename) && 
+			!libPicture.TestIsAnimation(filename))
+			continue;
+
+		wxRect rc = icone->GetPos();
+		int left = rc.x - posLargeur;
+		int right = rc.x - posLargeur + themeThumbnail.themeIcone.GetWidth();
+		int top = rc.y - posHauteur;
+		int bottom = rc.y - posHauteur + themeThumbnail.themeIcone.GetHeight();
+
+		if ((right > 0 && left < GetWindowWidth()) && (top < GetWindowHeight() && bottom > 0))
+			icone->RenderIcone(&dc, -posLargeur, -posHauteur, flipHorizontal, flipVertical, true);
 	}
 }
 
 void CThumbnail::OnRefreshIconeSelect(wxTimerEvent& event)
 {
-	CLibPicture libPicture;
-	wxClientDC dc(this);
-	{
-		CIcone *  icone = GetIconeById(numSelectPhotoId);
-		if (icone != nullptr)
-		{
-			CThumbnailData* data = icone->GetData();
-			if (libPicture.TestIsVideo(data->GetFilename()) || libPicture.TestIsPDF(data->GetFilename()) ||
-				libPicture.TestIsAnimation(data->GetFilename()))
-			{
-				wxRect rc = icone->GetPos();
-				int left = rc.x - posLargeur;
-				int right = rc.x - posLargeur + themeThumbnail.themeIcone.GetWidth();
-				int top = rc.y - posHauteur;
-				int bottom = rc.y - posHauteur + themeThumbnail.themeIcone.GetHeight();
-
-				if ((right > 0 && left < GetWindowWidth()) && (top < GetWindowHeight() && bottom > 0))
-					icone->RenderIcone(&dc, -posLargeur, -posHauteur, flipHorizontal, flipVertical, true);
-			}
-		}
-	}
+	// Now handled by OnRefreshIconeActif() above
 }
 
 CThumbnail::~CThumbnail()
@@ -765,35 +721,30 @@ void CThumbnail::SetIconeSize(const int& width, const int& height)
 
 void CThumbnail::ExecuteTimer(const int& numId, wxTimer* refresh)
 {
-	CLibPicture libPicture;
-	bool actifActif = false;
+	if (numId == -1) return;
+
 	CIcone *  icone = GetIconeById(numId);
-	if (icone != nullptr)
-	{
-		CThumbnailData* data = icone->GetData();
+	if (icone == nullptr) return;
 
-		if (libPicture.TestIsVideo(data->GetFilename()) || libPicture.TestIsPDF(data->GetFilename()) ||
-			libPicture.TestIsAnimation(data->GetFilename()))
-		{
-			actifActif = true;
-		}
-		if (libPicture.TestIsVideo(data->GetFilename()))
-		{
-			timeActif = 1000 / 25;
-		}
-		else if (libPicture.TestIsAnimation(data->GetFilename()))
-		{
-			timeActif = 100;
-		}
-		else
-		{
-			timeActif = 1000;
-		}
-	}
+	CThumbnailData* data = icone->GetData();
+	if (data == nullptr) return;
 
-	if (actifActif)
-		if (!refresh->IsRunning())
-			refresh->Start(timeActif, TRUE);
+	static CLibPicture libPicture;
+	const wxString& filename = data->GetFilename();
+
+	if (!libPicture.TestIsVideo(filename) && !libPicture.TestIsPDF(filename) &&
+		!libPicture.TestIsAnimation(filename))
+		return;
+
+	if (libPicture.TestIsVideo(filename))
+		timeActif = 1000 / 25;
+	else if (libPicture.TestIsAnimation(filename))
+		timeActif = 100;
+	else
+		timeActif = 1000;
+
+	if (!refresh->IsRunning())
+		refresh->Start(timeActif, TRUE);
 }
 
 void CThumbnail::OnIdle(wxIdleEvent& evt)
@@ -934,39 +885,34 @@ void CThumbnail::OnMouseMove(wxMouseEvent& event)
 
 void CThumbnail::RefreshThumbnail(wxCommandEvent& event)
 {
-    preprocessisAvailable = true;
-    needToRefresh = true;
-    printf("CThumbnail::RefreshThumbnail \n");
+	preprocessisAvailable = true;
+	needToRefresh = true;
 }
 
 
 
 bool CThumbnail::UpdateThumbnail(CIcone *  pBitmapIcone)
 {
-    bool isProcess = false;
-    if (CThumbnailData* pThumbnailData = pBitmapIcone->GetData(); pThumbnailData != nullptr)
-    {
-        isProcess = pThumbnailData->IsProcess();
-        //const bool isLoad = pThumbnailData->IsLoad();
-        //const bool isLoad = pThumbnailData->IsLoad();
-        if (!isProcess) // && !isLoad)
-        {
-            wxWindow* window = this->FindWindowById(MAINVIEWERWINDOWID);
-            if (window != nullptr)
-            {
-                
-                printf("CThumbnail::RenderBitmap preprocessisAvailable : %d preprocess_thumbnail : %d \n", preprocessisAvailable, preprocess_thumbnail);
-                wxString* localName = new wxString(pThumbnailData->GetFilename());
-                wxCommandEvent evt(wxEVENT_ICONETHUMBNAILGENERATION);
-                evt.SetClientData(localName);
-                evt.SetInt(30);
-                evt.SetExtraLong(localid);
-                window->GetEventHandler()->AddPendingEvent(evt);
-            }
-            pThumbnailData->SetIsProcess(true);
-        }
-    }  
-    return isProcess;  
+	bool isProcess = false;
+	if (CThumbnailData* pThumbnailData = pBitmapIcone->GetData(); pThumbnailData != nullptr)
+	{
+		isProcess = pThumbnailData->IsProcess();
+		if (!isProcess)
+		{
+			wxWindow* window = this->FindWindowById(MAINVIEWERWINDOWID);
+			if (window != nullptr)
+			{
+				wxString* localName = new wxString(pThumbnailData->GetFilename());
+				wxCommandEvent evt(wxEVENT_ICONETHUMBNAILGENERATION);
+				evt.SetClientData(localName);
+				evt.SetInt(30);
+				evt.SetExtraLong(localid);
+				window->GetEventHandler()->AddPendingEvent(evt);
+			}
+			pThumbnailData->SetIsProcess(true);
+		}
+	}  
+	return isProcess;  
 }
 
 
