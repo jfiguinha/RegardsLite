@@ -1226,12 +1226,6 @@ bool CVideoControlSoft::ApplyVideoEffect()
 void CVideoControlSoft::OnPaint3D(wxGLCanvas* canvas, CRenderOpenGL* renderOpenGL)
 {
 	isAvailable = false;
-	using std::chrono::high_resolution_clock;
-	using std::chrono::duration_cast;
-	using std::chrono::duration;
-	using std::chrono::milliseconds;
-
-	auto t1 = high_resolution_clock::now();
 
 	if (renderBitmapOpenGL == nullptr)
 	{
@@ -1283,9 +1277,9 @@ void CVideoControlSoft::OnPaint3D(wxGLCanvas* canvas, CRenderOpenGL* renderOpenG
 	//std::clock_t start;
 	//start = std::clock();
 
-
-	int width = parentRender->GetSize().GetWidth() * scale_factor;
-	int height = parentRender->GetSize().GetHeight() * scale_factor;
+	wxSize renderSize = parentRender->GetSize();
+	int width = renderSize.GetWidth() * scale_factor;
+	int height = renderSize.GetHeight() * scale_factor;
 	if (width == 0 || height == 0)
 		return;
 
@@ -1344,7 +1338,7 @@ void CVideoControlSoft::OnPaint3D(wxGLCanvas* canvas, CRenderOpenGL* renderOpenG
 
 		if (ApplyVideoEffect() || pictureFrame->dst != nullptr)
 		{
-			int openclOpenGLInterop = regardsParam->GetIsOpenCLOpenGLInteropSupport();
+			int openclOpenGLInterop = regardsParam != nullptr ? regardsParam->GetIsOpenCLOpenGLInteropSupport() : 0;
 
 			if (IsSupportOpenCL() && openclEffectYUV != nullptr && openclEffectYUV->IsOk())
 				RenderToTexture();
@@ -1375,13 +1369,12 @@ void CVideoControlSoft::OnPaint3D(wxGLCanvas* canvas, CRenderOpenGL* renderOpenG
 		floatRect.top = 0;
 		floatRect.bottom = 1.0f;
 
-		if (render.empty())
+		int renderHeight = renderOpenGL->GetHeight();
+		int renderWidth = renderOpenGL->GetWidth();
+		if (render.empty() || render.rows != renderHeight || render.cols != renderWidth)
 		{
-			render = cv::Mat(renderOpenGL->GetHeight(), renderOpenGL->GetWidth(), CV_8UC4, cv::Scalar(0, 0, 0, 0));
-		}
-		else if (render.rows != renderOpenGL->GetHeight() || render.cols != renderOpenGL->GetWidth())
-		{
-			render = cv::Mat(renderOpenGL->GetHeight(), renderOpenGL->GetWidth(), CV_8UC4, cv::Scalar(0, 0, 0, 0));
+			render.create(renderHeight, renderWidth, CV_8UC4);
+			render = cv::Scalar(0, 0, 0, 0);
 		}
 		pictureArray.SetArray(render);
 		renderOpenGL->SetData(pictureArray);
@@ -1391,11 +1384,6 @@ void CVideoControlSoft::OnPaint3D(wxGLCanvas* canvas, CRenderOpenGL* renderOpenG
 
 		if (videoEffectParameter.showFPS)
 		{
-#ifndef WIN32
-			double scale_factor = parentRender->GetContentScaleFactor();
-#else
-			double scale_factor = 1.0f;
-#endif
 			renderOpenGL->Print(0, 1, scale_factor, CConvertUtility::ConvertToUTF8(msgFrame));
 		}
 
@@ -1411,16 +1399,9 @@ void CVideoControlSoft::OnPaint3D(wxGLCanvas* canvas, CRenderOpenGL* renderOpenG
 				}
 				else if (typeSubtitle == 1)
 				{
-
-#ifndef WIN32
-					double scale_factor = parentRender->GetContentScaleFactor() * ((float)videoEffectParameter.subtitleSize);
-#else
-					double scale_factor = 1.0f * ((float)videoEffectParameter.subtitleSize);
-#endif
-
-					renderOpenGL->PrintSubtitle(width / 2, height / 4, scale_factor, videoEffectParameter.subtitleRedColor
+					double subtitleScaleFactor = scale_factor * ((float)videoEffectParameter.subtitleSize);
+					renderOpenGL->PrintSubtitle(width / 2, height / 4, subtitleScaleFactor, videoEffectParameter.subtitleRedColor
 						, videoEffectParameter.subtitleGreenColor, videoEffectParameter.subtitleBlueColor, subtitleText);
-
 				}
 
 			}
@@ -1452,17 +1433,6 @@ void CVideoControlSoft::OnPaint3D(wxGLCanvas* canvas, CRenderOpenGL* renderOpenG
 	}
 
 	isAvailable = true;
-
-	auto t2 = high_resolution_clock::now();
-
-	/* Getting number of milliseconds as an integer. */
-	auto ms_int = duration_cast<milliseconds>(t2 - t1);
-
-	/* Getting number of milliseconds as a double. */
-	duration<double, std::milli> ms_double = t2 - t1;
-
-	std::cout << "Video Frame Render Time : " << ms_int.count() << "ms\n";
-	//std::cout << ms_double.count() << "ms\n";
 }
 
 
@@ -1967,8 +1937,8 @@ void CVideoControlSoft::SetZoomIndex(const int& pos)
 
 
 void CVideoControlSoft::CalculRectPictureInterpolation(wxRect& rc, int& widthInterpolationSize,
-                                                       int& heightInterpolationSize, int& left, int& top,
-                                                       const bool& invertY, const bool& invertX)
+													   int& heightInterpolationSize, int& left, int& top,
+													   const bool& invertY, const bool& invertX)
 {
 #ifndef WIN32
 	double scale_factor = parentRender->GetContentScaleFactor();
@@ -1976,13 +1946,17 @@ void CVideoControlSoft::CalculRectPictureInterpolation(wxRect& rc, int& widthInt
 	double scale_factor = 1.0f;
 #endif
 
+	wxSize parentSize = parentRender->GetSize();
+	int scaledParentWidth = static_cast<int>(parentSize.GetWidth() * scale_factor);
+	int scaledParentHeight = static_cast<int>(parentSize.GetHeight() * scale_factor);
+
 	int widthOutput = static_cast<int>(GetBitmapWidth()) * scale_factor;
 	int heightOutput = static_cast<int>(GetBitmapHeight()) * scale_factor;
 	int xValue = 0;
 	int yValue = 0;
 
 
-	if (widthOutput > parentRender->GetSize().GetWidth() * scale_factor)
+	if (widthOutput > scaledParentWidth)
 	{
 		left = 0;
 		xValue = posLargeur * scale_factor;
@@ -1990,13 +1964,13 @@ void CVideoControlSoft::CalculRectPictureInterpolation(wxRect& rc, int& widthInt
 	else
 	{
 		xValue = 0;
-		left = (parentRender->GetSize().GetWidth() * scale_factor - widthOutput) / 2;
+		left = (scaledParentWidth - widthOutput) / 2;
 	}
 
-	widthInterpolationSize = parentRender->GetSize().GetWidth() * scale_factor - (left * 2);
+	widthInterpolationSize = scaledParentWidth - (left * 2);
 
 
-	if (heightOutput > parentRender->GetSize().GetHeight() * scale_factor)
+	if (heightOutput > scaledParentHeight)
 	{
 		top = 0;
 		yValue = posHauteur * scale_factor;
@@ -2004,15 +1978,15 @@ void CVideoControlSoft::CalculRectPictureInterpolation(wxRect& rc, int& widthInt
 	else
 	{
 		yValue = 0;
-		top = (parentRender->GetSize().GetHeight() * scale_factor - heightOutput) / 2;
+		top = (scaledParentHeight - heightOutput) / 2;
 	}
 
-	heightInterpolationSize = parentRender->GetSize().GetHeight() * scale_factor - (top * 2);
+	heightInterpolationSize = scaledParentHeight - (top * 2);
 
 
 	if (!invertX)
 	{
-		int widthmax = widthOutput - (parentRender->GetSize().GetWidth() * scale_factor) - xValue;
+		int widthmax = widthOutput - scaledParentWidth - xValue;
 		rc.x = max(widthmax, 0);
 	}
 	else
@@ -2020,7 +1994,7 @@ void CVideoControlSoft::CalculRectPictureInterpolation(wxRect& rc, int& widthInt
 
 	if (!invertY)
 	{
-		int heightmax = heightOutput - (parentRender->GetSize().GetHeight() * scale_factor) - yValue;
+		int heightmax = heightOutput - scaledParentHeight - yValue;
 		rc.y = max(heightmax, 0);
 	}
 	else
@@ -2041,20 +2015,22 @@ void CVideoControlSoft::CalculPositionVideo(int& widthOutput, int& heightOutput,
 
 	widthOutput = static_cast<int>(GetBitmapWidth());
 	heightOutput = static_cast<int>(GetBitmapHeight());
-    
-    
+
+	wxSize parentSize = parentRender->GetSize();
+	int scaledParentWidth = static_cast<int>(parentSize.GetWidth() * scale_factor);
+	int scaledParentHeight = static_cast<int>(parentSize.GetHeight() * scale_factor);
 
 	int left = 0, top = 0;
 	int tailleAffichageWidth = widthOutput;
 	int tailleAffichageHeight = heightOutput;
 
-	if (parentRender->GetSize().GetWidth() * scale_factor > tailleAffichageWidth)
-		left = ((parentRender->GetSize().GetWidth() * scale_factor - tailleAffichageWidth) / 2);
+	if (scaledParentWidth > tailleAffichageWidth)
+		left = (scaledParentWidth - tailleAffichageWidth) / 2;
 	else
 		left = 0;
 
-	if (parentRender->GetSize().GetHeight() * scale_factor > tailleAffichageHeight)
-		top = ((parentRender->GetSize().GetHeight() * scale_factor - tailleAffichageHeight) / 2);
+	if (scaledParentHeight > tailleAffichageHeight)
+		top = (scaledParentHeight - tailleAffichageHeight) / 2;
 	else
 		top = 0;
 
@@ -2150,13 +2126,15 @@ void CVideoControlSoft::RenderFFmpegToTexture()
 		return;
 
 	Regards::Picture::CPictureArray pictureArrayLocal;
+	bool needsColorConversion = (videoEffectParameter.stabilizeVideo || videoEffectParameter.interpolationQuality == 1 || videoEffectParameter.autoConstrast);
+
+	if (needsColorConversion)
+	{
+		cv::cvtColor(pictureFrame->matFrame, cvImage, cv::COLOR_BGRA2BGR);
+	}
+
 	if (videoEffectParameter.stabilizeVideo)
 	{
-		if (cvImage.empty())
-			cv::cvtColor(pictureFrame->matFrame, cvImage, cv::COLOR_BGRA2BGR);
-		else if (cvImage.channels() == 4)
-			cv::cvtColor(cvImage, cvImage, cv::COLOR_BGRA2BGR);
-
 		if (videoEffectParameter.denoiseEnable && videoEffectParameter.effectEnable)
 		{
 			if (hq3d == nullptr)
@@ -2169,11 +2147,6 @@ void CVideoControlSoft::RenderFFmpegToTexture()
 
 	if (videoEffectParameter.interpolationQuality == 1)
 	{
-		if (cvImage.empty())
-			cv::cvtColor(pictureFrame->matFrame, cvImage, cv::COLOR_BGRA2BGR);
-		else if (cvImage.channels() == 4)
-			cv::cvtColor(cvImage, cvImage, cv::COLOR_BGRA2BGR);
-
 		int filterInterpolation = 0;
 		int widthOutput = 0;
 		int heightOutput = 0;
@@ -2191,11 +2164,6 @@ void CVideoControlSoft::RenderFFmpegToTexture()
 
 	if (videoEffectParameter.autoConstrast)
 	{
-		if (cvImage.empty())
-			cv::cvtColor(pictureFrame->matFrame, cvImage, cv::COLOR_BGRA2BGR);
-		else if (cvImage.channels() == 4)
-			cv::cvtColor(cvImage, cvImage, cv::COLOR_BGRA2BGR);
-
 		ApplyOpenCVEffect(cvImage);
 	}
 

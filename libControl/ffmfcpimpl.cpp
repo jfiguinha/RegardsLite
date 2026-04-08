@@ -193,36 +193,34 @@ void CFFmfcPimpl::packet_queue_start(PacketQueue* q)
 /* return < 0 if aborted, 0 if no packet and > 0 if packet.  */
 int CFFmfcPimpl::packet_queue_get(PacketQueue* q, AVPacket* pkt, int block, int* serial)
 {
-    MyAVPacketList pkt1;
-    int ret;
+	MyAVPacketList pkt1;
+	int ret;
 
-    SDL_LockMutex(q->mutex);
+	SDL_LockMutex(q->mutex);
 
-    for (;;) {
-        if (q->abort_request) {
-            ret = -1;
-            break;
-        }
+	while (q->abort_request == 0 && av_fifo_read(q->pkt_list, &pkt1, 1) < 0) {
+		if (!block) {
+			ret = 0;
+			SDL_UnlockMutex(q->mutex);
+			return ret;
+		}
+		SDL_CondWait(q->cond, q->mutex);
+	}
 
-        if (av_fifo_read(q->pkt_list, &pkt1, 1) >= 0) {
-            q->nb_packets--;
-            q->size -= pkt1.pkt->size + sizeof(pkt1);
-            q->duration -= pkt1.pkt->duration;
-            av_packet_move_ref(pkt, pkt1.pkt);
-            if (serial)
-                *serial = pkt1.serial;
-            av_packet_free(&pkt1.pkt);
-            ret = 1;
-            break;
-        } else if (!block) {
-            ret = 0;
-            break;
-        } else {
-            SDL_CondWait(q->cond, q->mutex);
-        }
-    }
-    SDL_UnlockMutex(q->mutex);
-    return ret;
+	if (q->abort_request) {
+		ret = -1;
+	} else {
+		q->nb_packets--;
+		q->size -= pkt1.pkt->size + sizeof(pkt1);
+		q->duration -= pkt1.pkt->duration;
+		av_packet_move_ref(pkt, pkt1.pkt);
+		if (serial)
+			*serial = pkt1.serial;
+		av_packet_free(&pkt1.pkt);
+		ret = 1;
+	}
+	SDL_UnlockMutex(q->mutex);
+	return ret;
 }
 
 void CFFmfcPimpl::free_subpicture(SubPicture* sp)
@@ -335,24 +333,12 @@ int CFFmfcPimpl::IsSupportOpenCL()
 
 AVFrame* CFFmfcPimpl::CopyFrame(AVFrame* src)
 {
-
-	int ret = 0;
-
-	AVFrame * dst = av_frame_alloc();
+	AVFrame* dst = av_frame_alloc();
+	if (!dst)
+		return nullptr;
 
 	memcpy(dst, src, sizeof(AVFrame));
-
-	dst->format = src->format;
-	dst->width = src->width;
-	dst->height = src->height;
-
 	memcpy(dst->data, src->data, sizeof(src->data));
-
-	if (ret < 0)
-	{
-		av_frame_unref(dst);
-		dst = nullptr;
-	}
 
 	return dst;
 }
@@ -371,10 +357,7 @@ void CFFmfcPimpl::video_display(VideoState* is)
 	if (!CMasterWindow::endProgram)
 	{
 		float video_aspect_ratio = 0;
-		if (vp->sample_aspect_ratio.num == 0)
-			video_aspect_ratio = 0;
-		else
-			video_aspect_ratio = av_q2d(vp->sample_aspect_ratio);
+		video_aspect_ratio = (vp->sample_aspect_ratio.num == 0) ? 0 : av_q2d(vp->sample_aspect_ratio);
 
 		if (dlg != nullptr)
 			if (!is->paused)
@@ -401,7 +384,8 @@ void CFFmfcPimpl::video_display(VideoState* is)
 			dataFrame->sample_aspect_ratio = video_aspect_ratio;
 			dataFrame->isHardwareDecoding = isHardwareDecoding;
 
-			if (IsSupportOpenCL() && !isHardwareDecoding && (tmp_frame->format == AV_PIX_FMT_NV12 || tmp_frame->format == AV_PIX_FMT_YUV420P))
+			static bool openclSupported = IsSupportOpenCL();
+			if (openclSupported && !isHardwareDecoding && (tmp_frame->format == AV_PIX_FMT_NV12 || tmp_frame->format == AV_PIX_FMT_YUV420P))
 			{
 				dataFrame->dst = CopyFrame(vp->frame);
 			}
@@ -423,14 +407,14 @@ void CFFmfcPimpl::video_display(VideoState* is)
 					av_opt_set_int(localContext, "dst_format", AV_PIX_FMT_BGRA, 0);
 					av_opt_set_int(localContext, "sws_flags", SWS_FAST_BILINEAR, 0);
 
-					if (sws_init_context(localContext, nullptr, nullptr) < 0)
-					{
-						sws_freeContext(localContext);
-						localContext = nullptr;
+						if (sws_init_context(localContext, nullptr, nullptr) < 0)
+						{
+							sws_freeContext(localContext);
+							localContext = nullptr;
+						}
 					}
-				}
 
-				if (localContext != nullptr)
+					if (localContext)
 				{
 					int numBytes = av_image_get_buffer_size(AV_PIX_FMT_BGRA, tmp_frame->width, tmp_frame->height, 16);
 					uint8_t* convertedFrameBuffer = dataFrame->matFrame.data;
@@ -1766,15 +1750,14 @@ int CFFmfcPimpl::decoder_decode_frame(VideoState* is, Decoder* d, AVFrame* frame
 				case AVMEDIA_TYPE_VIDEO:
 					ret = avcodec_receive_frame(d->avctx, frame);
 
-					if (isHardwareDecoding && hw_pix_fmt != AV_PIX_FMT_NONE)
+					if (isHardwareDecoding)
 					{
-						if (is->hwaccel_retrieve_data && frame->format == hw_pix_fmt)
+						if (hw_pix_fmt != AV_PIX_FMT_NONE && is->hwaccel_retrieve_data && frame->format == hw_pix_fmt)
 						{
 							ret = is->hwaccel_retrieve_data(d->avctx, frame);
+							if (ret >= 0)
+								is->hwaccel_retrieved_pix_fmt = (AVPixelFormat)frame->format;
 						}
-
-						if (ret >= 0)
-							is->hwaccel_retrieved_pix_fmt = (AVPixelFormat)frame->format;
 					}
 					else if (ret >= 0)
 					{
@@ -2228,13 +2211,7 @@ bool CFFmfcPimpl::TestHardware(const wxString& acceleratorHardware, AVHWDeviceTy
 		}
 	}
 
-	isSuccess = true;
-
-	if (isSuccess)
-	{
-		printf("Success for hardware decoding : %s ! \n", CConvertUtility::ConvertToUTF8(acceleratorHardware));
-	}
-	return isSuccess;
+	return true;
 }
 
 double CFFmfcPimpl::get_rotation(AVStream* st)
@@ -2351,20 +2328,18 @@ int CFFmfcPimpl::stream_component_open(VideoState* is, int stream_index)
 			av_dict_set_int(&opts, "lowres", stream_lowres, 0);
 
         
-        if (avctx->codec_type == AVMEDIA_TYPE_VIDEO)
-        {
-            if (acceleratorHardware != "" && acceleratorHardware != "none")
-            {
-                printf("Test hardware decoding : %s ! \n", acceleratorHardware.ToStdString().c_str());
-                AVStream* video = ic->streams[stream_index];
-                isSuccess = TestHardware(acceleratorHardware, type, avctx, codec, opts, is, video);
-            }
-        }
+		if (avctx->codec_type == AVMEDIA_TYPE_VIDEO)
+		{
+			if (acceleratorHardware != "" && acceleratorHardware != "none")
+			{
+				AVStream* video = ic->streams[stream_index];
+				isSuccess = TestHardware(acceleratorHardware, type, avctx, codec, opts, is, video);
+			}
+		}
 
 		if (!isSuccess)
 		{
 			isHardwareDecoding = false;
-			printf("No success for hardware decoding ! \n");
 			ret = avcodec_open2(avctx, codec, &opts);
 
 			if (ret < 0)

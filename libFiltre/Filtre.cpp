@@ -104,35 +104,53 @@ void CFiltre::Compute()
 
 void CMatrixConvolution::PixelCompute(const int& x, const int& y, const cv::Mat& pBitsSrc, cv::Mat& pBitsDest)
 {
-	float red = 0.0;
-	float green = 0.0;
-	float blue = 0.0;
+	float red = 0.0f;
+	float green = 0.0f;
+	float blue = 0.0f;
+	float Kfactor = 0.0f;
 	int k = 0;
 	int start = -Ksize / 2;
 	int end = Ksize / 2;
-	int Kfactor = 0;
 
-	for (auto i = start; i <= end; i++)
+	for (int i = start; i <= end; i++)
 	{
-		for (auto j = start; j <= end; j++)
+		int localY = y + i;
+		if (localY >= 0 && localY < bmHeight)
 		{
-			Kfactor += kernel[k];
-			int localX = x + j;
-			int localY = y + i;
-			if (localX >= 0 && localX < bmWidth && localY < bmHeight && localY >= 0)
+			for (int j = start; j <= end; j++)
 			{
-				cv::Vec3b pos = pBitsSrc.at<cv::Vec3b>(y + i, x + j);
-				red += static_cast<float>(pos[0]) * kernel[k];
-				green += static_cast<float>(pos[1]) * kernel[k];
-				blue += static_cast<float>(pos[2]) * kernel[k];
+				int localX = x + j;
+				if (localX >= 0 && localX < bmWidth)
+				{
+					float kernelVal = kernel[k];
+					cv::Vec3b pixel = pBitsSrc.at<cv::Vec3b>(localY, localX);
+					red += static_cast<float>(pixel[0]) * kernelVal;
+					green += static_cast<float>(pixel[1]) * kernelVal;
+					blue += static_cast<float>(pixel[2]) * kernelVal;
+					Kfactor += kernelVal;
+				}
+				k++;
 			}
-			k++;
+		}
+		else
+		{
+			k += Ksize;
 		}
 	}
 
-	red = clamp((red / Kfactor) + Koffset, 0.0, 255.0);
-	green = clamp((green / Kfactor) + Koffset, 0.0, 255.0);
-	blue = clamp((blue / Kfactor) + Koffset, 0.0, 255.0);
+	if (Kfactor != 0.0f)
+	{
+		float invKfactor = 1.0f / Kfactor;
+		red = clamp(red * invKfactor + Koffset, 0.0f, 255.0f);
+		green = clamp(green * invKfactor + Koffset, 0.0f, 255.0f);
+		blue = clamp(blue * invKfactor + Koffset, 0.0f, 255.0f);
+	}
+	else
+	{
+		red = clamp(Koffset, 0.0f, 255.0f);
+		green = clamp(Koffset, 0.0f, 255.0f);
+		blue = clamp(Koffset, 0.0f, 255.0f);
+	}
 
 	pBitsDest.at<cv::Vec3b>(y, x)[0] = static_cast<uint8_t>(red);
 	pBitsDest.at<cv::Vec3b>(y, x)[1] = static_cast<uint8_t>(green);
