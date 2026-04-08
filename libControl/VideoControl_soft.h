@@ -76,7 +76,7 @@ public:
 	int ChangeSubtitleStream(int newStreamSubtitle);
 	int getWidth() override;
 	int getHeight() override;
-
+	void SetData(CDataAVFrame* dataFrame);
 
 
 	bool GetPausedValue();
