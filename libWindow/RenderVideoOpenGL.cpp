@@ -250,7 +250,7 @@ void CRenderVideoOpenGL::Render(CVideoEffectParameter* effectParameter, wxFloatR
 	textureVideo->Enable();
 	if (effectParameter->interpolationQuality == 0 && (effectParameter->interpolation > 0 || effectParameter->effectEnable))
 	{
-
+		bool updateViewport = false;
 		if (FFrameBuffer == 0)
 		{
 			widthBuffer = glTexture->GetWidth();
@@ -274,11 +274,13 @@ void CRenderVideoOpenGL::Render(CVideoEffectParameter* effectParameter, wxFloatR
 			glBindFramebuffer(GL_FRAMEBUFFER, 0);
 			widthBuffer = glTexture->GetWidth();
 			heightBuffer = glTexture->GetHeight();
+			updateViewport = true;
 		}
 
 		// render to FBO
 		glBindFramebuffer(GL_FRAMEBUFFER, FFrameBuffer);
-		glViewport(0, 0, glTexture->GetWidth(), glTexture->GetHeight());
+		if(updateViewport)
+			glViewport(0, 0, glTexture->GetWidth(), glTexture->GetHeight());
 		if (effectParameter->interpolation > 0)
 		{
 			textureVideo->Enable();
