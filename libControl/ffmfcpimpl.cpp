@@ -425,12 +425,12 @@ void CFFmfcPimpl::video_display(VideoState* is)
 				}
 			}
 
-			dlg->SetData(dataFrame);
-			/*
+			//dlg->SetData(dataFrame);
+			
 			wxCommandEvent event(wxEVENT_UPDATEFRAME);
 			event.SetClientData(dataFrame);
 			wxPostEvent(dlg->GetMainWindow(), event);
-			*/
+			
 		}
 			
 		//}
