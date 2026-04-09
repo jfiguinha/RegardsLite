@@ -880,15 +880,10 @@ void CVideoControlSoft::OnIdle(wxIdleEvent& evt)
 		}
 	}
 
-	bool localRefresh = false;
-	//muRefresh.lock();
-	localRefresh = needToRefresh;
-	needToRefresh = false;
-
-	//muRefresh.unlock();
-	if (localRefresh)
+	if (needToRefresh)
 	{
 		parentRender->Refresh();
+		needToRefresh = false;
 	}
 }
 
