@@ -15,7 +15,7 @@ cd vcpkg
 ./vcpkg install wxwidgets[webview]
 ./vcpkg install x265
 ./vcpkg install libde265
-./vcpkg install opencv4[contrib,core,ffmpeg,ipp,jpeg,openmp,png,tiff,webp,openexr,opengl,opencl,gtk]
+./vcpkg install opencv4[contrib,core,dnn,ffmpeg,ipp,jpeg,openmp,png,tiff,webp,openexr,opengl,opencl,gtk]
 ./vcpkg install opencl
 ./vcpkg install tbb
 ./vcpkg install exiv2[video,xmp,bmff]
