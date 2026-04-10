@@ -2,6 +2,11 @@
 #include "GLSLShader.h"
 #include <LibResource.h>
 #include <ConvertUtility.h>
+#ifdef __APPLE__
+#include <GLUT/glut.h>
+#else
+#include <GL/glut.h>
+#endif
 using namespace Regards::OpenGL;
 
 GLSLShader::GLSLShader(void): m_hVertexHandle(0), m_hComputeHandle(0)
@@ -15,6 +20,11 @@ GLSLShader::~GLSLShader(void)
 	DeleteShader();
 }
 
+ bool GLSLShader::IsOk()
+ {
+     return isOk;
+ }
+
 // helper to check and display for shader compiler errors
 bool GLSLShader::check_shader_compile_status(GLuint obj)
 {
@@ -22,16 +32,16 @@ bool GLSLShader::check_shader_compile_status(GLuint obj)
 	glGetShaderiv(obj, GL_COMPILE_STATUS, &status);
 	if (status == GL_FALSE)
 	{
-		char cBuffer[2400];
 		GLint length;
 		glGetShaderiv(obj, GL_INFO_LOG_LENGTH, &length);
-		//cBuffer = new char[length + 1];
-		glGetShaderInfoLog(obj, length, &length, cBuffer);
-
-		printf("Error %s \n", cBuffer);
+		// The maxLength includes the NULL character
+		std::vector<GLchar> errorLog(length);
+		glGetShaderInfoLog(m_hShaderHandle, length, &length, &errorLog[0]);
+		std::string s(begin(errorLog), end(errorLog));
+		cout << s.c_str() << endl;
 		return false;
 	}
-	printf("check_shader_compile_status is OK \n");
+	//printf("check_shader_compile_status is OK \n");
 	return true;
 }
 
@@ -50,7 +60,6 @@ bool GLSLShader::check_program_link_status(GLuint obj)
 		glGetShaderInfoLog(m_hShaderHandle, length, &length, &errorLog[0]);
 		std::string s(begin(errorLog), end(errorLog));
 		cout << s.c_str() << endl;
-
 		return false;
 	}
 	return true;
@@ -63,12 +72,17 @@ bool GLSLShader::CreateProgram(const wxString& nProgramID_i, GLenum glSlShaderTy
 
 	if (glSlShaderType_i == GL_VERTEX_SHADER)
 	{
-		return CreateVertexProgram(nProgramID_i);
+		isOk = CreateVertexProgram(nProgramID_i);
+        return isOk;
 	}
 	if (glSlShaderType_i == GL_COMPUTE_SHADER)
-		return CreateComputeProgram(nProgramID_i);
+    {
+		isOk = CreateComputeProgram(nProgramID_i);
+        return isOk;
+    }
 
-	return CreateShaderProgram(nProgramID_i);
+	isOk = CreateShaderProgram(nProgramID_i);
+    return isOk;
 }
 
 bool GLSLShader::CreateShaderProgram(const wxString& nProgramID_i)
@@ -87,9 +101,9 @@ bool GLSLShader::CreateShaderProgram(const wxString& nProgramID_i)
 	int length = static_cast<int>(dataProgram.size()) + 1;
 	auto src = new char[length];
 	strcpy(src, CConvertUtility::ConvertToUTF8(dataProgram));
-	printf("Opengl shader : \n");
-	printf(src);
-	printf("Opengl end shader : \n");
+	//printf("Opengl shader : \n");
+	//printf(src);
+	//printf("Opengl end shader : \n");
 	//printf(src);
 
 	glShaderSource(m_hShaderHandle, 1, (const GLcharARB**)&src, &length);
@@ -110,6 +124,7 @@ bool GLSLShader::CreateShaderProgram(const wxString& nProgramID_i)
 		// Provide the infolog in whatever manor you deem best.
 		// Exit with failure.
 		glDeleteShader(m_hShaderHandle); // Don't leak the shader.
+        delete[] src;
 		return false;
 	}
 	glAttachShader(m_hProgramObject, m_hShaderHandle);
@@ -136,7 +151,11 @@ bool GLSLShader::CreateComputeProgram(const wxString& nProgramID_i)
 	glCompileShader(m_hComputeHandle);
 
 	if (!check_shader_compile_status(m_hComputeHandle))
-		return false;
+    {
+        delete[] data;
+        return false;
+    }
+		
 
 	glAttachShader(m_hProgramObject, m_hComputeHandle);
 	delete[] data;
@@ -163,7 +182,11 @@ bool GLSLShader::CreateVertexProgram(const wxString& nProgramID_i)
 	glCompileShader(m_hVertexHandle);
 
 	if (!check_shader_compile_status(m_hVertexHandle))
-		return false;
+    {
+        delete[] data;
+        return false;
+    }
+		
 
 	glAttachShader(m_hProgramObject, m_hVertexHandle);
 	delete[] data;
@@ -236,7 +259,8 @@ bool GLSLShader::SetTexture(const char* pParamName_i, const int nTextureID_i)
 	glBindTexture(GL_TEXTURE_2D, nTextureID_i);
 	glUniform1i(nParamObj, nTextureID_i);
 	GLenum glErr = glGetError();
-	//printf("SetTexture glError %p \n", gluErrorString(glErr));
+    if(glErr != GL_NO_ERROR)
+        printf("SetTexture glError %s \n", gluErrorString(glErr));
 	return (GL_NO_ERROR == glErr);
 }
 
@@ -250,7 +274,8 @@ bool GLSLShader::SetParam(const char* pParamName_i, const float fValue_i)
 
 	glUniform1f(nParamObj, fValue_i);
 	GLenum glErr = glGetError();
-	//printf("SetParam glError %p\n", gluErrorString(glErr));
+    if(glErr != GL_NO_ERROR)
+        printf("SetParam glError %s \n", gluErrorString(glErr));
 	return (GL_NO_ERROR == glErr);
 }
 
