@@ -329,7 +329,11 @@ void CMainWindow::CreateWatcherIfNecessary()
 		FolderCatalogVector folderList;
 		CSqlFindFolderCatalog folderCatalog;
 		folderCatalog.GetFolderCatalog(&folderList, NUMCATALOGID);
-		CheckDatabase(folderList);
+		bool folderChange = CheckDatabase(folderList);
+		if (folderChange)
+		{
+			UpdateFolderStatic();
+		}
 	}
 
 }
