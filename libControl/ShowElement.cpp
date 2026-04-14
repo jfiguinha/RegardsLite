@@ -1127,12 +1127,14 @@ void CShowElement::OnAfterOpenVideo()
 
 void CShowElement::OnPositionVideo(const int64_t& position)
 {
-	if (position >= 0 && position <= videoTotalTime)
+	int videoPos = position / 1000;
+
+	if (position >= 0 && position <= videoTotalTime && videoPosOld != videoPos)
 	{
 		if (videoSlider != nullptr)
 			videoSlider->SetPastSecondTime(position);
 
-		int videoPos = position / 1000;
+		
 		//if (videoPos != videoPosOld)
 		//{
 		wxWindow* viewerWindow = this->FindWindowById(CENTRALVIEWERWINDOWID);
