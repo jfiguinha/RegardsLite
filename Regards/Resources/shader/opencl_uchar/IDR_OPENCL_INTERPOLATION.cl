@@ -136,6 +136,71 @@ inline uint GetColorSrc_short(int x, int y, const __global uint *input, int widt
 	return 0;
 }
 
+/*
+//***********************************************************************************************************
+//Two Pass Filter
+//***********************************************************************************************************
+// Helper: Horizontal pass - interpolate across 3 pixels in X direction
+inline float4 FilterHorizontal(float x, int y, const __global uint *input, int widthIn, int heightIn, int type)
+{
+	int valueA = (int)x;
+	float realA = x - valueA;
+
+	float fx1 = KernelFilter_selection(-1.0f - realA, type);
+	float fx2 = KernelFilter_selection(-realA, type);
+	float fx3 = KernelFilter_selection(1.0f - realA, type);
+
+	float fxSum = fx1 + fx2 + fx3;
+	float fxInv = 1.0f / fxSum;
+
+	float4 left = GetColorSrc(valueA - 1, y, input, widthIn, heightIn) * (fx1 * fxInv);
+	float4 center = GetColorSrc(valueA, y, input, widthIn, heightIn) * (fx2 * fxInv);
+	float4 right = GetColorSrc(valueA + 1, y, input, widthIn, heightIn) * (fx3 * fxInv);
+
+	return left + center + right;
+}
+
+// Helper: Vertical pass - interpolate across 3 pixels in Y direction using mix
+inline float4 FilterVertical(float4 row1, float4 row2, float4 row3, float y, int type)
+{
+	int valueB = (int)y;
+	float realB = y - valueB;
+
+	float fy1 = KernelFilter_selection(-(-1.0f - realB), type);
+	float fy2 = KernelFilter_selection(realB, type);
+	float fy3 = KernelFilter_selection(-(1.0f - realB), type);
+
+	float fySum = fy1 + fy2 + fy3;
+	float fyInv = 1.0f / fySum;
+
+	float wny1 = fy1 * fyInv;
+	float wny2 = fy2 * fyInv;
+	float wny3 = fy3 * fyInv;
+
+	return mix(mix(row1, row2, wny2), row3, wny3);
+}
+
+// Two-pass separable filter interpolation
+inline uint KernelExecution(float x, float y, const __global uint *input, int widthIn, int heightIn, int type)
+{
+	int valueB = (int)y;
+
+	// Pass 1: Horizontal filtering on 3 rows
+	float4 row1 = FilterHorizontal(x, valueB - 1, input, widthIn, heightIn, type);
+	float4 row2 = FilterHorizontal(x, valueB, input, widthIn, heightIn, type);
+	float4 row3 = FilterHorizontal(x, valueB + 1, input, widthIn, heightIn, type);
+
+	// Pass 2: Vertical filtering using mix
+	float4 result = FilterVertical(row1, row2, row3, y, type);
+
+	return rgbaFloat4ToUint(result, 1.0f);
+}
+*/
+
+/*
+//***********************************************************************************************************
+//Old Pass Filter
+//***********************************************************************************************************
 inline uint KernelExecution(float x, float y, const __global uint *input, int widthIn, int heightIn, int type)
 {
 	float4 nDenom = 0.0f;
@@ -169,6 +234,56 @@ inline uint KernelExecution(float x, float y, const __global uint *input, int wi
 	
     return rgbaFloat4ToUint((sum / nDenom),1.0f);
 }
+*/
+
+
+//***********************************************************************************************************
+//Optimize Pass Filter
+//***********************************************************************************************************
+inline uint KernelExecution(float x, float y, const __global uint *input, int widthIn, int heightIn, int type)
+{
+	int valueA = (int)x;
+	int valueB = (int)y;
+	float realA = x - valueA;
+	float realB = y - valueB;
+
+	float fy1 = KernelFilter_selection(-(-1.0f - realB), type);
+	float fy2 = KernelFilter_selection(realB, type);
+	float fy3 = KernelFilter_selection(-(1.0f - realB), type);
+
+	float fx1 = KernelFilter_selection(-1.0f - realA, type);
+	float fx2 = KernelFilter_selection(- realA, type);
+	float fx3 = KernelFilter_selection(1.0f - realA, type);
+
+	float fxSum = fx1 + fx2 + fx3;
+	float fDenom = fy1 * fxSum + fy2 * fxSum + fy3 * fxSum;
+	float fInvDenom = 1.0f / fDenom;
+
+	float wnx1 = fx1 * fInvDenom;
+	float wnx2 = fx2 * fInvDenom;
+	float wnx3 = fx3 * fInvDenom;
+
+	float4 row1 = GetColorSrc(valueA - 1, valueB - 1, input, widthIn, heightIn) * wnx1
+				+ GetColorSrc(valueA, valueB - 1, input, widthIn, heightIn) * wnx2
+				+ GetColorSrc(valueA + 1, valueB - 1, input, widthIn, heightIn) * wnx3;
+
+	float4 row2 = GetColorSrc(valueA - 1, valueB, input, widthIn, heightIn) * wnx1
+				+ GetColorSrc(valueA, valueB, input, widthIn, heightIn) * wnx2
+				+ GetColorSrc(valueA + 1, valueB, input, widthIn, heightIn) * wnx3;
+
+	float4 row3 = GetColorSrc(valueA - 1, valueB + 1, input, widthIn, heightIn) * wnx1
+				+ GetColorSrc(valueA, valueB + 1, input, widthIn, heightIn) * wnx2
+				+ GetColorSrc(valueA + 1, valueB + 1, input, widthIn, heightIn) * wnx3;
+
+	float wny1 = fy1 * fInvDenom / fxSum;
+	float wny2 = fy2 * fInvDenom / fxSum;
+	float wny3 = fy3 * fInvDenom / fxSum;
+
+	float4 sum = mix(mix(row1, row2, wny2), row3, wny3);
+
+	return rgbaFloat4ToUint(sum, 1.0f);
+}
+
 
 inline uint CalculInterpolation(const __global uint *input, int widthIn, int heightIn, int widthOut, int heightOut, int flipH, int flipV, int angle, int type, float ratioX, float ratioY, int x, int y, float left, float top)
 {
