@@ -20,7 +20,7 @@ using namespace Regards::OpenGL;
 using namespace cv::ocl;
 extern string platformName;
 extern cv::ocl::OpenCLExecutionContext clExecCtx;
-
+extern int openclOpenGLInterop;
 
 void CHECK_ERROR_GL() {
     GLenum err = glGetError();
@@ -46,6 +46,7 @@ public:
 
 	cl_mem clImage = nullptr;
 	bool isOpenCLCompatible = true;
+	bool isBGRATexture = false;
 	//cl_context context;
 	//cl_command_queue q;
 };
@@ -53,11 +54,11 @@ public:
 
 cl_int CTextureGLPriv::CreateTextureInterop(GLTexture* glTexture)
 {
-    printf("CreateTextureInterop 1 \n");
+   // printf("CreateTextureInterop 1 \n");
 	cl_int status = 0;
 	if (clImage == nullptr)
 	{
-        printf("CreateTextureInterop 2 : GLTexture ID : %i \n", glTexture->GetTextureID());
+       // printf("CreateTextureInterop 2 : GLTexture ID : %i \n", glTexture->GetTextureID());
     
         cl_context context = (cl_context)clExecCtx.getContext().ptr();
         cl_command_queue q = (cl_command_queue)clExecCtx.getQueue().ptr();
@@ -66,7 +67,7 @@ cl_int CTextureGLPriv::CreateTextureInterop(GLTexture* glTexture)
 		                                &status);
 		if (status == CL_SUCCESS)
 		{
-            printf("CreateTextureInterop CL_SUCCESS \n");
+           // printf("CreateTextureInterop CL_SUCCESS \n");
 			status = clEnqueueAcquireGLObjects(q, 1, &clImage, 0, nullptr, nullptr);
 		}
 
@@ -74,7 +75,7 @@ cl_int CTextureGLPriv::CreateTextureInterop(GLTexture* glTexture)
 			isOpenCLCompatible = true;
 		else
 		{
-            printf("CreateTextureInterop CL_ERROR : %i \n", status);
+            //printf("CreateTextureInterop CL_ERROR : %i \n", status);
 			DeleteTextureInterop();
 			isOpenCLCompatible = false;
 		}
@@ -89,22 +90,20 @@ bool CTextureGLPriv::convertToGLTexture2D(cv::UMat& u, GLTexture* glTexture)
 
 	if (isOpenCLCompatible)
 	{
-
-            CRegardsConfigParam* regardsParam = CParamInit::getInstance();
-            wxString color = regardsParam->GetOpenGLOutputColor();
+        CRegardsConfigParam* regardsParam = CParamInit::getInstance();
+        wxString color = regardsParam->GetOpenGLOutputColor();
 
 #ifndef __APPLE__
-
 		try
 		{
-            printf("glGetInternalformativ test if is it available \n"); 
+            //printf("glGetInternalformativ test if is it available \n"); 
             
 			GLint format, type;
 			glGetInternalformativ(GL_TEXTURE_2D, GL_RGBA8, GL_TEXTURE_IMAGE_FORMAT, 1, &format);
 			glGetInternalformativ(GL_TEXTURE_2D, GL_RGBA8, GL_TEXTURE_IMAGE_TYPE, 1, &type);
 
-			printf("GL_TEXTURE_IMAGE_FORMAT Dec : %d Hex : %#08x\n", format, format);
-			printf("GL_TEXTURE_IMAGE_TYPE Dec : %d Hex : %#08x\n", type, type);
+			//printf("GL_TEXTURE_IMAGE_FORMAT Dec : %d Hex : %#08x\n", format, format);
+			//printf("GL_TEXTURE_IMAGE_TYPE Dec : %d Hex : %#08x\n", type, type);
 
 			if (type == 35863)
 				color = "BGRA";
@@ -113,16 +112,15 @@ bool CTextureGLPriv::convertToGLTexture2D(cv::UMat& u, GLTexture* glTexture)
         }
         catch(...)
         {
-			printf("glGetInternalformativ is not available \n"); 
+			//printf("glGetInternalformativ is not available \n"); 
             color = "RGBA"; 
         }
 #else
             color = "RGBA";      
 #endif 
-
-		try
-		{
     
+        try
+        {
 			cv::UMat bitmapMatrix;
 			if (u.channels() == 3)
 			{
@@ -141,7 +139,7 @@ bool CTextureGLPriv::convertToGLTexture2D(cv::UMat& u, GLTexture* glTexture)
 			}
 			else
 			{
-				if (color == "BGRA")
+				if (color == "BGRA" && !isBGRATexture)
 				{
 					cvtColor(u, bitmapMatrix, cv::COLOR_BGRA2RGBA);
 				}
@@ -182,7 +180,7 @@ bool CTextureGLPriv::convertToGLTexture2D(cv::UMat& u, GLTexture* glTexture)
 			std::cout << "convertToGLTexture2D OpenCL OpenGL Interop no work" << std::endl;
 			status = -1;
 			isOk = false;
-			printf("convertToGLTexture2D isOpenCLOpenGLInterop is FALSE \n");
+			//printf("convertToGLTexture2D isOpenCLOpenGLInterop is FALSE \n");
 		}
 	}
 
@@ -254,9 +252,6 @@ int GLTexture::GetHeight()
 
 void GLTexture::DeleteInteropTexture()
 {
-	CRegardsConfigParam* regardsParam = CParamInit::getInstance();
-	int openclOpenGLInterop = regardsParam->GetIsOpenCLOpenGLInteropSupport();
-
 	if (pimpl_ != nullptr && pimpl_->isOpenCLCompatible && openclOpenGLInterop)
 	{
 		pimpl_->DeleteTextureInterop();
@@ -265,9 +260,7 @@ void GLTexture::DeleteInteropTexture()
 
 bool GLTexture::SetData(Regards::Picture::CPictureArray& bitmap)
 {   
-	CRegardsConfigParam* regardsParam = CParamInit::getInstance();
-	int openclOpenGLInterop = regardsParam->GetIsOpenCLOpenGLInteropSupport();
-    
+   
     //openclOpenGLInterop = 0;
 
 	int kind = bitmap.Kind();
@@ -276,10 +269,22 @@ bool GLTexture::SetData(Regards::Picture::CPictureArray& bitmap)
 
 	if(kind == cv::_InputArray::KindFlag::UMAT && openclOpenGLInterop)
 	{
-		cv::UMat umatBitmap = bitmap.getUMat();
-
 		if (pimpl_ == nullptr && openclOpenGLInterop)
 			pimpl_ = new CTextureGLPriv();
+
+		cv::UMat umatBitmap = bitmap.getUMat();
+
+		if (umatBitmap.channels() == 4)
+		{
+			format = GL_BGRA;
+			dataformat = GL_BGRA;
+			pimpl_->isBGRATexture = true;
+		}
+		else
+		{
+			pimpl_->isBGRATexture = false;
+		}
+
 
 		if (pimpl_ != nullptr && pimpl_->isOpenCLCompatible && openclOpenGLInterop)
 		{
@@ -297,8 +302,8 @@ bool GLTexture::SetData(Regards::Picture::CPictureArray& bitmap)
 				glGenTextures(1, &m_nTextureID);
 				//glActiveTexture(GL_TEXTURE0 + m_nTextureID);
 				glBindTexture(GL_TEXTURE_2D, m_nTextureID);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 				glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
@@ -311,6 +316,7 @@ bool GLTexture::SetData(Regards::Picture::CPictureArray& bitmap)
 
 			if (!isOk)
 			{
+				CRegardsConfigParam* regardsParam = CParamInit::getInstance();
 				openclOpenGLInterop = false;
 				pimpl_->DeleteTextureInterop();
 				regardsParam->SetIsOpenCLOpenGLInteropSupport(openclOpenGLInterop);
@@ -320,6 +326,11 @@ bool GLTexture::SetData(Regards::Picture::CPictureArray& bitmap)
 	if (!isOk)
 	{
 		isOk = SetTextureData(bitmap);
+		if (!isOk)
+		{
+			Delete();
+			isOk = SetTextureData(bitmap);
+		}
 	}
 
 	return isOk;
@@ -345,12 +356,13 @@ bool GLTexture::SetTextureData(Regards::Picture::CPictureArray& bitmap)
     }
     catch (cv::Exception& e)
     {
+		
         const char* err_msg = e.what();
         std::cout << "exception caught: " << err_msg << std::endl;
         std::cout << "wrong file format, please input the name of an IMAGE file" << std::endl;
         isOk = false;
     }
- 	return true;   
+ 	return isOk;
 }
 
 
@@ -373,8 +385,7 @@ void GLTexture::checkErrors(std::string desc)
 
 void GLTexture::Delete()
 {
-	CRegardsConfigParam* regardsParam = CParamInit::getInstance();
-	int openclOpenGLInterop = regardsParam->GetIsOpenCLOpenGLInteropSupport();
+
 
 	checkErrors("GLTexture::Delete()");
 
@@ -394,6 +405,12 @@ void GLTexture::Delete()
 		}
 		glBindTexture(GL_TEXTURE_2D, 0);
 		checkErrors("GLTexture::Delete()");
+	}
+
+	if(tex != nullptr)
+	{
+		delete tex;
+		tex = nullptr;
 	}
 
 

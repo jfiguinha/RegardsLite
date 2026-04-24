@@ -20,17 +20,6 @@ COpenCLEffectVideo::COpenCLEffectVideo()
 
 }
 
-void COpenCLEffectVideo::SetMatrix(cv::Mat* m)
-{
-	if (m->channels() == 4)
-		cv::cvtColor(*m, paramSrc, cv::COLOR_BGRA2BGR);
-	else
-		m->copyTo(paramSrc);
-
-	needToTranscode = false;
-	isOk = true;
-}
-
 void COpenCLEffectVideo::SetMatrix(Regards::Picture::CPictureArray& bitmap)
 {
 	cv::UMat frame = bitmap.getUMat();
@@ -40,6 +29,16 @@ void COpenCLEffectVideo::SetMatrix(Regards::Picture::CPictureArray& bitmap)
 	else
 		paramSrc = frame;
 
+	needToTranscode = false;
+	isOk = true;
+}
+
+void COpenCLEffectVideo::SetMatrix(cv::Mat* frame)
+{
+	if (frame->channels() == 4)
+		cv::cvtColor(*frame, paramSrc, cv::COLOR_BGRA2BGR);
+	else
+		frame->copyTo(paramSrc);
 	needToTranscode = false;
 	isOk = true;
 }
@@ -149,14 +148,14 @@ void COpenCLEffectVideo::ApplyOpenCVEffect(CVideoEffectParameter* videoEffectPar
 
 void COpenCLEffectVideo::InterpolationZoomBicubic(const int& widthOutput, const int& heightOutput, const wxRect& rc,
 	const int& flipH, const int& flipV, const int& angle,
-	const int& bicubic, int ratio)
+	const int& bicubic, int ratio, bool bgraOutput)
 {
 	if (!clExecCtx.empty() && !paramSrc.empty())
 	{
 
 		
 		paramOutput = openclFilter->Interpolation(widthOutput, heightOutput, rc, bicubic, paramSrc, flipH, flipV, angle,
-			ratio);
+			ratio, bgraOutput);
 		interpolatePicture = true;
 	}
 }
@@ -266,7 +265,7 @@ void COpenCLEffectVideo::ApplyVideoEffect(CVideoEffectParameter* videoEffectPara
 
 void COpenCLEffectVideo::SetNV12(uint8_t* bufferY, int sizeY, uint8_t* bufferUV, int sizeUV, const int& width,
 	const int& height, const int& lineSize, const int& widthOut, const int& heightOut,
-	const int& colorRange, const int& colorSpace)
+	const int& colorRange, const int& colorSpace, bool bgraOutput)
 {
 
 	cv::UMat out;
@@ -316,8 +315,10 @@ void COpenCLEffectVideo::SetNV12(uint8_t* bufferY, int sizeY, uint8_t* bufferUV,
 	paramColorSpace->SetValue(colorSpace);
 	vecParam.push_back(paramColorSpace);
 
-
-	out = openclFilter->ExecuteOpenCLCode("IDR_OPENCL_FFMPEGNV12", "Convert", vecParam, widthOut, heightOut);
+	if (!bgraOutput)
+		out = openclFilter->ExecuteOpenCLCode("IDR_OPENCL_FFMPEGNV12", "Convert", vecParam, widthOut, heightOut);
+	else
+		paramSrc = openclFilter->ExecuteOpenCLCode("IDR_OPENCL_FFMPEGNV12", "Convert", vecParam, widthOut, heightOut);
 
 	for (COpenCLParameter* parameter : vecParam)
 	{
@@ -328,25 +329,29 @@ void COpenCLEffectVideo::SetNV12(uint8_t* bufferY, int sizeY, uint8_t* bufferUV,
 		}
 	}
 
-	try
+	if (!bgraOutput)
 	{
-		cv::cvtColor(out, paramSrc, cv::COLOR_BGRA2BGR);
-	}
-	catch (cv::Exception& e)
-	{
-		cv::Mat mat = out.getMat(cv::AccessFlag::ACCESS_READ);
-		cv::cvtColor(out, paramSrc, cv::COLOR_BGRA2BGR);
+		try
+		{
 
-		const char* err_msg = e.what();
-		std::cout << "CSuperSampling::exception caught: " << err_msg << std::endl;
-		std::cout << "wrong file format, please input the name of an IMAGE file" << std::endl;
+			cv::cvtColor(out, paramSrc, cv::COLOR_BGRA2BGR);
+		}
+		catch (cv::Exception& e)
+		{
+			cv::Mat mat = out.getMat(cv::AccessFlag::ACCESS_READ);
+			cv::cvtColor(out, paramSrc, cv::COLOR_BGRA2BGR);
+
+			const char* err_msg = e.what();
+			std::cout << "CSuperSampling::exception caught: " << err_msg << std::endl;
+			std::cout << "wrong file format, please input the name of an IMAGE file" << std::endl;
+		}
 	}
 }
 
 
 void COpenCLEffectVideo::SetNV12(cv::UMat y, uint8_t* bufferUV, int sizeUV, const int& width,
 	const int& height, const int& lineSize, const int& widthOut, const int& heightOut,
-	const int& colorRange, const int& colorSpace)
+	const int& colorRange, const int& colorSpace, bool bgraOutput)
 {
 
 	cv::UMat out;
@@ -403,8 +408,10 @@ void COpenCLEffectVideo::SetNV12(cv::UMat y, uint8_t* bufferUV, int sizeUV, cons
 	paramColorSpace->SetValue(colorSpace);
 	vecParam.push_back(paramColorSpace);
 
-
-	out = openclFilter->ExecuteOpenCLCode("IDR_OPENCL_FFMPEGNV12", "Convert", vecParam, widthOut, heightOut);
+	if (!bgraOutput)
+		out = openclFilter->ExecuteOpenCLCode("IDR_OPENCL_FFMPEGNV12", "Convert", vecParam, widthOut, heightOut);
+	else
+		paramSrc = openclFilter->ExecuteOpenCLCode("IDR_OPENCL_FFMPEGNV12", "ConvertBGRA", vecParam, widthOut, heightOut);
 
 	for (COpenCLParameter* parameter : vecParam)
 	{
@@ -415,48 +422,29 @@ void COpenCLEffectVideo::SetNV12(cv::UMat y, uint8_t* bufferUV, int sizeUV, cons
 		}
 	}
 
-	try
+	if (!bgraOutput)
 	{
-		cv::cvtColor(out, paramSrc, cv::COLOR_BGRA2BGR);
-	}
-	catch (cv::Exception& e)
-	{
-		cv::Mat mat = out.getMat(cv::AccessFlag::ACCESS_READ);
-		cv::cvtColor(out, paramSrc, cv::COLOR_BGRA2BGR);
+		try
+		{
+			cv::cvtColor(out, paramSrc, cv::COLOR_BGRA2BGR);
+		}
+		catch (cv::Exception& e)
+		{
+			cv::Mat mat = out.getMat(cv::AccessFlag::ACCESS_READ);
+			cv::cvtColor(out, paramSrc, cv::COLOR_BGRA2BGR);
 
-		const char* err_msg = e.what();
-		std::cout << "CSuperSampling::exception caught: " << err_msg << std::endl;
-		std::cout << "wrong file format, please input the name of an IMAGE file" << std::endl;
-	}
-}
-
-void COpenCLEffectVideo::SetNV12(const cv::Mat& yuv)
-{
-
-	cv::cvtColor(yuv, paramSrc, cv::COLOR_RGBA2BGR);
-}
-
-void COpenCLEffectVideo::SetNV12(const cv::Mat& yuv, const int& linesize, const int& nWidth, const int& nHeight)
-{
-
-	cv::UMat out;
-
-	if (nWidth != linesize)
-	{
-		cv::cvtColor(yuv, out, cv::COLOR_YUV2BGR_NV12);
-		out(cv::Rect(0, 0, nWidth, nHeight)).copyTo(paramSrc);
-	}
-	else
-	{
-		cv::cvtColor(yuv, out, cv::COLOR_YUV2BGR_NV12);
-		out.copyTo(paramSrc);
+			const char* err_msg = e.what();
+			std::cout << "CSuperSampling::exception caught: " << err_msg << std::endl;
+			std::cout << "wrong file format, please input the name of an IMAGE file" << std::endl;
+		}
 	}
 }
+
 
 void COpenCLEffectVideo::SetYUV420P(uint8_t* bufferY, int sizeY, uint8_t* bufferU, int sizeU, uint8_t* bufferV,
 	int sizeV, const int& width, const int& height, const int& lineSize,
 	const int& widthOut, const int& heightOut, const int& colorRange,
-	const int& colorSpace)
+	const int& colorSpace, bool bgraOutput)
 {
 	cv::UMat out;
 
@@ -512,8 +500,10 @@ void COpenCLEffectVideo::SetYUV420P(uint8_t* bufferY, int sizeY, uint8_t* buffer
 	paramColorSpace->SetValue(colorSpace);
 	vecParam.push_back(paramColorSpace);
 
-
-	out = openclFilter->ExecuteOpenCLCode("IDR_OPENCL_FFMPEGYUV420", "Convert", vecParam, widthOut, heightOut);
+	if (!bgraOutput)
+		out = openclFilter->ExecuteOpenCLCode("IDR_OPENCL_FFMPEGYUV420", "Convert", vecParam, widthOut, heightOut);
+	else
+		paramSrc = openclFilter->ExecuteOpenCLCode("IDR_OPENCL_FFMPEGYUV420", "Convert", vecParam, widthOut, heightOut);
 
 	for (COpenCLParameter* parameter : vecParam)
 	{
@@ -524,23 +514,26 @@ void COpenCLEffectVideo::SetYUV420P(uint8_t* bufferY, int sizeY, uint8_t* buffer
 		}
 	}
 
-	try
+	if (!bgraOutput)
 	{
-		cv::cvtColor(out, paramSrc, cv::COLOR_BGRA2BGR);
-	}
-	catch (cv::Exception& e)
-	{
-		cv::Mat mat = out.getMat(cv::AccessFlag::ACCESS_READ);
-		cv::cvtColor(out, paramSrc, cv::COLOR_BGRA2BGR);
+		try
+		{
+			cv::cvtColor(out, paramSrc, cv::COLOR_BGRA2BGR);
+		}
+		catch (cv::Exception& e)
+		{
+			cv::Mat mat = out.getMat(cv::AccessFlag::ACCESS_READ);
+			cv::cvtColor(out, paramSrc, cv::COLOR_BGRA2BGR);
 
-		const char* err_msg = e.what();
-		std::cout << "CSuperSampling::exception caught: " << err_msg << std::endl;
-		std::cout << "wrong file format, please input the name of an IMAGE file" << std::endl;
+			const char* err_msg = e.what();
+			std::cout << "CSuperSampling::exception caught: " << err_msg << std::endl;
+			std::cout << "wrong file format, please input the name of an IMAGE file" << std::endl;
+		}
 	}
 }
 
 
-void COpenCLEffectVideo::SetAVFrame(CVideoEffectParameter* videoEffectParameter, AVFrame*& tmp_frame, int colorSpace, int isLimited)
+void COpenCLEffectVideo::SetAVFrame(CVideoEffectParameter* videoEffectParameter, AVFrame*& tmp_frame, int colorSpace, int isLimited, bool bgraOutput)
 {
 	int nWidth = tmp_frame->width;
 	int nHeight = tmp_frame->height;
@@ -555,13 +548,13 @@ void COpenCLEffectVideo::SetAVFrame(CVideoEffectParameter* videoEffectParameter,
 			uint8_t* outData = HQDn3D(tmp_frame->data[0], tmp_frame->linesize[0], nHeight, videoEffectParameter->denoisingLevel, videoEffectParameter->templateWindowSize, videoEffectParameter->searchWindowSize);
 			SetNV12(outData, tmp_frame->linesize[0] * nHeight, tmp_frame->data[1],
 				tmp_frame->linesize[1] * (nHeight / 2), tmp_frame->linesize[0], nHeight,
-				tmp_frame->linesize[0], nWidth, nHeight, isLimited, colorSpace);
+				tmp_frame->linesize[0], nWidth, nHeight, isLimited, colorSpace, bgraOutput);
 
 		}
 		else
 			SetNV12(tmp_frame->data[0], tmp_frame->linesize[0] * nHeight, tmp_frame->data[1],
 				tmp_frame->linesize[1] * (nHeight / 2), tmp_frame->linesize[0], nHeight,
-				tmp_frame->linesize[0], nWidth, nHeight, isLimited, colorSpace);
+				tmp_frame->linesize[0], nWidth, nHeight, isLimited, colorSpace, bgraOutput);
 		//muBitmap.unlock();
 	}
 	else if (tmp_frame->format == AV_PIX_FMT_YUV420P)
@@ -573,14 +566,14 @@ void COpenCLEffectVideo::SetAVFrame(CVideoEffectParameter* videoEffectParameter,
 			SetYUV420P(outData, tmp_frame->linesize[0] * nHeight, tmp_frame->data[1],
 				tmp_frame->linesize[1] * (nHeight / 2), tmp_frame->data[2],
 				tmp_frame->linesize[2] * (nHeight / 2), tmp_frame->linesize[0], nHeight,
-				tmp_frame->linesize[0], nWidth, nHeight, isLimited, colorSpace);
+				tmp_frame->linesize[0], nWidth, nHeight, isLimited, colorSpace, bgraOutput);
 		}
 		else
 		{
 			SetYUV420P(tmp_frame->data[0], tmp_frame->linesize[0] * nHeight, tmp_frame->data[1],
 				tmp_frame->linesize[1] * (nHeight / 2), tmp_frame->data[2],
 				tmp_frame->linesize[2] * (nHeight / 2), tmp_frame->linesize[0], nHeight,
-				tmp_frame->linesize[0], nWidth, nHeight, isLimited, colorSpace);
+				tmp_frame->linesize[0], nWidth, nHeight, isLimited, colorSpace, bgraOutput);
 		}
 
 		//muBitmap.unlock();
@@ -590,7 +583,7 @@ void COpenCLEffectVideo::SetAVFrame(CVideoEffectParameter* videoEffectParameter,
 
 
 void COpenCLEffectVideo::SetYUV420P(const cv::Mat& y, const cv::Mat& u, const cv::Mat& v, const int& linesize,
-	const int& nWidth, const int& nHeight)
+	const int& nWidth, const int& nHeight, bool bgraOutput)
 {
 
 	cv::UMat u_resized, v_resized;

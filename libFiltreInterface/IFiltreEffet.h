@@ -47,7 +47,7 @@ public:
 
 	virtual int OilPaintingEffect(const int& size, const int& dynRatio) = 0;
 	virtual void Interpolation(const int& widthOut, const int& heightOut, const wxRect& rc, const int& method,
-	                           int flipH, int flipV, int angle, int ratio) = 0;
+	                           int flipH, int flipV, int angle, int ratio, bool bgraOutput = false) = 0;
 	virtual int WaveFilter(int x, int y, short height, int scale, int radius) = 0;
 	virtual int BilateralFilter(const int& fSize, const int& sigmaX, const int& sigmaP) = 0;
 	virtual int NlmeansFilter(const int& h, const int& hColor, const int& templateWindowSize,
@@ -100,14 +100,12 @@ public:
 	                      const int& iIntensity, const int& iColor, const int& iColorIntensity) = 0;
 	virtual int Fusion(cv::Mat& bitmapSecond, const float& pourcentage) = 0;
 	virtual wxImage GetwxImage() = 0;
-
 	virtual void SetBitmap(CImageLoadingFormat* bitmap) = 0;
 	virtual cv::Mat GetBitmap(const bool& source) = 0;
 	virtual int GetWidth() = 0;
 	virtual int GetHeight() = 0;
 	virtual int BrightnessAndContrastAuto(float clipHistPercent) = 0;
 	virtual bool StabilizeVideo(Regards::OpenCV::COpenCVStabilization* stabilization) = 0;
-
 
     virtual int Inpaint(const cv::Mat &mask, int algorithm) = 0;
 protected:

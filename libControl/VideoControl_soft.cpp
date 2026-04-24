@@ -2066,7 +2066,7 @@ void CVideoControlSoft::RenderToTexture()
 			filterInterpolation = regardsParam->GetInterpolationType();
 
 		openclEffectYUV->InterpolationZoomBicubic(widthOutput, heightOutput, rc, flipH, flipV, angle, filterInterpolation,
-			(int)GetZoomRatio() * 100);
+			(int)GetZoomRatio() * 100, true);
 	}
 
 	if ((videoEffectParameter.autoConstrast) && videoEffectParameter.effectEnable)

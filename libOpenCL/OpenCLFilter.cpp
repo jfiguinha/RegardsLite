@@ -1,16 +1,37 @@
 #include <header.h>
 #include "OpenCLFilter.h"
+
+#include "utility.h"
 #include <opencv2/xphoto.hpp>
+#include <FileUtility.h>
+#include <mutex>
+#include <ParamInit.h>
+#include <RegardsConfigParam.h>
 #include <opencv2/core/ocl.hpp>
+#include <LibResource.h>
 #include <avir.h>
 
 using namespace Regards::OpenCL;
 using namespace cv;
 
+
 bool COpenCLFilter::isUsed = false;
 int COpenCLFilter::numTexture = -1;
 extern cv::ocl::OpenCLExecutionContext clExecCtx;
+extern std::map<wxString, vector<char>> openclBinaryMapping;
 #define OPENCV_METHOD
+
+
+#define EDSR 0
+#define ESPCN 1
+#define FSRCNN 2
+#define LapSRN 3
+
+bool isUsed = false;
+int numTexture = -1;
+extern cv::ocl::OpenCLExecutionContext clExecCtx;
+
+
 
 
 COpenCLFilter::COpenCLFilter()
@@ -18,6 +39,7 @@ COpenCLFilter::COpenCLFilter()
 	bool useMemory = (ocl::Device::getDefault().type() == CL_DEVICE_TYPE_GPU) ? false : true;
 	flag = useMemory ? CL_MEM_USE_HOST_PTR : CL_MEM_COPY_HOST_PTR;
 	hq3d = nullptr;
+
 
 }
 
@@ -32,74 +54,28 @@ COpenCLFilter::~COpenCLFilter()
 		param = nullptr;
 	}
 
+
 }
-
-
-cv::UMat COpenCLFilter::Interpolation(const int& widthOut, const int& heightOut, cv::UMat& inputData, int width, int height, const int& method)
-{
-	UMat dest;
-	UMat cvDest;
-	UMat cvDestBgra;
-	cv::cvtColor(inputData, cvDestBgra, COLOR_BGR2BGRA);
-
-	vector<COpenCLParameter*> vecParam;
-	auto clBuffer = static_cast<cl_mem>(cvDestBgra.handle(ACCESS_READ));
-
-	auto input = new COpenCLParameterClMem(true);
-	input->SetValue(clBuffer);
-	input->SetLibelle("input");
-	input->SetNoDelete(true);
-	vecParam.push_back(input);
-
-	COpenCLParameterInt* paramWidth = new COpenCLParameterInt();
-	paramWidth->SetValue(width);
-	paramWidth->SetLibelle("width");
-	vecParam.push_back(paramWidth);
-
-	COpenCLParameterInt* paramHeight = new COpenCLParameterInt();
-	paramHeight->SetValue(height);
-	paramHeight->SetLibelle("height");
-	vecParam.push_back(paramHeight);
-
-	COpenCLParameterInt* paramWidthOut = new COpenCLParameterInt();
-	paramWidthOut->SetLibelle("widthOut");
-	paramWidthOut->SetValue(widthOut);
-	vecParam.push_back(paramWidthOut);
-
-	COpenCLParameterInt* paramHeightOut = new COpenCLParameterInt();
-	paramHeightOut->SetLibelle("heightOut");
-	paramHeightOut->SetValue(heightOut);
-	vecParam.push_back(paramHeightOut);
-
-	COpenCLParameterInt* paramtype = new COpenCLParameterInt();
-	paramtype->SetLibelle("type");
-	paramtype->SetValue(method);
-	vecParam.push_back(paramtype);
-
-	dest = ExecuteOpenCLCode("IDR_OPENCL_INTERPOLATION", "InterpolationDirect", vecParam, widthOut, heightOut);
-
-	for (COpenCLParameter* parameter : vecParam)
-	{
-		if (!parameter->GetNoDelete())
-		{
-			delete parameter;
-			parameter = nullptr;
-		}
-	}
-
-	cv::cvtColor(dest, cvDest, COLOR_BGRA2BGR);
-
-	return cvDest;
-}
-
 
 void COpenCLFilter::DetailEnhance(UMat& inputData, const double& sigma_s, const double& sigma_r)
 {
 	try
 	{
 		UMat dest;
+
+		if (inputData.channels() == 4)
+		{
+			cvtColor(inputData, dest, COLOR_BGRA2BGR);
+		}
+
 		cv::detailEnhance(inputData, dest, sigma_s, sigma_r);
-		dest.copyTo(inputData);
+
+		if (inputData.channels() == 4)
+		{
+			cvtColor(dest, inputData, COLOR_BGR2BGRA);
+		}
+		else
+			dest.copyTo(inputData);
 	}
 	catch (Exception& e)
 	{
@@ -114,8 +90,21 @@ void COpenCLFilter::EdgePreservingFilter(UMat& inputData, const int& flags, cons
 	try
 	{
 		UMat dest;
+
+		if (inputData.channels() == 4)
+		{
+			cvtColor(inputData, dest, COLOR_BGRA2BGR);
+		}
+
 		edgePreservingFilter(inputData, dest, flags, sigma_s, sigma_r);
-		dest.copyTo(inputData);
+
+		if (inputData.channels() == 4)
+		{
+			cvtColor(dest, inputData, COLOR_BGR2BGRA);
+		}
+		else
+			dest.copyTo(inputData);
+
 	}
 	catch (Exception& e)
 	{
@@ -129,10 +118,20 @@ void COpenCLFilter::PencilSketch(UMat& inputData, const double& sigma_s, const d
 {
 	try
 	{
+
 		UMat img1;
 		UMat dest;
+
+		if (inputData.channels() == 4)
+			cvtColor(inputData, dest, COLOR_BGRA2BGR);
+
 		pencilSketch(inputData, img1, dest, sigma_s, sigma_r, shade_factor);
-		dest.copyTo(inputData);
+
+		if (inputData.channels() == 4)
+			cvtColor(dest, inputData, COLOR_BGR2BGRA);
+		else
+			dest.copyTo(inputData);
+
 	}
 	catch (Exception& e)
 	{
@@ -147,8 +146,15 @@ void COpenCLFilter::Stylization(UMat& inputData, const double& sigma_s, const do
 	try
 	{
 		UMat dest;
+		if (inputData.channels() == 4)
+			cvtColor(inputData, dest, COLOR_BGRA2BGR);
+
 		stylization(inputData, dest, sigma_s, sigma_r);
-		dest.copyTo(inputData);
+
+		if (inputData.channels() == 4)
+			cvtColor(dest, inputData, COLOR_BGR2BGRA);
+		else
+			dest.copyTo(inputData);
 	}
 	catch (Exception& e)
 	{
@@ -164,8 +170,16 @@ void COpenCLFilter::BilateralEffect(UMat& inputData, const int& fSize, const int
 	try
 	{
 		UMat dest;
+		if (inputData.channels() == 4)
+			cvtColor(inputData, dest, COLOR_BGRA2BGR);
+
 		bilateralFilter(inputData, dest, fSize, sigmaX, sigmaP, BORDER_DEFAULT);
-		dest.copyTo(inputData);
+
+		if (inputData.channels() == 4)
+			cvtColor(dest, inputData, COLOR_BGR2BGRA);
+		else
+			dest.copyTo(inputData);
+
 	}
 	catch (Exception& e)
 	{
@@ -276,7 +290,7 @@ void COpenCLFilter::BrightnessAndContrastAuto(UMat& inputData, float clipHistPer
 		convertScaleAbs(inputData, inputData, alpha, beta);
         */
         
-        printf("Use OpenCL Auto Contrast \n");
+        //printf("Use OpenCL Auto Contrast \n");
         
         int histSize = 256;
 		float alpha, beta;
@@ -402,8 +416,21 @@ void COpenCLFilter::SharpenMasking(const float& sharpness, UMat& inputData)
 
 		UMat dest;
 		UMat inputDataBgra;
-		cvtColor(cvDestBgra, cvDestBgra, COLOR_BGR2BGRA);
-		cvtColor(inputData, inputDataBgra, COLOR_BGR2BGRA);
+
+		int nbChannels = inputData.channels();
+		if (inputData.channels() == 3)
+		{
+			cvtColor(inputData, inputDataBgra, COLOR_BGR2BGRA);
+		}
+		else
+		{
+			inputDataBgra = inputData;
+		}
+
+		if (cvDestBgra.channels() == 3)
+		{
+			cvtColor(cvDestBgra, cvDestBgra, COLOR_BGR2BGRA);
+		}
 
 		vector<COpenCLParameter*> vecParam;
 		auto clBuffer = static_cast<cl_mem>(inputDataBgra.handle(ACCESS_READ));
@@ -448,7 +475,10 @@ void COpenCLFilter::SharpenMasking(const float& sharpness, UMat& inputData)
 			}
 		}
 
-		cvtColor(dest, inputData, COLOR_BGRA2BGR);
+		if (nbChannels == 3)
+			cvtColor(dest, inputData, COLOR_BGRA2BGR);
+		else
+			inputData = dest;
 	}
 	catch (Exception& e)
 	{
@@ -508,7 +538,11 @@ void COpenCLFilter::FiltreMosaic(UMat& inputData, const int& size)
 	{
 		UMat dest;
 		UMat cvDestBgra;
-		cvtColor(inputData, cvDestBgra, COLOR_BGR2BGRA);
+		int nbChannels = inputData.channels();
+		if (inputData.channels() == 3)
+			cvtColor(inputData, cvDestBgra, COLOR_BGR2BGRA);
+		else
+			cvDestBgra = inputData;
 
 		vector<COpenCLParameter*> vecParam;
 		auto clBuffer = static_cast<cl_mem>(cvDestBgra.handle(ACCESS_READ));
@@ -545,7 +579,10 @@ void COpenCLFilter::FiltreMosaic(UMat& inputData, const int& size)
 			}
 		}
 
-		cvtColor(dest, inputData, COLOR_BGRA2BGR);
+		if (nbChannels == 3)
+			cvtColor(dest, inputData, COLOR_BGRA2BGR);
+		else
+			inputData = dest;
 	}
 	catch (Exception& e)
 	{
@@ -592,7 +629,11 @@ void COpenCLFilter::MotionBlurCompute(const vector<double>& kernelMotion, const 
 	
 	UMat dest;
 	UMat cvDestBgra;
-	cvtColor(inputData, cvDestBgra, COLOR_BGR2BGRA);
+	int nbChannels = inputData.channels();
+	if (inputData.channels() == 3)
+		cvtColor(inputData, cvDestBgra, COLOR_BGR2BGRA);
+	else
+		cvDestBgra = inputData;
 
 	vector<COpenCLParameter*> vecParam;
 	auto clBuffer = static_cast<cl_mem>(cvDestBgra.handle(ACCESS_READ));
@@ -656,7 +697,11 @@ void COpenCLFilter::MotionBlurCompute(const vector<double>& kernelMotion, const 
 	delete[] kernel;
 	delete[] offsetsMotion;
 
-	cvtColor(dest, inputData, COLOR_BGRA2BGR);
+
+	if (nbChannels == 3)
+		cvtColor(dest, inputData, COLOR_BGRA2BGR);
+	else
+		inputData = dest;
 }
 
 void COpenCLFilter::Emboss(UMat& inputData)
@@ -769,7 +814,11 @@ void COpenCLFilter::FiltreConvolution(const wxString& programName, const wxStrin
 	
 	UMat dest;
 	UMat cvDestBgra;
-	cvtColor(inputData, cvDestBgra, COLOR_BGR2BGRA);
+	int nbChannels = inputData.channels();
+	if (inputData.channels() == 3)
+		cvtColor(inputData, cvDestBgra, COLOR_BGR2BGRA);
+	else
+		cvDestBgra = inputData;
 
 	vector<COpenCLParameter*> vecParam;
 	auto clBuffer = static_cast<cl_mem>(cvDestBgra.handle(ACCESS_READ));
@@ -800,7 +849,10 @@ void COpenCLFilter::FiltreConvolution(const wxString& programName, const wxStrin
 		}
 	}
 
-	cvtColor(dest, inputData, COLOR_BGRA2BGR);
+	if (nbChannels == 3)
+		cvtColor(dest, inputData, COLOR_BGRA2BGR);
+	else
+		inputData = dest;
 }
 
 void COpenCLFilter::ErodeDilate(const wxString& functionName, UMat& inputData)
@@ -826,7 +878,11 @@ void COpenCLFilter::Posterize(const float& level, const float& gamma, UMat& inpu
 	
 	UMat dest;
 	UMat cvDestBgra;
-	cvtColor(inputData, cvDestBgra, COLOR_BGR2BGRA);
+	int nbChannels = inputData.channels();
+	if (nbChannels == 3)
+		cvtColor(inputData, cvDestBgra, COLOR_BGR2BGRA);
+	else
+		cvDestBgra = inputData;
 
 	vector<COpenCLParameter*> vecParam;
 	auto clBuffer = static_cast<cl_mem>(cvDestBgra.handle(ACCESS_READ));
@@ -863,7 +919,10 @@ void COpenCLFilter::Posterize(const float& level, const float& gamma, UMat& inpu
 		}
 	}
 
-	cvtColor(dest, inputData, COLOR_BGRA2BGR);
+	if (nbChannels == 3)
+		cvtColor(dest, inputData, COLOR_BGRA2BGR);
+	else
+		inputData = dest;
 }
 
 
@@ -872,7 +931,11 @@ void COpenCLFilter::LensDistortion(const float& strength, UMat& inputData)
 	
 	UMat dest;
 	UMat cvDestBgra;
-	cvtColor(inputData, cvDestBgra, COLOR_BGR2BGRA);
+	int nbChannels = inputData.channels();
+	if (nbChannels == 3)
+		cvtColor(inputData, cvDestBgra, COLOR_BGR2BGRA);
+	else
+		cvDestBgra = inputData;
 
 	double _strength = static_cast<double>(strength) / 100;
 	double correctionRadius = sqrt(pow(inputData.rows, 2) + pow(inputData.cols, 2)) / _strength;
@@ -913,7 +976,10 @@ void COpenCLFilter::LensDistortion(const float& strength, UMat& inputData)
 		}
 	}
 
-	cvtColor(dest, inputData, COLOR_BGRA2BGR);
+	if (nbChannels == 3)
+		cvtColor(dest, inputData, COLOR_BGRA2BGR);
+	else
+		inputData = dest;
 }
 
 int COpenCLFilter::GetRgbaBitmap(cl_mem cl_image, UMat& u)
@@ -965,7 +1031,12 @@ void COpenCLFilter::Solarize(const long& threshold, UMat& inputData)
 	UMat dest;
 	UMat cvDest;
 	UMat cvDestBgra;
-	cvtColor(inputData, cvDestBgra, COLOR_BGR2BGRA);
+
+	int nbChannels = inputData.channels();
+	if (nbChannels == 3)
+		cvtColor(inputData, cvDestBgra, COLOR_BGR2BGRA);
+	else
+		cvDestBgra = inputData;
 
 	vector<COpenCLParameter*> vecParam;
 	auto clBuffer = static_cast<cl_mem>(cvDestBgra.handle(ACCESS_READ));
@@ -1003,7 +1074,10 @@ void COpenCLFilter::Solarize(const long& threshold, UMat& inputData)
 		}
 	}
 
-	cvtColor(dest, inputData, COLOR_BGRA2BGR);
+	if (nbChannels == 3)
+		cvtColor(dest, inputData, COLOR_BGRA2BGR);
+	else
+		inputData = dest;
 }
 
 void COpenCLFilter::Median(UMat& inputData)
@@ -1026,7 +1100,11 @@ void COpenCLFilter::Noise(UMat& inputData)
 	
 	UMat dest;
 	UMat cvDestBgra;
-	cvtColor(inputData, cvDestBgra, COLOR_BGR2BGRA);
+	int nbChannels = inputData.channels();
+	if(nbChannels == 3)
+		cvtColor(inputData, cvDestBgra, COLOR_BGR2BGRA);
+	else
+		cvDestBgra = inputData;
 
 	vector<COpenCLParameter*> vecParam;
 	auto clBuffer = static_cast<cl_mem>(cvDestBgra.handle(ACCESS_READ));
@@ -1057,7 +1135,10 @@ void COpenCLFilter::Noise(UMat& inputData)
 		}
 	}
 
-	cvtColor(dest, inputData, COLOR_BGRA2BGR);
+	if (nbChannels == 3)
+		cvtColor(dest, inputData, COLOR_BGRA2BGR);
+	else
+		inputData = dest;
 }
 
 
@@ -1080,7 +1161,11 @@ void COpenCLFilter::Swirl(const float& radius, const float& angle, UMat& inputDa
 	UMat dest;
 	UMat cvDest;
 	UMat cvDestBgra;
-	cv::cvtColor(inputData, cvDestBgra, COLOR_BGR2BGRA);
+	int nbChannels = inputData.channels();
+	if (nbChannels == 3)
+		cvtColor(inputData, cvDestBgra, COLOR_BGR2BGRA);
+	else
+		cvDestBgra = inputData;
 
 	vector<COpenCLParameter*> vecParam;
 	auto clBuffer = static_cast<cl_mem>(cvDestBgra.handle(ACCESS_READ));
@@ -1123,16 +1208,22 @@ void COpenCLFilter::Swirl(const float& radius, const float& angle, UMat& inputDa
 		}
 	}
 
-	cv::cvtColor(dest, inputData, COLOR_BGRA2BGR);
+	if (nbChannels == 3)
+		cvtColor(dest, inputData, COLOR_BGRA2BGR);
+	else
+		inputData = dest;
 }
 
 
-cv::UMat COpenCLFilter::Interpolation(const int& widthOut, const int& heightOut, cv::UMat& inputData, const int& method, int width, int height, int flipH, int flipV, int angle)
+cv::UMat COpenCLFilter::Interpolation(const int& widthOut, const int& heightOut, cv::UMat& inputData, const int& method, int width, int height, int flipH, int flipV, int angle, bool bgraOutput)
 {
 	UMat dest;
 	UMat cvDest;
 	UMat cvDestBgra;
-	cv::cvtColor(inputData, cvDestBgra, COLOR_BGR2BGRA);
+	if (inputData.channels() == 3)
+		cv::cvtColor(inputData, cvDestBgra, COLOR_BGR2BGRA);
+	else
+		cvDestBgra = inputData;
 
 	vector<COpenCLParameter*> vecParam;
 	auto clBuffer = static_cast<cl_mem>(cvDestBgra.handle(ACCESS_READ));
@@ -1183,7 +1274,10 @@ cv::UMat COpenCLFilter::Interpolation(const int& widthOut, const int& heightOut,
 	paramtype->SetValue(method);
 	vecParam.push_back(paramtype);
 
-	dest = ExecuteOpenCLCode("IDR_OPENCL_INTERPOLATION", "Interpolation", vecParam, widthOut, heightOut);
+	if (!bgraOutput)
+		dest = ExecuteOpenCLCode("IDR_OPENCL_INTERPOLATION", "Interpolation", vecParam, widthOut, heightOut);
+	else
+		cvDest = ExecuteOpenCLCode("IDR_OPENCL_INTERPOLATION", "Interpolation", vecParam, widthOut, heightOut);
 		
 	for (COpenCLParameter* parameter : vecParam)
 	{
@@ -1194,18 +1288,87 @@ cv::UMat COpenCLFilter::Interpolation(const int& widthOut, const int& heightOut,
 		}
 	}
 
-	cv::cvtColor(dest, cvDest, COLOR_BGRA2BGR);
+	if(!bgraOutput)
+		cv::cvtColor(dest, cvDest, COLOR_BGRA2BGR);
 
 	return cvDest;
 }
 
-cv::UMat COpenCLFilter::Interpolation(const int& widthOut, const int& heightOut, const wxRect& rc, const int& method, cv::UMat& inputData, int width, int height, int flipH, int flipV, int angle)
+
+cv::UMat COpenCLFilter::Interpolation(const int& widthOut, const int& heightOut, cv::UMat& inputData, int width, int height, const int& method, bool bgraOutput)
 {
 	UMat dest;
 	UMat cvDest;
-	//UMat cvDestBgra;
+	UMat cvDestBgra;
+	if (inputData.channels() == 3)
+		cv::cvtColor(inputData, cvDestBgra, COLOR_BGR2BGRA);
+	else
+		cvDestBgra = inputData;
 
-	cv::cvtColor(inputData, cvDestBgra, COLOR_BGR2BGRA);
+	vector<COpenCLParameter*> vecParam;
+	auto clBuffer = static_cast<cl_mem>(cvDestBgra.handle(ACCESS_READ));
+
+	auto input = new COpenCLParameterClMem(true);
+	input->SetValue(clBuffer);
+	input->SetLibelle("input");
+	input->SetNoDelete(true);
+	vecParam.push_back(input);
+
+	COpenCLParameterInt* paramWidth = new COpenCLParameterInt();
+	paramWidth->SetValue(width);
+	paramWidth->SetLibelle("width");
+	vecParam.push_back(paramWidth);
+
+	COpenCLParameterInt* paramHeight = new COpenCLParameterInt();
+	paramHeight->SetValue(height);
+	paramHeight->SetLibelle("height");
+	vecParam.push_back(paramHeight);
+
+	COpenCLParameterInt* paramWidthOut = new COpenCLParameterInt();
+	paramWidthOut->SetLibelle("widthOut");
+	paramWidthOut->SetValue(widthOut);
+	vecParam.push_back(paramWidthOut);
+
+	COpenCLParameterInt* paramHeightOut = new COpenCLParameterInt();
+	paramHeightOut->SetLibelle("heightOut");
+	paramHeightOut->SetValue(heightOut);
+	vecParam.push_back(paramHeightOut);
+
+	COpenCLParameterInt* paramtype = new COpenCLParameterInt();
+	paramtype->SetLibelle("type");
+	paramtype->SetValue(method);
+	vecParam.push_back(paramtype);
+
+	if (!bgraOutput)
+		dest = ExecuteOpenCLCode("IDR_OPENCL_INTERPOLATION", "InterpolationDirect", vecParam, widthOut, heightOut);
+	else
+		cvDest = ExecuteOpenCLCode("IDR_OPENCL_INTERPOLATION", "InterpolationDirect", vecParam, widthOut, heightOut);
+
+	for (COpenCLParameter* parameter : vecParam)
+	{
+		if (!parameter->GetNoDelete())
+		{
+			delete parameter;
+			parameter = nullptr;
+		}
+	}
+
+	if (!bgraOutput)
+		cv::cvtColor(dest, cvDest, COLOR_BGRA2BGR);
+
+	return cvDest;
+}
+
+cv::UMat COpenCLFilter::Interpolation(const int& widthOut, const int& heightOut, const wxRect& rc, const int& method, cv::UMat& inputData, int width, int height, int flipH, int flipV, int angle, bool bgraOutput)
+{
+	UMat dest;
+	UMat cvDest;
+	UMat cvDestBgra;
+
+	if (inputData.channels() == 3)
+		cv::cvtColor(inputData, cvDestBgra, COLOR_BGR2BGRA);
+	else
+		cvDestBgra = inputData;
 
 	vector<COpenCLParameter*> vecParam;
 	auto clBuffer = static_cast<cl_mem>(cvDestBgra.handle(ACCESS_READ));
@@ -1276,7 +1439,10 @@ cv::UMat COpenCLFilter::Interpolation(const int& widthOut, const int& heightOut,
 	paramtype->SetValue(method);
 	vecParam.push_back(paramtype);
 
-	dest = ExecuteOpenCLCode("IDR_OPENCL_INTERPOLATION", "InterpolationZone", vecParam, widthOut, heightOut);
+	if (!bgraOutput)
+		dest = ExecuteOpenCLCode("IDR_OPENCL_INTERPOLATION", "InterpolationZone", vecParam, widthOut, heightOut);
+	else
+		cvDest = ExecuteOpenCLCode("IDR_OPENCL_INTERPOLATION", "InterpolationZone", vecParam, widthOut, heightOut);
 
 	for (COpenCLParameter* parameter : vecParam)
 	{
@@ -1287,7 +1453,8 @@ cv::UMat COpenCLFilter::Interpolation(const int& widthOut, const int& heightOut,
 		}
 	}
 
-	cv::cvtColor(dest, cvDest, COLOR_BGRA2BGR);
+	if (!bgraOutput)
+		cv::cvtColor(dest, cvDest, COLOR_BGRA2BGR);
 
 	return cvDest;
 }
@@ -1538,34 +1705,55 @@ void COpenCLFilter::ExecuteOpenCLCode(const wxString& programName, const wxStrin
 UMat COpenCLFilter::ExecuteOpenCLCode(const wxString& programName, const wxString& functionName,
 	vector<COpenCLParameter*>& vecParam, const int& width, const int& height)
 {
-	// Crée un UMat avec le type CV_8UC4
-	if(cvDestBgra.empty())
+	OpenCLMemoryTemp * memInfo = nullptr;
+
+	if (openclMemTempMap.find(functionName) != openclMemTempMap.end())
 	{
-		cvDestBgra.create(height, width, CV_8UC4);
+		memInfo = openclMemTempMap[functionName];
 	}
-	else if (cvDestBgra.size().width != width || cvDestBgra.size().height != height)
+	else
 	{
-		cvDestBgra.create(height, width, CV_8UC4);
+		memInfo = new OpenCLMemoryTemp();
+	}
+	
+	// Crée un UMat avec le type CV_8UC4
+	if(memInfo->openclMem.empty())
+	{
+		memInfo->openclMem.create(height, width, CV_8UC4);
+		memInfo->cl_image = static_cast<cl_mem>(memInfo->openclMem.handle(ACCESS_WRITE));
+	}
+	else if (memInfo->openclMem.size().width != width || memInfo->openclMem.size().height != height)
+	{
+		memInfo->openclMem.create(height, width, CV_8UC4);
+		memInfo->cl_image = static_cast<cl_mem>(memInfo->openclMem.handle(ACCESS_WRITE));
 	}
 	//UMat paramSrc(height, width, CV_8UC4);
 
 	// Récupère le buffer OpenCL associé
-	auto clBuffer = static_cast<cl_mem>(cvDestBgra.handle(ACCESS_WRITE));
+	if(memInfo->cl_image == nullptr)
+		memInfo->cl_image = static_cast<cl_mem>(memInfo->openclMem.handle(ACCESS_WRITE));
 
 	// Exécute le code OpenCL
-	ExecuteOpenCLCode(programName, functionName, vecParam, width, height, clBuffer);
+	ExecuteOpenCLCode(programName, functionName, vecParam, width, height, memInfo->cl_image);
 
-	return cvDestBgra;
+
+	if (openclMemTempMap.find(functionName) == openclMemTempMap.end())
+	{
+		openclMemTempMap[functionName] = memInfo;
+	}
+
+	return memInfo->openclMem;
 }
 
-
 UMat COpenCLFilter::Interpolation(const int& widthOut, const int& heightOut, const wxRect& rc, const int& method,
-	UMat& inputData, int flipH, int flipV, int angle, int ratio)
+	UMat& inputData, int flipH, int flipV, int angle, int ratio, bool bgraOutput)
 {
-	bool _useSuperResolution = false;
-	//cout << "COpenCLFilter::Interpolation : " << method << endl;
+	cv::UMat cvDestBgra;
+    bool _useSuperResolution = false;
+    CRegardsConfigParam* regardsParam = CParamInit::getInstance();
 
 
+	
 	//UMat cvImage;
 	//inputData.copyTo(cvImage);
 
@@ -1581,9 +1769,9 @@ UMat COpenCLFilter::Interpolation(const int& widthOut, const int& heightOut, con
 
 		Rect rectGlobal;
 		Rect rect_begin = CalculRect(inputData.cols, inputData.rows, widthOut, heightOut, flipH, flipV, angle, ratioX,
-			ratioY, 0, 0, rc.x, rc.y);
+		                             ratioY, 0, 0, rc.x, rc.y);
 		Rect rect_end = CalculRect(inputData.cols, inputData.rows, widthOut, heightOut, flipH, flipV, angle, ratioX,
-			ratioY, widthOut, heightOut, rc.x, rc.y);
+		                           ratioY, widthOut, heightOut, rc.x, rc.y);
 		rectGlobal.x = rect_begin.x;
 		rectGlobal.y = rect_begin.y;
 		rectGlobal.width = rect_end.x;
@@ -1671,16 +1859,21 @@ UMat COpenCLFilter::Interpolation(const int& widthOut, const int& heightOut, con
 		the nearest neighbor method in PIL, scikit-image or Matlab.
 		INTER_NEAREST_EXACT = 6,
 		*/
+
 		if (method == 7)
 		{
-
+			
 			try
 			{
-
+#if _DEBUG
 				clock_t start, end;
 				start = clock();
+#endif
 				cv::UMat src;
-				cvtColor(cvDestBgra, src, cv::COLOR_BGR2BGRA);
+				if(cvDestBgra.channels() == 3)
+					cvtColor(cvDestBgra, src, cv::COLOR_BGR2BGRA);
+				else if (cvDestBgra.channels() == 4)
+					src = cvDestBgra;
 				avir::CImageResizer ImageResizer(8);
 				avir::CImageResizerVars Vars;
 				Vars.UseSRGBGamma = true;
@@ -1695,7 +1888,7 @@ UMat COpenCLFilter::Interpolation(const int& widthOut, const int& heightOut, con
 				}
 				else
 				{
-					if (param->width != src.cols || param->height != src.rows || param->widthOut != widthOut || param->heightOut != heightOut)
+					if (param->width != src.cols || param->height != src.rows || param->widthOut != widthOut  || param->heightOut != heightOut)
 					{
 						delete param;
 						param = new CAvirFilterParam();
@@ -1712,35 +1905,35 @@ UMat COpenCLFilter::Interpolation(const int& widthOut, const int& heightOut, con
 
 				cv::UMat out;
 
-
-				if (useParam)
-				{
+				
+				if(useParam)
+                {
 					out = ImageResizer.resizeImageOpenCLWithStep(src, param);
-				}
+                }
 				else
-				{
+                {
 					out = ImageResizer.resizeImageOpenCL(src, src.cols, src.rows, widthOut, heightOut, 4, 0, param, &Vars);
-				}
+                }
+				
+				cvDestBgra = out;
 
-				//out = ImageResizer.resizeImageOpenCL(src, src.cols, src.rows, widthOut, heightOut, 4, 0, param, &Vars);
-
-				cvtColor(out, cvDestBgra, cv::COLOR_BGRA2BGR);
-
+#ifdef _DEBUG
 				end = clock();
 
 				// Calculating total time taken by the program.
 				double time_taken = double(end - start) / double(CLOCKS_PER_SEC);
 
+
 #ifdef WIN32
-				OutputDebugString(L"Time taken by program is : ");
+				OutputDebugString(L"Time taken by COpenCLFilter::Interpolation is : ");
 				OutputDebugString(to_wstring(time_taken).c_str());
 				OutputDebugString(L" sec \n");
 #else
-				cout << "Time taken by program is : " << fixed << time_taken << setprecision(5);
+				cout << "Time taken by COpenCLFilter::Interpolation is : " << fixed << time_taken << setprecision(5);
 				cout << " sec " << endl;
 #endif
-
-
+#endif			
+				
 			}
 			catch (...)
 			{
@@ -1749,13 +1942,40 @@ UMat COpenCLFilter::Interpolation(const int& widthOut, const int& heightOut, con
 					resize(cvDestBgra, cvDestBgra, Size(widthOut, heightOut), method);
 				}
 			}
-
+			
 		}
 		else if (method > 7)
 		{
+#ifdef _DEBUG
+			using std::chrono::high_resolution_clock;
+			using std::chrono::duration_cast;
+			using std::chrono::duration;
+			using std::chrono::milliseconds;
+
+			auto t1 = high_resolution_clock::now();
+#endif	
 			// Appelle une autre version d'Interpolation pour les méthodes avancées
 			int localMethod = method - 7;
-			cvDestBgra = Interpolation(widthOut, heightOut, cvDestBgra, cvDestBgra.cols, cvDestBgra.rows, localMethod);
+			cvDestBgra = Interpolation(widthOut, heightOut, cvDestBgra, cvDestBgra.cols, cvDestBgra.rows, localMethod, bgraOutput);
+
+#ifdef _DEBUG
+			auto t2 = high_resolution_clock::now();
+
+			/* Getting number of milliseconds as an integer. */
+			auto ms_int = duration_cast<milliseconds>(t2 - t1);
+
+			/* Getting number of milliseconds as a double. */
+			duration<double, std::milli> ms_double = t2 - t1;
+
+
+#ifdef WIN32
+			OutputDebugString(L"Time taken by COpenCLFilter::Interpolation is : ");
+			OutputDebugString(to_wstring(ms_int.count()).c_str());
+			OutputDebugString(L" ms \n");
+#else
+			std::cout << "Time taken by COpenCLFilter::Interpolation is : " << ms_int.count() << "ms\n";
+#endif
+#endif
 		}
 		else if (cvDestBgra.cols != widthOut || cvDestBgra.rows != heightOut)
 		{
@@ -1788,12 +2008,24 @@ UMat COpenCLFilter::Interpolation(const int& widthOut, const int& heightOut, con
 		const char* err_msg = e.what();
 		std::cout << "COpenCLFilter::Interpolation exception caught: " << err_msg << std::endl;
 		std::cout << "wrong file format, please input the name of an IMAGE file" << std::endl;
-		std::cout << "width : " << widthOut << "height : " << heightOut << std::endl;
-		cv::Mat image(widthOut, heightOut, CV_8UC3, cv::Scalar(0, 0, 0));
-		image.copyTo(cvDestBgra);
+        std::cout << "width : " << widthOut << "height : " <<  heightOut << std::endl;
+        cv::Mat image(widthOut, heightOut, CV_8UC3, cv::Scalar(0, 0, 0));
+        image.copyTo(cvDestBgra);
 	}
 
 
-	return cvDestBgra;
+	if (bgraOutput)
+	{
+		if (cvDestBgra.channels() == 3)
+			cvtColor(cvDestBgra, cvDestBgra, COLOR_BGR2BGRA);
 
+	}
+	else
+	{
+		if (cvDestBgra.channels() == 4)
+			cvtColor(cvDestBgra, cvDestBgra, COLOR_BGRA2BGR);
+	}
+
+	return cvDestBgra;
+    
 }

@@ -50,7 +50,7 @@ namespace Regards
 
 			void checkErrors(std::string desc);
 			GLuint m_nTextureID;
-            
+
             bool SetTextureData(Regards::Picture::CPictureArray& bitmap);
 
 			CTextureGLPriv* pimpl_ = nullptr;
@@ -63,6 +63,7 @@ namespace Regards
 			bool pboSupported = false;
             GLenum dataformat;
 			GLuint pboIds[1];
+			
 		};
 	}
 }

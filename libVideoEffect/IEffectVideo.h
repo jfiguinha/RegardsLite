@@ -33,7 +33,7 @@ namespace Regards
 
 			virtual bool IsOk() = 0;
 			virtual void SetMatrix(Regards::Picture::CPictureArray& frame) = 0;
-			virtual void SetMatrix(cv::Mat* m) = 0;
+			virtual void SetMatrix(cv::Mat * frame) = 0;
 			virtual Regards::Picture::CPictureArray GetMatrix(const bool& src = true) = 0;
 
 			virtual void AutoContrast() = 0;
@@ -43,10 +43,10 @@ namespace Regards
 			virtual void ApplyVideoEffect(CVideoEffectParameter* effectParameter) = 0;
 			virtual void InterpolationZoomBicubic(const int& widthOutput, const int& heightOutput, const wxRect& rc,
 				const int& flipH, const int& flipV, const int& angle,
-				const int& bicubic, int ratio) = 0;
+				const int& bicubic, int ratio, bool bgraOutput = false) = 0;
 
 
-			virtual void SetAVFrame(CVideoEffectParameter* videoEffectParameter, AVFrame*& tmp_frame, int colorSpace, int isLimited) = 0;
+			virtual void SetAVFrame(CVideoEffectParameter* videoEffectParameter, AVFrame*& tmp_frame, int colorSpace, int isLimited, bool bgraOutput = false) = 0;
 
 
 

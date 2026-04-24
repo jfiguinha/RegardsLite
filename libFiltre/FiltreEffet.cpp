@@ -51,11 +51,11 @@ int CFiltreEffet::GetWidth()
 	return filtreEffet->GetWidth();
 }
 
+
 int CFiltreEffet::Inpaint(const cv::Mat &mask, int algorithm)
 {
     return filtreEffet->Inpaint(mask, algorithm);
 }
-
 
 
 int CFiltreEffet::GetHeight()
@@ -177,8 +177,6 @@ CFiltreEffet::CFiltreEffet(const CRgbaquad& backColor, const bool& useOpenCL, co
 
 #endif
 
-	
-	
 
 	if (local_useOpenCL && useOpenCL)
 	{
@@ -206,6 +204,7 @@ CFiltreEffet::~CFiltreEffet()
 	if (filtreEffet != nullptr)
 		delete(filtreEffet);
 }
+
 
 
 wxImage CFiltreEffet::GetwxImage()
@@ -250,13 +249,13 @@ int CFiltreEffet::SharpenMasking(const float& sharpness)
 
 
 void CFiltreEffet::Interpolation(const int& widthOut, const int& heightOut, const wxRect& rc, const int& method,
-                                 int flipH, int flipV, int angle, int ratio)
+                                 int flipH, int flipV, int angle, int ratio, bool bgraOutput)
 {
 #ifdef _CALCU_DIFF_TIME
 	LARGE_INTEGER start_time;
 	LARGE_INTEGER end_time;
 #endif
-	filtreEffet->Interpolation(widthOut, heightOut, rc, method, flipH, flipV, angle, ratio);
+	filtreEffet->Interpolation(widthOut, heightOut, rc, method, flipH, flipV, angle, ratio, bgraOutput);
 
 #ifdef _CALCU_DIFF_TIME
 	::QueryPerformanceCounter((LARGE_INTEGER*)&end_time);

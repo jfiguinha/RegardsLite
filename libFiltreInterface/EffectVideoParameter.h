@@ -40,9 +40,7 @@ public:
 
 	CVideoEffectParameter(): streamAudioIndex(0), streamVideoIndex(0), streamSubtitleIndex(0)
 	{
-
-        
-        
+       
 		effectEnable = 0;
 		//Video Parameter
 		sharpness = 1.5f;
@@ -61,7 +59,7 @@ public:
 		SharpenEnable = 1;
 		MedianEnable = 1;
 		ColorBoostEnable = 1;
-		BicubicEnable = 0;
+
 		rotation = 0;
 		showFPS = 0;
 		grayEnable = 0;
@@ -84,10 +82,9 @@ public:
 		templateWindowSize = 6;
 		searchWindowSize = 4;
 
-		effectEnable = 0;
-
 		filmgrainenable = 0;
-
+		filmcolorisation = 0;
+		filmEnhance = 0;
 		ratioSelect = 0;
 
 		tabRatio = zoom;
@@ -97,63 +94,10 @@ public:
 			if (tabZoom[i] == 1.0f)
 				zoomSelect = i;
 		}
+
+
 	};
     
-	/*
-    CVideoEffectParameter& operator=(const CVideoEffectParameter& x)
-    {
-		CVideoEffectParameter effect;
-
-		effect.effectEnable = x.effectEnable;
-		//Video Parameter
-		effect.sharpness = x.sharpness;
-		//Sky Light
-		//Tone mapping
-		effect.contrast = x.contrast;
-		effect.brightness = x.brightness;
-		//exponent = 1.0f;
-
-		//Color Boost
-		effect.color_boost[0] = x.color_boost[0];
-		effect.color_boost[1] = x.color_boost[1];
-		effect.color_boost[2] = x.color_boost[2];
-		effect.color_boost[3] = x.color_boost[3];
-
-		effect.SharpenEnable = x.SharpenEnable;
-		effect.MedianEnable = x.MedianEnable;
-		effect.ColorBoostEnable = x.ColorBoostEnable;
-		effect.BicubicEnable = x.BicubicEnable;;
-		effect.rotation = x.rotation;
-		effect.showFPS = x.showFPS;
-		effect.grayEnable = x.grayEnable;
-		effect.vhsEnable = x.vhsEnable;
-		effect.sepiaEnable = x.sepiaEnable;
-		effect.enableSubtitle =x.enableSubtitle;
-		effect.streamAudioUpdate = x.streamAudioUpdate;
-		effect.streamVideoUpdate = x.streamVideoUpdate;
-		effect.streamSubtitleUpdate = x.streamSubtitleUpdate;
-		//enableOpenCL = 0;
-		effect.denoiseEnable = x.denoiseEnable;
-		effect.bandcEnable =x.bandcEnable;
-
-		effect.uSigma = x.uSigma;
-		effect.uThreshold =x.uThreshold;
-		effect.uKSigma = x.uKSigma;
-		effect.openglDenoise = x.openglDenoise;
-
-		effect.denoisingLevel = x.denoisingLevel;
-		effect.templateWindowSize = x.templateWindowSize;
-		effect.searchWindowSize = x.searchWindowSize;
-
-		effect.filmgrainenable = x.filmgrainenable;
-		effect.filmcolorisation = x.filmcolorisation;
-		effect.filmEnhance = x.filmEnhance;
-		effect.ratioSelect = x.ratioSelect;
-
-		return effect;
-    }
-	*/
-
 	~CVideoEffectParameter() override
 	{
 	};
@@ -173,7 +117,7 @@ public:
 	//Tone mapping
 	float contrast;
 	float brightness;
-	int interpolation = 0;
+
 	//Color Boost
 	float color_boost[4];
 
@@ -181,8 +125,7 @@ public:
 	int MedianEnable;
 	int denoiseEnable;
 	int ColorBoostEnable;
-	int BicubicEnable;
-	//int   enableOpenCL;
+
 	int rotation;
 	int bandcEnable;
 	int showFPS;
@@ -198,18 +141,19 @@ public:
 	int streamVideoUpdate;
 	int streamSubtitleUpdate;
 	int filmgrainenable;
-
+	int filmcolorisation;
+	int filmEnhance;
 	vector<float> tabRatio;
 	vector<float> tabZoom;
 	int ratioSelect = 4;
 	int zoomSelect = 0;
 	bool zoomUpdate = false;
-	int interpolationQuality = 0;
+
 	bool autoConstrast = false;
 	bool stabilizeVideo = false;
 	int stabilizeImageBuffere = 2;
-
-
+	int interpolation = 0;
+	int interpolationQuality = 0;
 	int templateWindowSize = 7;
 	int searchWindowSize = 21;
 	int h = 3;

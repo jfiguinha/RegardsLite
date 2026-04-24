@@ -26,8 +26,8 @@ public:
 	                  const int& searchWindowSize) override;
 	void SetBitmap(CImageLoadingFormat* bitmap) override;
 	int MeanShift(const float& fSpatialRadius, const float& fColorRadius) override;
-	void Interpolation(const int& widthOut, const int& heightOut, const wxRect& rc, const int& method, int flipH,
-	                   int flipV, int angle, int ratio) override;
+	void Interpolation(const int& widthOut, const int& heightOut, const wxRect& rc, const int& method,
+		int flipH, int flipV, int angle, int ratio, bool bgraOutput = false) override;
 	int LensDistortionFilter(const int& size) override;
 	cv::Mat GetBitmap(const bool& source) override;
 	wxImage GetwxImage() override;
@@ -81,7 +81,7 @@ public:
 	static void LoadAndRotate(const wxString& filePath, const int& rotate);
 	bool StabilizeVideo(Regards::OpenCV::COpenCVStabilization* stabilization) override;
 	static cv::Mat Interpolation(const cv::Mat& cvImage, const int& widthOut, const int& heightOut, const wxRect& rc,
-	                             const int& method, int flipH, int flipV, int angle, int ratio);
+	                             const int& method, int flipH, int flipV, int angle, int ratio, bool bgraOutput = false);
 
 	int DetailEnhance(const double& sigma_s, const double& sigma_r) override;
 	int EdgePreservingFilter(const int& flags, const double& sigma_s, const double& sigma_r) override;
