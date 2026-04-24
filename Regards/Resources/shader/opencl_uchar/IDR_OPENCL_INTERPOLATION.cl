@@ -136,7 +136,7 @@ inline uint GetColorSrc_short(int x, int y, const __global uint *input, int widt
 	return 0;
 }
 
-/*
+
 //***********************************************************************************************************
 //Two Pass Filter
 //***********************************************************************************************************
@@ -195,7 +195,7 @@ inline uint KernelExecution(float x, float y, const __global uint *input, int wi
 
 	return rgbaFloat4ToUint(result, 1.0f);
 }
-*/
+
 
 /*
 //***********************************************************************************************************
@@ -236,7 +236,7 @@ inline uint KernelExecution(float x, float y, const __global uint *input, int wi
 }
 */
 
-
+/*
 //***********************************************************************************************************
 //Optimize Pass Filter
 //***********************************************************************************************************
@@ -283,7 +283,7 @@ inline uint KernelExecution(float x, float y, const __global uint *input, int wi
 
 	return rgbaFloat4ToUint(sum, 1.0f);
 }
-
+*/
 
 inline uint CalculInterpolation(const __global uint *input, int widthIn, int heightIn, int widthOut, int heightOut, int flipH, int flipV, int angle, int type, float ratioX, float ratioY, int x, int y, float left, float top)
 {
@@ -373,10 +373,11 @@ __kernel void Interpolation(__global uint *output, const __global uint *input, i
 			ratioX = (float)widthIn / (float)height;
 			ratioY = (float)heightIn / (float)width;	
 		}
-		
+
 		int position = x + y * widthOut;
 		output[position] = CalculInterpolation(input, widthIn, heightIn, widthOut, heightOut, flipH, flipV, angle, type, ratioX, ratioY, x, y, 0, 0);
 	}
+	barrier(CLK_GLOBAL_MEM_FENCE);
 }
 
 __kernel void InterpolationZone(__global uint *output, const __global uint *input, int widthIn, int heightIn, int widthOut, int heightOut, float left, float top, float bitmapWidth, float bitmapHeight, int flipH, int flipV, int angle, int type)
@@ -402,6 +403,7 @@ __kernel void InterpolationZone(__global uint *output, const __global uint *inpu
 		int position = x + y * widthOut;
 		output[position] = CalculInterpolation(input, widthIn, heightIn, widthOut, heightOut, flipH, flipV, angle, type, ratioX, ratioY, x, y, left, top);
 	}
+	barrier(CLK_GLOBAL_MEM_FENCE);
 }
 
 
@@ -423,5 +425,6 @@ __kernel void InterpolationDirect(__global uint *output, const __global uint *in
 		else
 			output[position] = KernelExecution(posX, posY, input, widthIn, heightIn, type);
 	}
+	barrier(CLK_GLOBAL_MEM_FENCE);
 }
 

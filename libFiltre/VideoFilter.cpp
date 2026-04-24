@@ -14,7 +14,6 @@
 #include <effect_id.h>
 using namespace Regards::Filter;
 
-
 CVideoFilter::CVideoFilter()
 {
 	effectDenoising = CLibResource::LoadStringFromResource(L"LBLeffectDenoising", 1);
@@ -42,7 +41,6 @@ CVideoFilter::CVideoFilter()
 	enableBandCEffect = CLibResource::LoadStringFromResource(L"LBLenableBandCEffect", 1); //L"Tone.Enable";
 	enableVHSEffect = CLibResource::LoadStringFromResource(L"LBLFILTERVHS", 1); //"Effect.Vhs";
 	enableGrayScale = CLibResource::LoadStringFromResource(L"LBLenableGrayScale", 1); //L"Effect.Gray Scale";
-	enableSepia = CLibResource::LoadStringFromResource(L"LBLenableSepia", 1); //L"Effect.Sepia";
 	enableBicubicInterpolation = CLibResource::LoadStringFromResource(L"LBLEFFECTBICUBICINTERPOLATION", 1);
 	//LBLEFFECTBICUBICINTERPOLATION
 	enableOpenCL = CLibResource::LoadStringFromResource(L"LBLEFFECTOPENCL", 1); //LBLEFFECTOPENCL
@@ -51,13 +49,14 @@ CVideoFilter::CVideoFilter()
 	libelleStabilizeNbFrame = CLibResource::LoadStringFromResource(L"LBLVideoStabilizeFrame", 1); //LBLEFFECTOPENCL
 	showFPS = CLibResource::LoadStringFromResource(L"LBLshowFPS", 1); //L"Effect.Show FPS";
 	enableFilmgrain = CLibResource::LoadStringFromResource(L"LBLFILMGRAIN", 1);
-	//enableColorisation = CLibResource::LoadStringFromResource(L"LBLCOLORISATION", 1);
+	enableColorisation = CLibResource::LoadStringFromResource(L"LBLCOLORISATION", 1);
 	libelleScale = CLibResource::LoadStringFromResource(L"LBLPICTUREFORMAT", 1);
 	libelleZoom = CLibResource::LoadStringFromResource(L"LBLZOOMPICTURE", 1);
-	//enableRestore = CLibResource::LoadStringFromResource(L"LBLRESTORE", 1);
-	libelleInterpolationQuality = "Interpolation Quality";
+	enableRestore = CLibResource::LoadStringFromResource(L"LBLRESTORE", 1);
+	enableSepia = CLibResource::LoadStringFromResource(L"LBLenableSepia", 1); //L"Effect.Sepia";
 	libelleTemplateWindowSize = CLibResource::LoadStringFromResource(L"LBLeffectDenoisingTemplate", 1);
 	libellesearchWindowSize = CLibResource::LoadStringFromResource(L"LBLeffectDenoisingSearchWindowSize", 1);
+	libelleInterpolationQuality = "Interpolation Quality";
 }
 
 CVideoFilter::~CVideoFilter()
@@ -110,13 +109,7 @@ void CVideoFilter::Filter(CEffectParameter* effectParameter, const wxString& fil
 	vector<CMetadata> formatPicture;
 	AddMetadataElement(formatPicture, "auto", 0);
 	for (int i = 0; i < videoEffectParameter->tabRatio.size(); i++)
-		AddMetadataElement(formatPicture, to_string(videoEffectParameter->tabRatio[i]), i+1);
-	/*
-	AddMetadataElement(formatPicture, "1.33", 1);
-	AddMetadataElement(formatPicture, "1.66", 2);
-	AddMetadataElement(formatPicture, "1.77", 3);
-	AddMetadataElement(formatPicture, "1.85", 4);
-	AddMetadataElement(formatPicture, "2.35", 5);*/
+		AddMetadataElement(formatPicture, to_string(videoEffectParameter->tabRatio[i]), i + 1);
 
 	vector<CMetadata> zoomPicture;
 	for (int i = 0; i < videoEffectParameter->tabZoom.size(); i++)
@@ -130,7 +123,6 @@ void CVideoFilter::Filter(CEffectParameter* effectParameter, const wxString& fil
 	                              &videoEffectParameter->effectEnable, 2, 2);
 	filtreInterface->AddTreeInfos(libelleInterpolationQuality, new CTreeElementValueInt(videoEffectParameter->interpolationQuality),
 		&videoEffectParameter->interpolationQuality, 2, 2);
-
 	filtreInterface->AddTreeInfos(libelleAutoContrast, new CTreeElementValueInt(videoEffectParameter->autoConstrast),
 	                              &videoEffectParameter->autoConstrast, 2, 2);
 	filtreInterface->AddTreeInfos(enableFilmgrain, new CTreeElementValueInt(videoEffectParameter->filmgrainenable),
@@ -139,12 +131,8 @@ void CVideoFilter::Filter(CEffectParameter* effectParameter, const wxString& fil
 	                              &videoEffectParameter->grayEnable, 2, 2);
 	filtreInterface->AddTreeInfos(enableSepia, new CTreeElementValueInt(videoEffectParameter->sepiaEnable),
 		&videoEffectParameter->sepiaEnable, 2, 2);
-	//filtreInterface->AddTreeInfos(enableBicubicInterpolation, new CTreeElementValueInt(videoEffectParameter->BicubicEnable),
-	//	&videoEffectParameter->BicubicEnable, 2, 2);
-	//filtreInterface->AddTreeInfos(enableColorisation, new CTreeElementValueInt(videoEffectParameter->filmcolorisation),
-	//	&videoEffectParameter->filmcolorisation, 2, 2);
-	//filtreInterface->AddTreeInfos(enableRestore, new CTreeElementValueInt(videoEffectParameter->filmEnhance),
-	//	&videoEffectParameter->filmEnhance, 2, 2);
+
+
 	filtreInterface->AddTreeInfos(enableVHSEffect, new CTreeElementValueInt(videoEffectParameter->vhsEnable),
 	                              &videoEffectParameter->vhsEnable, 2, 2);
 	filtreInterface->AddTreeInfos(enableBandCEffect, new CTreeElementValueInt(videoEffectParameter->bandcEnable),
@@ -269,13 +257,13 @@ void CVideoFilter::FilterChangeParam(CEffectParameter* effectParameter, CTreeEle
 	{
 		videoEffectParameter->uSigma = value;
 	}
-	else if (key == effectDenoising)
-	{
-		videoEffectParameter->denoisingLevel = value;
-	}
 	else if (key == libelleInterpolationQuality)
 	{
 		videoEffectParameter->interpolationQuality = value;
+	}    
+	else if (key == effectDenoising)
+	{
+		videoEffectParameter->denoisingLevel = value;
 	}
 	else if (key == enableVHSEffect)
 	{
@@ -285,18 +273,18 @@ void CVideoFilter::FilterChangeParam(CEffectParameter* effectParameter, CTreeEle
 	{
 		videoEffectParameter->stabilizeImageBuffere = value;
 	}
-	/*else if (key == enableRestore)
+	else if (key == enableRestore)
 	{
 		videoEffectParameter->filmEnhance = value;
-	}*/
+	}
 	else if (key == libelleAutoContrast)
 	{
 		videoEffectParameter->autoConstrast = value;
-	}/*
+	}
 	else if (key == enableColorisation)
 	{
 		videoEffectParameter->filmcolorisation = value;
-	}*/
+	}
 	else if (key == libelleStabilize)
 	{
 		videoEffectParameter->stabilizeVideo = value;
@@ -314,10 +302,6 @@ void CVideoFilter::FilterChangeParam(CEffectParameter* effectParameter, CTreeEle
 	else if (key == enableFilmgrain)
 	{
 		videoEffectParameter->filmgrainenable = value;
-	}
-	else if (key == enableBicubicInterpolation)
-	{
-		videoEffectParameter->BicubicEnable = value;
 	}
 	else if (key == enableSepia)
 	{

@@ -36,7 +36,6 @@ namespace Regards::Filter
 		wxString enableSharpenEffect;
 		wxString enableColorEffect;
 		wxString enableGrayScale;
-		wxString enableSepia;
 		wxString enableBandCEffect;
 		wxString effectMedianLevel;
 		wxString effectSharpenLevel;
@@ -60,8 +59,9 @@ namespace Regards::Filter
 		wxString enableOpenCL;
 		wxString threshold;
 		wxString enableFilmgrain;
-		//wxString enableColorisation;
-		//wxString enableRestore;
+		wxString enableColorisation;
+		wxString enableRestore;
+		wxString enableSepia;
 		wxString libelleScale;
 		wxString libelleZoom;
 		wxString libelleAutoContrast;
@@ -70,6 +70,5 @@ namespace Regards::Filter
 		wxString libelleTemplateWindowSize;
 		wxString libellesearchWindowSize;
 		wxString libelleInterpolationQuality;
-
 	};
 }
