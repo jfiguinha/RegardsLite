@@ -8,7 +8,7 @@ COpenCVVideoPlayer::COpenCVVideoPlayer(const wxString& fileName) : IVideoPlayer(
 {
 	filename = CConvertUtility::ConvertToStdString(fileName);
 	capture = new cv::VideoCapture(filename, cv::CAP_FFMPEG);
-    capture->set(CAP_PROP_ORIENTATION_AUTO, false);
+
 	isOpen = capture->isOpened();
 
 	/*
@@ -142,13 +142,19 @@ int COpenCVVideoPlayer::SeekToPos(const int& sec)
 	return 0;
 }
 
+cv::Mat COpenCVVideoPlayer::GetVideoThumbnailFrame(const int& thumbnailWidth, const int& thumbnailHeight)
+{
+	return cv::Mat();
+}
+
 cv::Mat COpenCVVideoPlayer::GetVideoFrame(const bool& applyOrientation, const bool& invertRotation)
 {
 	cv::Mat frame;
-	*capture >> frame;
+	capture->read(frame);
+    
 	if (!frame.empty())
 	{
-		cv::cvtColor(frame, frame, cv::COLOR_BGR2BGRA);
+		//cv::cvtColor(frame, frame, cv::COLOR_BGR2BGRA);
 
 		if (applyOrientation)
 		{
@@ -170,12 +176,5 @@ cv::Mat COpenCVVideoPlayer::GetVideoFrame(const bool& applyOrientation, const bo
 		}
 
 	}
-	else
-	{
-		printf("GetVideoFrame error \n");
-	}
-
-	
-
 	return frame;
 }

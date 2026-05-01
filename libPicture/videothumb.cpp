@@ -19,7 +19,7 @@ public:
 	{
 		this->useOpenCV = false;// useOpenCV;
 		this->filename = fileName;
-		printf("Filename : %s \n", CConvertUtility::ConvertToUTF8(filename));
+		//printf("Filename : %s \n", CConvertUtility::ConvertToUTF8(filename));
 
 		CRegardsConfigParam* regardsParam = CParamInit::getInstance();
 		if (regardsParam != nullptr)
@@ -126,56 +126,62 @@ public:
 			}
 		}
 			
+		if (videoThumbnailer->SupportThumbnail())
+		{
+			image = videoThumbnailer->GetVideoThumbnailFrame(thumbnailWidth, thumbnailHeight);
 
-		image = videoThumbnailer->GetVideoFrame();
-		if (image.empty())
-			image = CLibPicture::mat_from_wx(defaultPicture);
+			int orientation = videoThumbnailer->GetOrientation();
+			switch (orientation)
+			{
+			case -270:
+			case 90:
+				cv::rotate(image, image, cv::ROTATE_90_COUNTERCLOCKWISE);
+				break;
+			case 180:
+				cv::rotate(image, image, cv::ROTATE_180);
+				break;
+			case -90:
+			case 270:
+				cv::rotate(image, image, cv::ROTATE_90_CLOCKWISE);
+				break;
+			}
+				
+			/*
+			int scaledSize = 0;
+			bool maintainAspectRatio = true;
+			int scaledWidth = thumbnailWidth;
+			int scaledHeight = thumbnailHeight;
+			calculateDimensions(scaledSize, maintainAspectRatio, scaledWidth, scaledHeight);
+			*/
+
+			
+		}
 		else
 		{
-			videowidth = image.size().width;
-			videoheight = image.size().height;
-			//int rotation = videoThumbnailer->GetOrientation();
-
-			if (thumbnailWidth > 0 && thumbnailHeight > 0)
+			image = videoThumbnailer->GetVideoFrame();
+			if (image.empty())
+				image = CLibPicture::mat_from_wx(defaultPicture);
+			else
 			{
-				
+				videowidth = image.size().width;
+				videoheight = image.size().height;
+				//int rotation = videoThumbnailer->GetOrientation();
 
-				int scaledSize = 0;
-				bool maintainAspectRatio = true;
+				if (thumbnailWidth > 0 && thumbnailHeight > 0)
+				{
+					int scaledSize = 0;
+					bool maintainAspectRatio = true;
 
-				int scaledWidth = thumbnailWidth;
-				int scaledHeight = thumbnailHeight;
-				calculateDimensions(scaledSize, maintainAspectRatio, scaledWidth, scaledHeight);
+					int scaledWidth = thumbnailWidth;
+					int scaledHeight = thumbnailHeight;
+					calculateDimensions(scaledSize, maintainAspectRatio, scaledWidth, scaledHeight);
 
-				resize(image, image, cv::Size(scaledWidth, scaledHeight));
+					resize(image, image, cv::Size(scaledWidth, scaledHeight));
 
+				}
 			}
-
-			/*
-			switch (rotation)
-			{
-				case 90:
-					cv::rotate(image, image, cv::ROTATE_90_CLOCKWISE);
-					break;
-				case 180:
-					cv::rotate(image, image, cv::ROTATE_180);
-					break;
-				case 270:
-					cv::rotate(image, image, cv::ROTATE_90_COUNTERCLOCKWISE);
-					break;
-			}
-			*/
-
-			/*
-			if (rotation == 90 || rotation == 270)
-			{
-				cv::flip(image, image, -1);
-			}
-			*/
 		}
 
-
-		//CPictureUtility::ApplyTransform(image);
 	}
 
 	int ascpectNominator = 0;
@@ -316,7 +322,7 @@ vector<CImageVideoThumbnail*> CVideoThumb::GetVideoListFrame(const int& widthThu
 			}
 			catch (...)
 			{
-				printf("error \n");
+				printf("error CImageVideoThumbnail creation\n");
 			}
 		}
 	}
@@ -350,7 +356,7 @@ vector<CImageVideoThumbnail*> CVideoThumb::GetVideoListFrame(const int& widthThu
 			}
 			catch (...)
 			{
-				printf("error \n");
+				printf("error CImageVideoThumbnail creation\n");
 			}
 		}
 	}
