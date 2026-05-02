@@ -61,7 +61,7 @@ void CThumbnailVideo::UpdateThumbnailIcone(wxCommandEvent& event)
 	delete threadLoadingBitmap;
     
     
-
+    needToRefresh = true;
 		
 }
 
@@ -382,7 +382,7 @@ void CThumbnailVideo::UpdateVideoThumbnail(const wxString& videoFile)
 	else
 		process_end = true;
 
-
+    needToRefresh = true;
 }
 void CThumbnailVideo::LoadVideoThumbnail(void* param)
 {
@@ -483,12 +483,14 @@ void CThumbnailVideo::UpdateVideoThumbnail(wxCommandEvent& event)
 {
 	//if (!videoThumbnailOk)
 	UpdateVideoThumbnail();
+    needToRefresh = true;
 }
 
 void CThumbnailVideo::ResizeThumbnail()
 {
 	UpdateScroll();
     UpdateVideoThumbnail();
+    needToRefresh = true;
 }
 
 void CThumbnailVideo::EraseThumbnail(long value)
@@ -546,13 +548,14 @@ void CThumbnailVideo::EraseThumbnail(long value)
 		window->GetEventHandler()->AddPendingEvent(evt);
 	}
 
-	
+	needToRefresh = true;
 }
 
 void CThumbnailVideo::EraseThumbnail(wxCommandEvent& event)
 {
     long value = event.GetExtraLong();
     EraseThumbnail(value);
+    needToRefresh = true;
 }
 
 
