@@ -46,7 +46,7 @@ CRegardsConfigParam::CRegardsConfigParam()
 	faceDetection = 0;
 	fastFaceDetection = 1;
 	musicDiaporama = "";
-	isThumbnailOpenCV = 1;
+	isThumbnailOpenCV = 0;
 	bufferSize = 100;
 	numSuperResolution = 0;
 	useSuperResolution = 0;
