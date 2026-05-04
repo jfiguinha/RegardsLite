@@ -3,7 +3,7 @@
 #include <ParamInit.h>
 #include "RegardsConfigParam.h"
 #include <ConvertUtility.h>
-
+#include <wx/file.h>
 
 
 
@@ -22,6 +22,8 @@ void CThumbnailBuffer::RemovePicture(const wxString& filename)
 		auto it = listPicture.find(filename);
 		if (it != listPicture.end())
 		{
+            cv::Mat data = it->second;
+            data.release();
 			listPicture.erase(it);
 		}
 	}
@@ -132,13 +134,13 @@ cv::Mat CThumbnailBuffer::GetPicture(const wxString& filename)
 {
     cv::Mat image;
     int sizeBuffer = 100;
-    
+
     CRegardsConfigParam* param = CParamInit::getInstance();
     if (param != nullptr)
     {
         sizeBuffer = param->GetBufferSize();
     }
-    
+
     if (sizeBuffer <= 0)
     {
         return cv::imread(CConvertUtility::ConvertToStdString(filename), cv::IMREAD_COLOR);
@@ -150,9 +152,20 @@ cv::Mat CThumbnailBuffer::GetPicture(const wxString& filename)
 
         if (it == listPicture.end())
         {
-            image = cv::imread(CConvertUtility::ConvertToStdString(filename), cv::IMREAD_COLOR);
+            if (wxFile::Exists(filename))
+            {
+                wxFile file(filename);
+                size_t _jpegSize = file.Length();
+                image = cv::Mat(1, _jpegSize, CV_8UC1);
+                if (file.IsOpened())
+                    file.Read(image.data, _jpegSize);
+                file.Close();
+            }
+
+            //cv::Mat decoded = cv::imdecode(image, cv::IMREAD_COLOR);
+
             listPicture[filename] = image;
-            
+
             {
                 std::lock_guard<std::mutex> fileLock(muListFile);
                 listFile.push_back(filename);
@@ -161,7 +174,7 @@ cv::Mat CThumbnailBuffer::GetPicture(const wxString& filename)
         else
         {
             image = it->second;
-            
+
             {
                 std::lock_guard<std::mutex> fileLock(muListFile);
                 auto fileIt = std::find(listFile.begin(), listFile.end(), filename);
@@ -180,7 +193,7 @@ cv::Mat CThumbnailBuffer::GetPicture(const wxString& filename)
         {
             wxString firstFile = listFile.front();
             listFile.erase(listFile.begin());
-            
+
             {
                 std::lock_guard<std::mutex> picLock(muPictureBuffer);
                 auto it = listPicture.find(firstFile);
@@ -192,5 +205,8 @@ cv::Mat CThumbnailBuffer::GetPicture(const wxString& filename)
         }
     }
 
-    return image;
+    cv::Mat decoded = cv::imdecode(image, cv::IMREAD_COLOR);
+    if (decoded.empty())
+        return cv::imread(CConvertUtility::ConvertToStdString(filename), cv::IMREAD_COLOR);
+    return decoded;
 }
