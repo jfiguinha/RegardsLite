@@ -151,6 +151,8 @@ int MyApp::Close()
 	if(frameViewer != nullptr)
 		delete frameViewer;
 
+	exit(0);
+
 	return 0;
 }
 
