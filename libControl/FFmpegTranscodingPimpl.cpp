@@ -1,16 +1,20 @@
 // ReSharper disable All
 #include "header.h"
 #include "FFmpegTranscodingPimpl.h"
+
 #include <CompressVideo.h>
 #include <ImageLoadingFormat.h>
+#include "ffmpegToBitmap.h"
 #include "VideoCompressOption.h"
 #include <wx/progdlg.h>
 #include <wx/filename.h>
 #include <ConvertUtility.h>
 #include <chrono>
 #include <FiltreEffet.h>
+#include <OpenCLFilter.h>
 #include <OpenCLEffectVideo.h>
 #include <FiltreEffetCPU.h>
+#include <ConvertUtility.h>
 #include <MediaInfo.h>
 #include <picture_utility.h>
 
@@ -23,6 +27,7 @@ extern "C" {
     #include <libavutil/display.h>
     #include <libavutil/channel_layout.h>
 }
+
 
 using namespace cv;
 using namespace Regards::OpenCL;
@@ -431,8 +436,13 @@ enum AVPixelFormat CFFmpegTranscodingPimpl::get_hw_format(AVCodecContext* ctx,
 
 double CFFmpegTranscodingPimpl::get_rotation(AVStream* st)
 {
-	uint8_t* displaymatrix = av_stream_get_side_data(st,
-	                                                 AV_PKT_DATA_DISPLAYMATRIX, NULL);
+	int32_t* displaymatrix = 0;
+	const AVPacketSideData* psd = av_packet_side_data_get(st->codecpar->coded_side_data,
+		st->codecpar->nb_coded_side_data,
+		AV_PKT_DATA_DISPLAYMATRIX);
+	if (psd)
+		displaymatrix = (int32_t*)psd->data;
+
 	double theta = 0;
 	if (displaymatrix)
 		theta = -av_display_rotation_get((int32_t*)displaymatrix);
@@ -1083,18 +1093,18 @@ AVDictionary* CFFmpegTranscodingPimpl::setEncoderParam(const AVCodecID& codec_id
 
 	if (codec_id == AV_CODEC_ID_H264 && encoderName == "amf")
 	{
-		// Set profile and level
-		pCodecCtx->profile = FF_PROFILE_UNKNOWN;
+		pCodecCtx->profile = AV_PROFILE_UNKNOWN;
 		if (videoCompressOption->encoder_profile != "")
 		{
 			if (videoCompressOption->encoder_profile == "baseline")
-				pCodecCtx->profile = FF_PROFILE_H264_BASELINE;
+				pCodecCtx->profile = AV_PROFILE_H264_BASELINE;
 			else if (videoCompressOption->encoder_profile == "main")
-				pCodecCtx->profile = FF_PROFILE_H264_MAIN;
+				pCodecCtx->profile = AV_PROFILE_H264_MAIN;
 			else if (videoCompressOption->encoder_profile == "high")
-				pCodecCtx->profile = FF_PROFILE_H264_HIGH;
+				pCodecCtx->profile = AV_PROFILE_H264_HIGH;
 		}
-		pCodecCtx->level = FF_LEVEL_UNKNOWN;
+		pCodecCtx->level = AV_LEVEL_UNKNOWN;
+
 		if (videoCompressOption->encoder_level != "")
 		{
 			int i = 1;
@@ -1109,14 +1119,15 @@ AVDictionary* CFFmpegTranscodingPimpl::setEncoderParam(const AVCodecID& codec_id
 
 	if (codec_id == AV_CODEC_ID_H265 && encoderName == "amf")
 	{
-		// Set profile and level
-		pCodecCtx->profile = FF_PROFILE_UNKNOWN;
+
+		pCodecCtx->profile = AV_PROFILE_UNKNOWN;
 		if (videoCompressOption->encoder_profile != "")
 		{
 			if (videoCompressOption->encoder_profile == "main")
-				pCodecCtx->profile = FF_PROFILE_HEVC_MAIN;
+				pCodecCtx->profile = AV_PROFILE_HEVC_MAIN;
 		}
-		pCodecCtx->level = FF_LEVEL_UNKNOWN;
+		pCodecCtx->level = AV_LEVEL_UNKNOWN;
+
 		if (videoCompressOption->encoder_level != "")
 		{
 			int i = 1;
@@ -2004,7 +2015,7 @@ void CFFmpegTranscodingPimpl::VideoTreatment(AVFrame*& tmp_frame, StreamContext*
 				openclEffectVideo.ApplyStabilization(&videoCompressOption->videoEffectParameter, openCVStabilization);
 			}
 
-			if (correctedContrast)
+			if (correctedContrast || videoCompressOption->videoEffectParameter.filmcolorisation || videoCompressOption->videoEffectParameter.filmEnhance)
 			{
 				openclEffectVideo.ApplyOpenCVEffect(&videoCompressOption->videoEffectParameter);
 			}
@@ -2037,6 +2048,9 @@ void CFFmpegTranscodingPimpl::VideoTreatment(AVFrame*& tmp_frame, StreamContext*
 			mat = ApplyProcess(bitmap);
 		else
 			mat = bitmap;
+
+		if (mat.channels() == 3)
+			cv::cvtColor(mat, mat, cv::COLOR_BGR2BGRA);
 
 		if (dst_hardware == nullptr)
 		{
@@ -2117,7 +2131,7 @@ cv::Mat CFFmpegTranscodingPimpl::ApplyProcess(cv::Mat& src)
 			openclEffectVideo.ApplyStabilization(&videoCompressOption->videoEffectParameter, openCVStabilization);
 		}
 
-		if (correctedContrast)
+		if (correctedContrast || videoCompressOption->videoEffectParameter.filmcolorisation || videoCompressOption->videoEffectParameter.filmEnhance)
 		{
 			openclEffectVideo.ApplyOpenCVEffect(&videoCompressOption->videoEffectParameter);
 		}
@@ -2201,6 +2215,15 @@ cv::Mat CFFmpegTranscodingPimpl::ApplyProcess(cv::Mat& src)
 					filtre.NiveauDeGris();
 				}
 
+				if (videoCompressOption->videoEffectParameter.filmcolorisation)
+				{
+					filtre.Colorization();
+				}
+
+				if (videoCompressOption->videoEffectParameter.filmEnhance)
+				{
+					filtre.SuperResolutionNCNN();
+				}
 			}
 		}
 
@@ -2264,7 +2287,8 @@ int CFFmpegTranscodingPimpl::ProcessEncodeOneFrameFile(AVFrame* dst, const int64
 	frameOutput.copyTo(frameOutputWithoutEffect);
 	CPictureUtility::ApplyRotation(frameOutput, rotation);
 	frameOutput = ApplyProcess(frameOutput);
-
+	if (frameOutput.channels() == 3)
+		cv::cvtColor(frameOutput, frameOutput, cv::COLOR_BGR2BGRA);
 
 	AVFrame* frame = av_frame_alloc();
 	if (!frame)
@@ -2565,7 +2589,6 @@ void CFFmpegTranscodingPimpl::Release()
 			{
 				if (stream_ctx[i].enc_ctx != nullptr)
 				{
-					avcodec_close(stream_ctx[i].enc_ctx);
 					avcodec_free_context(&stream_ctx[i].enc_ctx);
 				}
 			}
@@ -2698,9 +2721,9 @@ AVCodecContext* CFFmpegTranscodingPimpl::OpenFFmpegEncoder(AVCodecID codec_id, A
 			streamVideo->time_base = streamVideoToEncode->time_base;
 			streamVideo->avg_frame_rate = streamVideoToEncode->avg_frame_rate;
             
-            printf("streamVideoToEncode FrameRate : %d %d \n",  streamVideoToEncode->codecpar->framerate.num, streamVideoToEncode->codecpar->framerate.den);
-            printf("streamVideoToEncode r_frame_rate : %d %d \n",  streamVideoToEncode->r_frame_rate.num, streamVideoToEncode->r_frame_rate.den);
-            printf("streamVideoToEncode Time Base : %d %d \n",  streamVideoToEncode->time_base.num, streamVideoToEncode->time_base.den);
+            //printf("streamVideoToEncode FrameRate : %d %d \n",  streamVideoToEncode->codecpar->framerate.num, streamVideoToEncode->codecpar->framerate.den);
+            //printf("streamVideoToEncode r_frame_rate : %d %d \n",  streamVideoToEncode->r_frame_rate.num, streamVideoToEncode->r_frame_rate.den);
+            //printf("streamVideoToEncode Time Base : %d %d \n",  streamVideoToEncode->time_base.num, streamVideoToEncode->time_base.den);
 
 			c->bit_rate = 1000 * videoCompressOption->videoBitRate;
 			c->gop_size = framerate;
@@ -2735,8 +2758,18 @@ AVCodecContext* CFFmpegTranscodingPimpl::OpenFFmpegEncoder(AVCodecID codec_id, A
 
 		if (rotate != 0 && streamVideo != nullptr)
 		{
-			uint8_t* sd = av_stream_new_side_data(streamVideo, AV_PKT_DATA_DISPLAYMATRIX,
-			                                      sizeof(int32_t) * 9);
+			int32_t display_matrix[9];
+
+//#if LIBAVFORMAT_BUILD >= CALC_FFMPEG_VERSION(57, 68, 100)
+//			uint8_t* sd = av_stream_new_side_data(streamVideo, AV_PKT_DATA_DISPLAYMATRIX,
+//				sizeof(display_matrix));
+//#else
+			int32_t* sd = (int32_t*)av_packet_side_data_new(&streamVideo->codecpar->coded_side_data,
+				&streamVideo->codecpar->nb_coded_side_data,
+				AV_PKT_DATA_DISPLAYMATRIX,
+				sizeof(display_matrix), 0);
+//#endif
+
 			if (sd)
 				av_display_rotation_set((int32_t*)sd, rotate);
 		}
@@ -2753,8 +2786,8 @@ AVCodecContext* CFFmpegTranscodingPimpl::OpenFFmpegEncoder(AVCodecID codec_id, A
 		}
 		
         
-        printf("ffmpeg FrameRate : %d %d \n",  c->framerate.num, c->framerate.den);
-        printf("ffmpeg Time Base : %d %d \n",  c->time_base.num, c->time_base.den);
+        //printf("ffmpeg FrameRate : %d %d \n",  c->framerate.num, c->framerate.den);
+        //printf("ffmpeg Time Base : %d %d \n",  c->time_base.num, c->time_base.den);
 
 		const int ret = avcodec_open2(c, p_codec, &param);
 		if (ret < 0)
@@ -2764,8 +2797,6 @@ AVCodecContext* CFFmpegTranscodingPimpl::OpenFFmpegEncoder(AVCodecID codec_id, A
 			{
 				printf("Error (%s) returned from encoded video", str_err);
 			}
-
-			avcodec_close(c);
 			avcodec_free_context(&c);
 			c = nullptr;
 		}
@@ -2821,6 +2852,8 @@ int CFFmpegTranscodingPimpl::EncodeOneFrameFFmpeg(const char* filename, AVFrame*
 		CPictureUtility::ApplyRotation(decodeFrame, rotation);
 		//cv::flip(decodeFrame, decodeFrame, 0);
 		frameOutput = ApplyProcess(decodeFrame);
+		if (frameOutput.channels() == 3)
+			cv::cvtColor(frameOutput, frameOutput, cv::COLOR_BGR2BGRA);
 
 		//*bitmapOut = bitmap;
 

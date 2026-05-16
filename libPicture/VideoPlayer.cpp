@@ -225,7 +225,14 @@ CVideoPlayer::CVideoPlayer(const wxString& filename) : IVideoPlayer(filename)
 	pimpl = new CVideoPlayerPimpl();
 	ret = pimpl->OpenVideoFile(CConvertUtility::ConvertToUTF8(filename));
 	this->filename = filename;
-	pimpl->SeekToPos(0);
+	try
+	{
+		pimpl->SeekToPos(0);
+	}
+	catch (...)
+	{
+
+	}
 }
 
 cv::Mat CVideoPlayer::GetVideoFrame(const bool& applyOrientation, const bool& invertRotation)
@@ -237,7 +244,6 @@ cv::Mat CVideoPlayer::GetVideoFrame(const bool& applyOrientation, const bool& in
 		if (applyOrientation)
 		{
 			int orientation = pimpl->GetOrientation();
-
             switch (orientation)
             {
             case -270:
@@ -252,6 +258,7 @@ cv::Mat CVideoPlayer::GetVideoFrame(const bool& applyOrientation, const bool& in
                 cv::rotate(image, image, invertRotation ? cv::ROTATE_90_COUNTERCLOCKWISE : cv::ROTATE_90_CLOCKWISE);
                 break;
             }
+
 		}
 
 		return image;

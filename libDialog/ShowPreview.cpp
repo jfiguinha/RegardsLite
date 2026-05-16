@@ -6,15 +6,16 @@
 #include <window_id.h>
 #endif
 #include <wx/filename.h>
-#include <videothumb.h>
 #include <libPicture.h>
 #include <ParamInit.h>
 #include <BitmapWnd3d.h>
 #include <BitmapWndRender.h>
 #include <ImageLoadingFormat.h>
+#include <videothumb.h>
 #include <FileUtility.h>
 #include "CompressionAudioVideoOption.h"
 #include "ffmpeg_transcoding.h"
+
 using namespace Regards::Picture;
 using namespace Regards::Window;
 using namespace Regards::Control;
@@ -120,7 +121,7 @@ void CShowPreview::SetParameter(const wxString& videoFilename,
 	if (videoOriginal != nullptr)
 		delete videoOriginal;
 
-	videoOriginal = new CVideoThumb(filename);
+	videoOriginal = new CVideoThumb(filename, true, true);
 	timeTotal = videoOriginal->GetMovieDuration();
 	orientation = videoOriginal->GetOrientation();
 	sliderVideo->SetTotalSecondTime(timeTotal * 1000);
@@ -278,7 +279,7 @@ void CShowPreview::ThreadLoading(void* data)
 
 		if (ret == 0)
 		{
-			CVideoThumb video(fileTemp);
+			CVideoThumb video(fileTemp, true, true);
 			showPreview->decodeFrame = video.GetVideoFramePos(0, 0, 0);
 			if (showPreview->decodeFrame.empty())
 				showPreview->decodeFrame = CLibPicture::mat_from_wx(defaultPicture);
