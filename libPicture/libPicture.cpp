@@ -1541,7 +1541,7 @@ vector<CImageVideoThumbnail*> CLibPicture::LoadAllVideoThumbnail(const wxString&
 				bool isFind = false;
 				CVideoThumb* thumbnail = new CVideoThumb(szFileName);
 				vector<CImageVideoThumbnail*> listVideo;
-				listVideo = thumbnail->GetVideoListFrame(widthThumbnail, heightThumbnail);
+				thumbnail->GetVideoListFrame(listVideo, widthThumbnail, heightThumbnail);
 				for (CImageVideoThumbnail* cxVideo : listVideo)
 				{
 					listThumbnail.push_back(cxVideo);

@@ -2214,16 +2214,6 @@ cv::Mat CFFmpegTranscodingPimpl::ApplyProcess(cv::Mat& src)
 				{
 					filtre.NiveauDeGris();
 				}
-
-				if (videoCompressOption->videoEffectParameter.filmcolorisation)
-				{
-					filtre.Colorization();
-				}
-
-				if (videoCompressOption->videoEffectParameter.filmEnhance)
-				{
-					filtre.SuperResolutionNCNN();
-				}
 			}
 		}
 
